@@ -1,354 +1,163 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>نظام إدارة المخزون FEFO</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نظام إدارة المخزون والمحاسبة</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
-header{background:#18243a;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-main{max-width:1200px;margin:20px auto;padding:0 14px}
-.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
-.auth{max-width:520px;margin:70px auto}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
-.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}
-input,select{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:15px}
-button{border:0;border-radius:9px;padding:11px 16px;cursor:pointer;background:#e9edf5}
-button.primary{background:#18243a;color:#fff}
-.msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}
-.bad{color:#b42318}.ok{color:#087443}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.num{font-size:28px;font-weight:bold;margin-top:8px}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
-.tab.active{background:#18243a;color:#fff}
-.panel{display:none}.panel.active{display:block}
-table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}
-th{background:#f0f3f8}
-.small{font-size:12px;color:#667085}
-@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:500px){.grid{grid-template-columns:1fr}.field{min-width:100%}header{font-size:14px}}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#18243a;color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+main{max-width:1400px;margin:18px auto;padding:0 14px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+.auth{max-width:520px;margin:70px auto}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:160px}
+input,select,textarea{padding:10px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff}textarea{min-height:70px}
+button{border:0;border-radius:9px;padding:10px 15px;cursor:pointer;background:#e9edf5;font-size:14px}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}button.danger{background:#b42318;color:#fff}
+.msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}.bad{color:#b42318}.ok{color:#087443}.small{font-size:12px;color:#667085}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.num{font-size:27px;font-weight:bold;margin-top:8px}
+.nav{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.nav button.active{background:#18243a;color:#fff}
+.panel{display:none}.panel.active{display:block}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #edf0f5;text-align:right;vertical-align:middle}th{background:#f0f3f8}
+.invoice-head{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.invoice-total{display:flex;justify-content:flex-start;gap:25px;align-items:center;margin-top:15px;font-size:17px}
+.line-actions button{padding:6px 10px}.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eef2f7;font-size:12px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.invoice-head{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}.invoice-head{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-
-<header>
-  <b>📦 نظام إدارة المخزون — FEFO</b>
-  <span id="status">جاري الاتصال...</span>
-</header>
+<header><b>📦 نظام إدارة المخزون والمحاسبة</b><span id="status">جاري الاتصال...</span></header>
 
 <main id="auth" class="auth card">
-  <h2>تسجيل الدخول</h2>
-  <p class="small">استخدم بريدك الإلكتروني وكلمة المرور. إذا كان الحساب موجودًا سيتم الدخول مباشرة.</p>
-  <div class="row">
-    <div class="field">
-      <label>البريد الإلكتروني</label>
-      <input id="email" type="email" autocomplete="username">
-    </div>
-    <div class="field">
-      <label>كلمة المرور</label>
-      <input id="password" type="password" autocomplete="current-password">
-    </div>
-  </div>
-  <div class="row" style="margin-top:14px">
-    <button class="primary" onclick="login()">دخول</button>
-    <button onclick="signup()">إنشاء حساب المدير</button>
-  </div>
-  <div id="authMsg"></div>
-</main>
+<h2>تسجيل الدخول</h2><p class="small">الدخول مرتبط بحساب Supabase الخاص بالنظام.</p>
+<div class="row"><div class="field"><label>البريد الإلكتروني</label><input id="email" type="email" autocomplete="username"></div>
+<div class="field"><label>كلمة المرور</label><input id="password" type="password" autocomplete="current-password"></div></div>
+<div class="row" style="margin-top:14px"><button class="primary" onclick="login()">دخول</button><button onclick="signup()">إنشاء حساب المدير</button></div>
+<div id="authMsg"></div></main>
 
 <main id="app" style="display:none">
-  <div class="card">
-    <button onclick="logout()">تسجيل الخروج</button>
-    <span id="who" class="small"></span>
-  </div>
+<div class="card"><button onclick="logout()">تسجيل الخروج</button> <span id="who" class="small"></span></div>
+<div class="grid">
+<div class="card">المواقع<div id="sitesN" class="num">0</div></div><div class="card">الأصناف<div id="itemsN" class="num">0</div></div>
+<div class="card">التشغيلات<div id="lotsN" class="num">0</div></div><div class="card">رصيد المخزون<div id="qtyN" class="num">0</div></div>
+<div class="card">قيمة المخزون<div id="valN" class="num">0</div></div></div>
 
-  <div class="grid">
-    <div class="card">المواقع<div id="sitesN" class="num">0</div></div>
-    <div class="card">الأصناف<div id="itemsN" class="num">0</div></div>
-    <div class="card">التشغيلات<div id="lotsN" class="num">0</div></div>
-    <div class="card">إجمالي الرصيد<div id="qtyN" class="num">0</div></div>
-  </div>
+<div class="nav">
+<button class="active" data-p="dash">الرئيسية</button><button data-p="purchases">🛒 فاتورة مشتريات جديدة</button>
+<button data-p="sales">💰 فاتورة مبيعات جديدة</button><button data-p="items">الأصناف</button><button data-p="lots">التشغيلات</button>
+<button data-p="moves">حركة المخزون</button><button data-p="accounts">دليل الحسابات</button><button data-p="journal">قيود اليومية</button>
+<button data-p="sites">المواقع</button><button data-p="parties">الموردون والعملاء</button>
+</div>
 
-  <div class="tabs">
-    <button class="tab active" data-p="dash">الرئيسية</button>
-    <button class="tab" data-p="items">الأصناف</button>
-    <button class="tab" data-p="lots">التشغيلات</button>
-    <button class="tab" data-p="moves">الحركات</button>
-    <button class="tab" data-p="issue">صرف FEFO</button>
-  </div>
+<section id="dash" class="panel active card"><h2>لوحة المتابعة</h2>
+<table><thead><tr><th>الصنف</th><th>الموقع</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>التكلفة</th></tr></thead><tbody id="fefo"></tbody></table></section>
 
-  <section id="dash" class="panel active card">
-    <h2>أقرب الصلاحيات</h2>
-    <table>
-      <thead><tr><th>الصنف</th><th>الموقع</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th></tr></thead>
-      <tbody id="fefo"></tbody>
-    </table>
-  </section>
+<section id="purchases" class="panel card"><h2>➕ فاتورة مشتريات جديدة</h2>
+<div class="invoice-head"><div class="field"><label>رقم الفاتورة</label><input id="pinv"></div>
+<div class="field"><label>التاريخ</label><input id="pdate" type="date"></div>
+<div class="field"><label>المورد</label><select id="psupplier"></select></div>
+<div class="field"><label>الموقع المستلم</label><select id="psite"></select></div></div>
+<table style="margin-top:15px"><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الوحدة</th><th>رقم التشغيلة</th><th>الصلاحية</th><th>الإجمالي</th><th></th></tr></thead><tbody id="purchaseLines"></tbody></table>
+<div class="row" style="margin-top:10px"><button onclick="addPurchaseLine()">+ إضافة صنف</button></div>
+<div class="invoice-total"><span>الإجمالي قبل الضريبة: <b id="psub">0.00</b></span><span>الضريبة: <input id="ptax" type="number" step=".01" value="0" style="width:120px" oninput="calcPurchase()"></span><span>الإجمالي: <b id="ptotal">0.00</b></span></div>
+<div class="row" style="margin-top:12px"><button class="success" onclick="savePurchase()">حفظ وترحيل الفاتورة</button><button onclick="resetPurchase()">فاتورة جديدة</button></div><div id="pmsg"></div></section>
 
-  <section id="items" class="panel card">
-    <h2>الأصناف</h2>
-    <div class="row">
-      <div class="field"><label>SKU</label><input id="sku"></div>
-      <div class="field"><label>اسم الصنف</label><input id="iname"></div>
-      <div class="field"><label>الوحدة</label><select id="unit"></select></div>
-      <div class="field"><label>الحد الأدنى</label><input id="min" type="number" value="0"></div>
-      <button class="primary" onclick="addItem()">إضافة</button>
-    </div>
-    <table>
-      <thead><tr><th>SKU</th><th>الصنف</th><th>الوحدة</th><th>الحد الأدنى</th></tr></thead>
-      <tbody id="itemsBody"></tbody>
-    </table>
-  </section>
+<section id="sales" class="panel card"><h2>💰 فاتورة مبيعات جديدة</h2>
+<div class="invoice-head"><div class="field"><label>رقم الفاتورة</label><input id="sinv"></div><div class="field"><label>التاريخ</label><input id="sdate" type="date"></div>
+<div class="field"><label>العميل</label><select id="scustomer"></select></div><div class="field"><label>الموقع</label><select id="ssite" onchange="renderSaleLines()"></select></div></div>
+<table style="margin-top:15px"><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر البيع</th><th>الإجمالي</th><th></th></tr></thead><tbody id="saleLines"></tbody></table>
+<div class="row" style="margin-top:10px"><button onclick="addSaleLine()">+ إضافة صنف</button></div>
+<div class="invoice-total"><span>الإجمالي: <b id="stotal">0.00</b></span></div>
+<div class="row" style="margin-top:12px"><button class="success" onclick="saveSale()">حفظ وترحيل الفاتورة</button><button onclick="resetSale()">فاتورة جديدة</button></div><div id="smsg"></div></section>
 
-  <section id="lots" class="panel card">
-    <h2>التشغيلات</h2>
-    <div class="row">
-      <div class="field"><label>الصنف</label><select id="li"></select></div>
-      <div class="field"><label>الموقع</label><select id="ls"></select></div>
-      <div class="field"><label>رقم التشغيلة</label><input id="batch"></div>
-      <div class="field"><label>الصلاحية</label><input id="exp" type="date"></div>
-      <div class="field"><label>الكمية</label><input id="lq" type="number" step=".001"></div>
-      <div class="field"><label>التكلفة</label><input id="cost" type="number" step=".01"></div>
-      <button class="primary" onclick="addLot()">حفظ</button>
-    </div>
-    <table>
-      <thead><tr><th>الصنف</th><th>الموقع</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>التكلفة</th></tr></thead>
-      <tbody id="lotsBody"></tbody>
-    </table>
-  </section>
+<section id="items" class="panel card"><h2>الأصناف</h2><div class="row"><div class="field"><label>الكود SKU</label><input id="sku"></div><div class="field"><label>اسم الصنف</label><input id="iname"></div>
+<div class="field"><label>الوحدة</label><select id="unit"></select></div><div class="field"><label>الحد الأدنى</label><input id="min" type="number" value="0"></div><button class="primary" onclick="addItem()">إضافة</button></div>
+<table><thead><tr><th>الكود</th><th>الصنف</th><th>الوحدة</th><th>الحد الأدنى</th></tr></thead><tbody id="itemsBody"></tbody></table></section>
 
-  <section id="moves" class="panel card">
-    <h2>آخر الحركات</h2>
-    <table>
-      <thead><tr><th>التاريخ</th><th>الصنف</th><th>الموقع</th><th>النوع</th><th>الكمية</th></tr></thead>
-      <tbody id="movesBody"></tbody>
-    </table>
-  </section>
+<section id="lots" class="panel card"><h2>التشغيلات والأرصدة</h2><div class="row"><div class="field"><label>الصنف</label><select id="li"></select></div><div class="field"><label>الموقع</label><select id="ls"></select></div>
+<div class="field"><label>رقم التشغيلة</label><input id="batch"></div><div class="field"><label>الصلاحية</label><input id="exp" type="date"></div><div class="field"><label>الكمية</label><input id="lq" type="number" step=".001"></div><div class="field"><label>التكلفة</label><input id="cost" type="number" step=".01"></div><button class="primary" onclick="addLot()">حفظ</button></div>
+<table><thead><tr><th>الصنف</th><th>الموقع</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>التكلفة</th></tr></thead><tbody id="lotsBody"></tbody></table></section>
 
-  <section id="issue" class="panel card">
-    <h2>صرف FEFO</h2>
-    <div class="row">
-      <div class="field"><label>الصنف</label><select id="ii" onchange="preview()"></select></div>
-      <div class="field"><label>الموقع</label><select id="is" onchange="preview()"></select></div>
-      <div class="field"><label>الكمية المطلوبة</label><input id="iq" type="number" step=".001" oninput="preview()"></div>
-      <button class="primary" onclick="issue()">تنفيذ الصرف</button>
-    </div>
-    <div id="issueMsg"></div>
-    <table>
-      <thead><tr><th>الأولوية</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>سيُصرف</th></tr></thead>
-      <tbody id="previewBody"></tbody>
-    </table>
-  </section>
+<section id="moves" class="panel card"><h2>حركة المخزون</h2><table><thead><tr><th>التاريخ</th><th>الصنف</th><th>الموقع</th><th>الحركة</th><th>الكمية</th><th>التكلفة</th><th>المرجع</th></tr></thead><tbody id="movesBody"></tbody></table></section>
+
+<section id="accounts" class="panel card"><h2>دليل الحسابات</h2><div class="row"><div class="field"><label>كود الحساب</label><input id="acode"></div><div class="field"><label>اسم الحساب</label><input id="aname"></div><div class="field"><label>النوع</label><select id="atype"><option value="asset">أصول</option><option value="liability">خصوم</option><option value="equity">حقوق ملكية</option><option value="revenue">إيرادات</option><option value="expense">مصروفات</option></select></div><button class="primary" onclick="addAccount()">إضافة</button></div>
+<table><thead><tr><th>الكود</th><th>الحساب</th><th>النوع</th><th>قابل للترحيل</th></tr></thead><tbody id="accountsBody"></tbody></table></section>
+
+<section id="journal" class="panel card"><h2>قيود اليومية</h2><table><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>المصدر</th><th>البيان</th><th>مدين</th><th>دائن</th></tr></thead><tbody id="journalBody"></tbody></table></section>
+
+<section id="sites" class="panel card"><h2>المواقع</h2><div class="row"><div class="field"><label>الكود</label><input id="sitecode"></div><div class="field"><label>اسم الموقع</label><input id="sitename"></div><div class="field"><label>النوع</label><select id="sitetype"><option value="main_warehouse">مخزن رئيسي</option><option value="branch">فرع</option><option value="site">موقع</option></select></div><button class="primary" onclick="addSite()">إضافة</button></div>
+<table><thead><tr><th>الكود</th><th>الموقع</th><th>النوع</th></tr></thead><tbody id="sitesBody"></tbody></table></section>
+
+<section id="parties" class="panel card"><h2>الموردون والعملاء</h2><div class="row"><div class="card" style="flex:1;min-width:300px"><h3>مورد جديد</h3><div class="field"><label>الاسم</label><input id="supname"></div><div class="field"><label>الهاتف</label><input id="supphone"></div><button class="primary" style="margin-top:8px" onclick="addSupplier()">حفظ المورد</button></div>
+<div class="card" style="flex:1;min-width:300px"><h3>عميل جديد</h3><div class="field"><label>الاسم</label><input id="cusname"></div><div class="field"><label>الهاتف</label><input id="cusphone"></div><button class="primary" style="margin-top:8px" onclick="addCustomer()">حفظ العميل</button></div></div>
+<table><thead><tr><th>النوع</th><th>الاسم</th><th>الهاتف</th></tr></thead><tbody id="partiesBody"></tbody></table></section>
 </main>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-const sb = createClient(
-  'https://fyqyodnboryzaejlhdlk.supabase.co',
-  'sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2'
-);
-
-let sites=[], items=[], lots=[], moves=[], units=[], user=null;
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({
-  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-}[m]));
-
-function ar(e){
-  const m=String(e?.message||e||'').toLowerCase();
-  if(m.includes('invalid login')) return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-  if(m.includes('email not confirmed')) return 'الحساب موجود لكن البريد غير مؤكد. افتح رسالة التأكيد في بريدك ثم اضغط دخول.';
-  if(m.includes('already registered')) return 'الحساب موجود بالفعل. استخدم دخول.';
-  if(m.includes('password')) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
-  if(m.includes('rate limit')||m.includes('security purposes')) return 'تم تفعيل حماية مؤقتة. انتظر قليلًا ثم حاول مرة واحدة.';
-  return e?.message || 'حدث خطأ.';
-}
-
-async function ensureAdmin(){
-  const r=await sb.from('inv_user_roles').upsert(
-    {user_id:user.id,role_code:'admin',active:true},
-    {onConflict:'user_id,role_code'}
-  );
-  if(r.error && !String(r.error.message).toLowerCase().includes('duplicate')) throw r.error;
-}
-
-async function start(u){
-  user=u;
-  $('auth').style.display='none';
-  $('app').style.display='block';
-  $('who').textContent=u.email||'';
-  $('status').textContent='جاري تحميل البيانات...';
-  await ensureAdmin();
-  await load();
-}
-
-window.login=async()=>{
-  const email=$('email').value.trim(), password=$('password').value;
-  if(!email||!password) return $('authMsg').innerHTML='<div class="msg bad">أدخل البريد الإلكتروني وكلمة المرور.</div>';
-  $('authMsg').innerHTML='<div class="msg">جاري التحقق...</div>';
-  const r=await sb.auth.signInWithPassword({email,password});
-  if(r.error) return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';
-  try{await start(r.data.user)}
-  catch(e){$('authMsg').innerHTML='<div class="msg bad">تم الدخول لكن تعذر تحميل البيانات: '+esc(ar(e))+'</div>'}
-};
-
-window.signup=async()=>{
-  const email=$('email').value.trim(), password=$('password').value;
-  if(!email) return $('authMsg').innerHTML='<div class="msg bad">أدخل البريد الإلكتروني أولًا.</div>';
-  if(password.length<6) return $('authMsg').innerHTML='<div class="msg bad">كلمة المرور يجب أن تكون 6 أحرف على الأقل.</div>';
-  $('authMsg').innerHTML='<div class="msg">جاري التحقق من الحساب...</div>';
-  const old=await sb.auth.signInWithPassword({email,password});
-  if(!old.error){
-    try{await start(old.data.user);return}
-    catch(e){return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(e))+'</div>'}
-  }
-  const r=await sb.auth.signUp({email,password});
-  if(r.error) return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';
-  if(r.data.session){
-    try{await start(r.data.user)}
-    catch(e){$('authMsg').innerHTML='<div class="msg bad">'+esc(ar(e))+'</div>'}
-  }else{
-    $('authMsg').innerHTML='<div class="msg ok">تم إنشاء الحساب. افتح رسالة التأكيد في بريدك ثم اضغط «دخول».</div>';
-  }
-};
-
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const sb=createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+let user,sites=[],items=[],lots=[],moves=[],units=[],suppliers=[],customers=[],accounts=[],journals=[],pLines=[],sLines=[];
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const today=()=>new Date().toISOString().slice(0,10);
+function ar(e){const m=String(e?.message||e||'').toLowerCase();if(m.includes('invalid login'))return'البريد الإلكتروني أو كلمة المرور غير صحيحة.';if(m.includes('email not confirmed'))return'الحساب غير مؤكد. افتح رسالة التأكيد ثم اضغط دخول.';if(m.includes('already registered'))return'الحساب موجود بالفعل.';return e?.message||'حدث خطأ.'}
+window.login=async()=>{const email=$('email').value.trim(),password=$('password').value;if(!email||!password)return $('authMsg').innerHTML='<div class="msg bad">أدخل البيانات.</div>';const r=await sb.auth.signInWithPassword({email,password});if(r.error)return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';start(r.data.user)};
+window.signup=async()=>{const email=$('email').value.trim(),password=$('password').value;if(password.length<6)return $('authMsg').innerHTML='<div class="msg bad">كلمة المرور 6 أحرف على الأقل.</div>';const r=await sb.auth.signUp({email,password});if(r.error)return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';if(r.data.session)start(r.data.user);else $('authMsg').innerHTML='<div class="msg ok">تم إنشاء الحساب. أكد البريد ثم ادخل.</div>'};
 window.logout=async()=>{await sb.auth.signOut();location.reload()};
-
+async function start(u){user=u;$('auth').style.display='none';$('app').style.display='block';$('who').textContent=u.email||'';$('pdate').value=today();$('sdate').value=today();$('status').textContent='جاري تحميل البيانات...';await load();$('status').textContent='متصل ✓'}
+async function q(table,query){const r=await query;if(r.error)throw r.error;return r.data||[]}
 async function load(){
-  const rs=await Promise.all([
-    sb.from('inv_sites').select('*').eq('active',true).order('name_ar'),
-    sb.from('inv_items').select('*,inv_units(name_ar)').eq('active',true).order('name_ar'),
-    sb.from('inv_lots').select('*,inv_items(name_ar,sku),inv_sites(name_ar)').order('expiry_date',{ascending:true}),
-    sb.from('inv_movements').select('*,inv_items(name_ar),inv_sites(name_ar)').order('created_at',{ascending:false}).limit(100),
-    sb.from('inv_units').select('*').eq('active',true).order('name_ar')
-  ]);
-  for(const r of rs) if(r.error) throw r.error;
-  [sites,items,lots,moves,units]=rs.map(r=>r.data);
-  render();
-  $('status').textContent='متصل بـ Supabase ✓';
-}
-
-function opts(a,label){
-  return a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
-}
-
+[sites,items,lots,moves,units,suppliers,customers,accounts,journals]=await Promise.all([
+q('sites',sb.from('inv_sites').select('*').eq('active',true).order('name_ar')),
+q('items',sb.from('inv_items').select('*,inv_units(name_ar)').eq('active',true).order('name_ar')),
+q('lots',sb.from('inv_lots').select('*,inv_items(name_ar,sku),inv_sites(name_ar)').order('expiry_date',{ascending:true})),
+q('moves',sb.from('inv_movements').select('*,inv_items(name_ar),inv_sites(name_ar)').order('created_at',{ascending:false}).limit(150)),
+q('units',sb.from('inv_units').select('*').eq('active',true).order('name_ar')),
+q('suppliers',sb.from('suppliers').select('*').order('name')),
+q('customers',sb.from('customers').select('*').order('name')),
+q('accounts',sb.from('coa_accounts').select('*').eq('active',true).order('code')),
+q('journals',sb.from('journal_entries').select('*').order('entry_date',{ascending:false}).limit(100))
+]);render();resetPurchase();resetSale()}
+function opts(a,label){return a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 function render(){
-  $('sitesN').textContent=sites.length;
-  $('itemsN').textContent=items.length;
-  $('lotsN').textContent=lots.length;
-  $('qtyN').textContent=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0),0).toLocaleString();
-
-  $('fefo').innerHTML=lots.filter(x=>Number(x.qty_on_hand)>0).slice(0,20).map(x=>
-    '<tr><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+
-    esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td></tr>'
-  ).join('')||'<tr><td colspan="5">لا توجد بيانات</td></tr>';
-
-  $('itemsBody').innerHTML=items.map(x=>
-    '<tr><td>'+esc(x.sku)+'</td><td>'+esc(x.name_ar)+'</td><td>'+
-    esc(x.inv_units?.name_ar||'-')+'</td><td>'+x.min_stock+'</td></tr>'
-  ).join('');
-
-  $('lotsBody').innerHTML=lots.map(x=>
-    '<tr><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+
-    esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td><td>'+x.unit_cost+'</td></tr>'
-  ).join('');
-
-  $('movesBody').innerHTML=moves.map(x=>
-    '<tr><td>'+esc(x.created_at?.slice(0,10))+'</td><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+
-    esc(x.inv_sites?.name_ar)+'</td><td>'+esc(x.movement_type)+'</td><td>'+x.qty+'</td></tr>'
-  ).join('');
-
-  $('unit').innerHTML=opts(units,x=>x.name_ar);
-  $('li').innerHTML=opts(items,x=>x.name_ar+' — '+x.sku);
-  $('ii').innerHTML=$('li').innerHTML;
-  $('ls').innerHTML=opts(sites,x=>x.name_ar);
-  $('is').innerHTML=$('ls').innerHTML;
-  preview();
-}
-
-window.addItem=async()=>{
-  const r=await sb.from('inv_items').insert({
-    sku:$('sku').value.trim(),
-    name_ar:$('iname').value.trim(),
-    unit_id:$('unit').value,
-    min_stock:Number($('min').value||0)
-  });
-  if(r.error) return alert(ar(r.error));
-  await load();
-};
-
-window.addLot=async()=>{
-  const r=await sb.from('inv_lots').insert({
-    item_id:$('li').value,
-    site_id:$('ls').value,
-    batch_no:$('batch').value.trim(),
-    expiry_date:$('exp').value||null,
-    qty_on_hand:Number($('lq').value||0),
-    unit_cost:Number($('cost').value||0)
-  });
-  if(r.error) return alert(ar(r.error));
-  await load();
-};
-
-window.preview=()=>{
-  const a=lots.filter(x=>x.item_id===$('ii').value&&x.site_id===$('is').value&&Number(x.qty_on_hand)>0)
-    .sort((x,y)=>(x.expiry_date||'9999').localeCompare(y.expiry_date||'9999'));
-  let rem=Number($('iq').value||0);
-  $('previewBody').innerHTML=a.map((x,i)=>{
-    const q=Math.max(0,Math.min(rem,Number(x.qty_on_hand)));
-    rem-=q;
-    return '<tr><td>'+(i+1)+'</td><td>'+esc(x.batch_no||'-')+'</td><td>'+
-      esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td><td>'+q+'</td></tr>';
-  }).join('')||'<tr><td colspan="5">لا توجد تشغيلات متاحة</td></tr>';
-};
-
-window.issue=async()=>{
-  const iid=$('ii').value, sid=$('is').value, need=Number($('iq').value||0);
-  if(need<=0) return alert('أدخل كمية صحيحة');
-  let rem=need;
-  const a=lots.filter(x=>x.item_id===iid&&x.site_id===sid&&Number(x.qty_on_hand)>0)
-    .sort((x,y)=>(x.expiry_date||'9999').localeCompare(y.expiry_date||'9999'));
-  const plan=[];
-  for(const x of a){
-    if(rem<=0) break;
-    const q=Math.min(rem,Number(x.qty_on_hand));
-    plan.push([x,q]); rem-=q;
-  }
-  if(rem>0) return alert('الرصيد غير كافٍ');
-
-  for(const [x,q] of plan){
-    const u=await sb.from('inv_lots').update({qty_on_hand:Number(x.qty_on_hand)-q}).eq('id',x.id);
-    if(u.error) return alert(ar(u.error));
-    const m=await sb.from('inv_movements').insert({
-      item_id:iid,site_id:sid,lot_id:x.id,movement_type:'issue',qty:q,
-      unit_cost:x.unit_cost,reference_type:'fefo_issue',notes:'صرف حسب FEFO',created_by:user.id
-    });
-    if(m.error) return alert(ar(m.error));
-  }
-  $('issueMsg').innerHTML='<div class="msg ok">تم تنفيذ الصرف حسب FEFO ✓</div>';
-  await load();
-};
-
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  $(b.dataset.p).classList.add('active');
-});
-
-const s=await sb.auth.getSession();
-if(s.data.session){
-  start(s.data.session.user).catch(e=>{
-    $('status').textContent='خطأ';
-    alert(ar(e));
-  });
-}else{
-  $('auth').style.display='block';
-  $('status').textContent='غير مسجل الدخول';
-}
-</script>
-</body>
-</html>
+$('sitesN').textContent=sites.length;$('itemsN').textContent=items.length;$('lotsN').textContent=lots.length;
+$('qtyN').textContent=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0),0).toLocaleString();
+$('valN').textContent=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0)*Number(x.unit_cost||0),0).toLocaleString(undefined,{minimumFractionDigits:2});
+$('fefo').innerHTML=lots.filter(x=>Number(x.qty_on_hand)>0).slice(0,30).map(x=>'<tr><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td><td>'+x.unit_cost+'</td></tr>').join('')||'<tr><td colspan="6">لا توجد بيانات</td></tr>';
+$('itemsBody').innerHTML=items.map(x=>'<tr><td>'+esc(x.sku)+'</td><td>'+esc(x.name_ar)+'</td><td>'+esc(x.inv_units?.name_ar||'-')+'</td><td>'+x.min_stock+'</td></tr>').join('');
+$('lotsBody').innerHTML=lots.map(x=>'<tr><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td><td>'+x.unit_cost+'</td></tr>').join('');
+$('movesBody').innerHTML=moves.map(x=>'<tr><td>'+esc(x.created_at?.slice(0,10))+'</td><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+esc(x.movement_type)+'</td><td>'+x.qty+'</td><td>'+x.unit_cost+'</td><td>'+esc(x.reference_type||'-')+'</td></tr>').join('');
+$('accountsBody').innerHTML=accounts.map(x=>'<tr><td>'+esc(x.code)+'</td><td>'+esc(x.name_ar)+'</td><td>'+esc(x.account_type)+'</td><td>'+ (x.is_postable?'نعم':'لا')+'</td></tr>').join('');
+$('journalBody').innerHTML=journals.map(x=>'<tr><td>'+x.entry_no+'</td><td>'+x.entry_date+'</td><td>'+esc(x.source_type||'-')+'</td><td>'+esc(x.description||'-')+'</td><td>-</td><td>-</td></tr>').join('');
+$('sitesBody').innerHTML=sites.map(x=>'<tr><td>'+esc(x.code)+'</td><td>'+esc(x.name_ar)+'</td><td>'+esc(x.site_type)+'</td></tr>').join('');
+$('partiesBody').innerHTML=[...suppliers.map(x=>'<tr><td>مورد</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td></tr>'),...customers.map(x=>'<tr><td>عميل</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td></tr>')].join('');
+$('unit').innerHTML=opts(units,x=>x.name_ar);$('li').innerHTML=opts(items,x=>x.name_ar+' — '+x.sku);
+$('psupplier').innerHTML='<option value="">اختر المورد</option>'+opts(suppliers,x=>x.name);$('scustomer').innerHTML='<option value="">اختر العميل</option>'+opts(customers,x=>x.name);
+$('psite').innerHTML=opts(sites,x=>x.name_ar);$('ssite').innerHTML=opts(sites,x=>x.name_ar);$('ls').innerHTML=opts(sites,x=>x.name_ar)}
+window.addItem=async()=>{const r=await sb.from('inv_items').insert({sku:$('sku').value.trim(),name_ar:$('iname').value.trim(),unit_id:$('unit').value,min_stock:Number($('min').value||0)});if(r.error)return alert(ar(r.error));await load()};
+window.addLot=async()=>{const r=await sb.from('inv_lots').insert({item_id:$('li').value,site_id:$('ls').value,batch_no:$('batch').value.trim(),expiry_date:$('exp').value||null,qty_on_hand:Number($('lq').value||0),unit_cost:Number($('cost').value||0)});if(r.error)return alert(ar(r.error));await load()};
+function purchaseRow(x={}){return '<tr><td><select class="pl-item">'+opts(items,i=>i.name_ar+' — '+i.sku)+'</select></td><td><input class="pl-qty" type="number" min=".001" step=".001" value="'+(x.qty||1)+'" oninput="calcPurchase()"></td><td><input class="pl-cost" type="number" min="0" step=".01" value="'+(x.cost||0)+'" oninput="calcPurchase()"></td><td><input class="pl-batch" value="'+esc(x.batch||'')+'"></td><td><input class="pl-exp" type="date" value="'+esc(x.exp||'')+'"></td><td class="pl-total">0.00</td><td><button class="danger" onclick="this.closest('tr').remove();calcPurchase()">حذف</button></td></tr>'}
+window.addPurchaseLine=()=>{$('purchaseLines').insertAdjacentHTML('beforeend',purchaseRow());calcPurchase()}
+window.calcPurchase=()=>{let sum=0;document.querySelectorAll('#purchaseLines tr').forEach(r=>{const q=Number(r.querySelector('.pl-qty').value||0),c=Number(r.querySelector('.pl-cost').value||0),t=q*c;sum+=t;r.querySelector('.pl-total').textContent=t.toFixed(2)});$('psub').textContent=sum.toFixed(2);$('ptotal').textContent=(sum+Number($('ptax').value||0)).toFixed(2)}
+window.resetPurchase=()=>{$('pinv').value='';$('pdate').value=today();$('psupplier').value='';$('purchaseLines').innerHTML='';$('pmsg').innerHTML='';addPurchaseLine()}
+async function account(code,name,type){let a=accounts.find(x=>x.code===code);if(a)return a;const r=await sb.from('coa_accounts').insert({code,name_ar:name,account_type:type,is_postable:true,active:true}).select().single();if(r.error)throw r.error;accounts.push(r.data);return r.data}
+async function postJournal(sourceType,sourceId,date,desc,lines){const e=await sb.from('journal_entries').insert({entry_date:date,source_type:sourceType,source_id:sourceId,description:desc,posted:true,created_by:user.id}).select().single();if(e.error)throw e.error;const rows=lines.map(l=>({...l,entry_id:e.data.id}));const j=await sb.from('journal_lines').insert(rows);if(j.error)throw j.error;return e.data}
+window.savePurchase=async()=>{try{const site=$('psite').value;if(!site)return alert('اختر الموقع.');if(!$('psupplier').value)return alert('اختر المورد.');const rows=[...document.querySelectorAll('#purchaseLines tr')].map(r=>({item_id:r.querySelector('.pl-item').value,qty:Number(r.querySelector('.pl-qty').value),unit_cost:Number(r.querySelector('.pl-cost').value),batch_no:r.querySelector('.pl-batch').value.trim(),expiry_date:r.querySelector('.pl-exp').value||null}));if(!rows.length||rows.some(x=>x.qty<=0))return alert('راجع أصناف الفاتورة والكميات.');const subtotal=rows.reduce((s,x)=>s+x.qty*x.unit_cost,0),tax=Number($('ptax').value||0),total=subtotal+tax;
+const p=await sb.from('purchases').insert({invoice_no:$('pinv').value.trim()||null,supplier_id:Number($('psupplier').value),site_id:site,purchase_date:$('pdate').value,subtotal,tax,total,status:'posted',created_by:user.id}).select().single();if(p.error)throw p.error;
+const lines=rows.map(x=>({...x,purchase_id:p.data.id}));const lr=await sb.from('purchase_lines').insert(lines);if(lr.error)throw lr.error;
+for(const x of rows){const lot=await sb.from('inv_lots').insert({item_id:x.item_id,site_id:site,batch_no:x.batch_no||null,expiry_date:x.expiry_date,qty_on_hand:x.qty_on_hand||x.qty,unit_cost:x.unit_cost,supplier_invoice_no:$('pinv').value.trim()||null,received_at:new Date().toISOString()}).select().single();if(lot.error)throw lot.error;
+const mv=await sb.from('inv_movements').insert({item_id:x.item_id,site_id:site,lot_id:lot.data.id,movement_type:'receipt',qty:x.qty,unit_cost:x.unit_cost,reference_type:'purchase',reference_id:p.data.id,notes:'استلام من فاتورة مشتريات',created_by:user.id});if(mv.error)throw mv.error;
+const old=await sb.from('inventory_costs').select('*').eq('item_id',x.item_id).eq('site_id',site).maybeSingle();if(old.error)throw old.error;const oq=Number(old.data?.qty_on_hand||0),ov=Number(old.data?.inventory_value||0),nv=ov+x.qty*x.unit_cost,nq=oq+x.qty;const cu=await sb.from('inventory_costs').upsert({item_id:x.item_id,site_id:site,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});if(cu.error)throw cu.error}
+const inv=await account('1200','مخزون بضائع','asset'),sup=await account('2100','الموردون','liability');await postJournal('purchase',p.data.id,$('pdate').value,'فاتورة مشتريات '+($('pinv').value||''),[{account_id:inv.id,debit:total,credit:0,description:'إثبات المشتريات',site_id:site},{account_id:sup.id,debit:0,credit:total,description:'استحقاق المورد',site_id:site}]);
+$('pmsg').innerHTML='<div class="msg ok">تم حفظ وترحيل فاتورة المشتريات وإضافة المخزون والقيد المحاسبي ✓</div>';await load()}catch(e){$('pmsg').innerHTML='<div class="msg bad">'+esc(ar(e))+'</div>'}}
+function saleRow(){return '<tr><td><select class="sl-item" onchange="salePrice(this)">'+opts(items,i=>i.name_ar+' — '+i.sku)+'</select></td><td><input class="sl-qty" type="number" min=".001" step=".001" value="1" oninput="calcSale()"></td><td><input class="sl-price" type="number" min="0" step=".01" value="0" oninput="calcSale()"></td><td class="sl-total">0.00</td><td><button class="danger" onclick="this.closest(\'tr\').remove();calcSale()">حذف</button></td></tr>'}
+window.addSaleLine=()=>{$('saleLines').insertAdjacentHTML('beforeend',saleRow());calcSale()}
+window.renderSaleLines=()=>{}
+window.salePrice=el=>{const it=items.find(x=>x.id===el.value);el.closest('tr').querySelector('.sl-price').value=it?.sale_price||0;calcSale()}
+window.calcSale=()=>{let s=0;document.querySelectorAll('#saleLines tr').forEach(r=>{const t=Number(r.querySelector('.sl-qty').value||0)*Number(r.querySelector('.sl-price').value||0);s+=t;r.querySelector('.sl-total').textContent=t.toFixed(2)});$('stotal').textContent=s.toFixed(2)}
+window.resetSale=()=>{$('sinv').value='';$('sdate').value=today();$('scustomer').value='';$('saleLines').innerHTML='';$('smsg').innerHTML='';addSaleLine()}
+window.saveSale=async()=>{try{const site=$('ssite').value;if(!$('scustomer').value)return alert('اختر العميل.');const rows=[...document.querySelectorAll('#saleLines tr')].map(r=>({item_id:r.querySelector('.sl-item').value,qty:Number(r.querySelector('.sl-qty').value),unit_price:Number(r.querySelector('.sl-price').value)}));if(rows.some(x=>x.qty<=0))return alert('راجع الكميات.');const subtotal=rows.reduce((s,x)=>s+x.qty*x.unit_price,0);
+const s=await sb.from('sales').insert({invoice_no:$('sinv').value.trim()||null,customer_id:Number($('scustomer').value),site_id:site,sale_date:$('sdate').value,subtotal,tax:0,total:subtotal,status:'posted',created_by:user.id}).select().single();if(s.error)throw s.error;const lr=await sb.from('sale_lines').insert(rows.map(x=>({...x,sale_id:s.data.id})));if(lr.error)throw lr.error;
+let cogs=0;for(const x of rows){let rem=x.qty;const a=lots.filter(l=>l.item_id===x.item_id&&l.site_id===site&&Number(l.qty_on_hand)>0).sort((a,b)=>(a.expiry_date||'9999').localeCompare(b.expiry_date||'9999'));for(const l of a){if(rem<=0)break;const q=Math.min(rem,Number(l.qty_on_hand));const up=await sb.from('inv_lots').update({qty_on_hand:Number(l.qty_on_hand)-q}).eq('id',l.id);if(up.error)throw up.error;cogs+=q*Number(l.unit_cost||0);const mv=await sb.from('inv_movements').insert({item_id:x.item_id,site_id:site,lot_id:l.id,movement_type:'issue',qty:q,unit_cost:l.unit_cost,reference_type:'sale',reference_id:s.data.id,notes:'صرف حسب FEFO من فاتورة مبيعات',created_by:user.id});if(mv.error)throw mv.error;rem-=q}if(rem>0)throw new Error('الرصيد غير كافٍ للصنف: '+(items.find(i=>i.id===x.item_id)?.name_ar||''));const old=await sb.from('inventory_costs').select('*').eq('item_id',x.item_id).eq('site_id',site).maybeSingle();if(old.error)throw old.error;const oq=Number(old.data?.qty_on_hand||0),nv=Math.max(0,Number(old.data?.inventory_value||0)-cogs),nq=Math.max(0,oq-x.qty);const cu=await sb.from('inventory_costs').upsert({item_id:x.item_id,site_id:site,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});if(cu.error)throw cu.error}
+const arAcct=await account('1100','العملاء','asset'),rev=await account('4100','المبيعات','revenue'),inv=await account('1200','مخزون بضائع','asset'),cg=await account('5100','تكلفة البضاعة المباعة','expense');await postJournal('sale',s.data.id,$('sdate').value,'فاتورة مبيعات '+($('sinv').value||''),[{account_id:arAcct.id,debit:subtotal,credit:0,description:'استحقاق العميل',site_id:site},{account_id:rev.id,debit:0,credit:subtotal,description:'إثبات المبيعات',site_id:site},{account_id:cg.id,debit:cogs,credit:0,description:'تكلفة البضاعة المباعة',site_id:site},{account_id:inv.id,debit:0,credit:cogs,description:'تخفيض المخزون',site_id:site}]);
+$('smsg').innerHTML='<div class="msg ok">تم حفظ وترحيل المبيعات وصرف المخزون بنظام FEFO وإثبات القيد ✓</div>';await load()}catch(e){$('smsg').innerHTML='<div class="msg bad">'+esc(ar(e))+'</div>'}}
+window.addAccount=async()=>{const r=await sb.from('coa_accounts').insert({code:$('acode').value.trim(),name_ar:$('aname').value.trim(),account_type:$('atype').value,is_postable:true,active:true});if(r.error)return alert(ar(r.error));await load()}
+window.addSite=async()=>{const r=await sb.from('inv_sites').insert({code:$('sitecode').value.trim(),name_ar:$('sitename').value.trim(),site_type:$('sitetype').value,active:true});if(r.error)return alert(ar(r.error));await load()}
+window.addSupplier=async()=>{const r=await sb.from('suppliers').insert({name:$('supname').value.trim(),phone:$('supphone').value.trim()});if(r.error)return alert(ar(r.error));await load()}
+window.addCustomer=async()=>{const r=await sb.from('customers').insert({name:$('cusname').value.trim(),phone:$('cusphone').value.trim()});if(r.error)return alert(ar(r.error));await load()}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.p).classList.add('active')});
+const ss=await sb.auth.getSession();if(ss.data.session)start(ss.data.session.user);else{$('auth').style.display='block';$('status').textContent='غير مسجل الدخول'}
+</script></body></html>
