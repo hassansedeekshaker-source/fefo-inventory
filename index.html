@@ -87,9 +87,9 @@ button{border:0;border-radius:9px;padding:10px 15px;cursor:pointer;background:#e
 <table><thead><tr><th>النوع</th><th>الاسم</th><th>الهاتف</th></tr></thead><tbody id="partiesBody"></tbody></table></section>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+if(typeof supabase==='undefined'){document.getElementById('status').textContent='تعذر تحميل مكتبة الاتصال';throw new Error('Supabase library failed to load');} const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
 let user,sites=[],items=[],lots=[],moves=[],units=[],suppliers=[],customers=[],accounts=[],journals=[],pLines=[],sLines=[];
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const today=()=>new Date().toISOString().slice(0,10);
