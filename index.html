@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نظام إدارة المخزون FEFO</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#18243a;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+main{max-width:1200px;margin:20px auto;padding:0 14px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+.auth{max-width:520px;margin:70px auto}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}
+input,select{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:15px}
+button{border:0;border-radius:9px;padding:11px 16px;cursor:pointer;background:#e9edf5}
+button.primary{background:#18243a;color:#fff}
+.msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}
+.bad{color:#b42318}.ok{color:#087443}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.num{font-size:28px;font-weight:bold;margin-top:8px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.tab.active{background:#18243a;color:#fff}
+.panel{display:none}.panel.active{display:block}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}
+th{background:#f0f3f8}
+.small{font-size:12px;color:#667085}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.grid{grid-template-columns:1fr}.field{min-width:100%}header{font-size:14px}}
+</style>
+</head>
+<body>
+
+<header>
+  <b>📦 نظام إدارة المخزون — FEFO</b>
+  <span id="status">جاري الاتصال...</span>
+</header>
+
+<main id="auth" class="auth card">
+  <h2>تسجيل الدخول</h2>
+  <p class="small">استخدم بريدك الإلكتروني وكلمة المرور. إذا كان الحساب موجودًا سيتم الدخول مباشرة.</p>
+  <div class="row">
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input id="email" type="email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input id="password" type="password" autocomplete="current-password">
+    </div>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <button class="primary" onclick="login()">دخول</button>
+    <button onclick="signup()">إنشاء حساب المدير</button>
+  </div>
+  <div id="authMsg"></div>
+</main>
+
+<main id="app" style="display:none">
+  <div class="card">
+    <button onclick="logout()">تسجيل الخروج</button>
+    <span id="who" class="small"></span>
+  </div>
+
+  <div class="grid">
+    <div class="card">المواقع<div id="sitesN" class="num">0</div></div>
+    <div class="card">الأصناف<div id="itemsN" class="num">0</div></div>
+    <div class="card">التشغيلات<div id="lotsN" class="num">0</div></div>
+    <div class="card">إجمالي الرصيد<div id="qtyN" class="num">0</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-p="dash">الرئيسية</button>
+    <button class="tab" data-p="items">الأصناف</button>
+    <button class="tab" data-p="lots">التشغيلات</button>
+    <button class="tab" data-p="moves">الحركات</button>
+    <button class="tab" data-p="issue">صرف FEFO</button>
+  </div>
+
+  <section id="dash" class="panel active card">
+    <h2>أقرب الصلاحيات</h2>
+    <table>
+      <thead><tr><th>الصنف</th><th>الموقع</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th></tr></thead>
+      <tbody id="fefo"></tbody>
+    </table>
+  </section>
+
+  <section id="items" class="panel card">
+    <h2>الأصناف</h2>
+    <div class="row">
+      <div class="field"><label>SKU</label><input id="sku"></div>
+      <div class="field"><label>اسم الصنف</label><input id="iname"></div>
+      <div class="field"><label>الوحدة</label><select id="unit"></select></div>
+      <div class="field"><label>الحد الأدنى</label><input id="min" type="number" value="0"></div>
+      <button class="primary" onclick="addItem()">إضافة</button>
+    </div>
+    <table>
+      <thead><tr><th>SKU</th><th>الصنف</th><th>الوحدة</th><th>الحد الأدنى</th></tr></thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+  </section>
+
+  <section id="lots" class="panel card">
+    <h2>التشغيلات</h2>
+    <div class="row">
+      <div class="field"><label>الصنف</label><select id="li"></select></div>
+      <div class="field"><label>الموقع</label><select id="ls"></select></div>
+      <div class="field"><label>رقم التشغيلة</label><input id="batch"></div>
+      <div class="field"><label>الصلاحية</label><input id="exp" type="date"></div>
+      <div class="field"><label>الكمية</label><input id="lq" type="number" step=".001"></div>
+      <div class="field"><label>التكلفة</label><input id="cost" type="number" step=".01"></div>
+      <button class="primary" onclick="addLot()">حفظ</button>
+    </div>
+    <table>
+      <thead><tr><th>الصنف</th><th>الموقع</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>التكلفة</th></tr></thead>
+      <tbody id="lotsBody"></tbody>
+    </table>
+  </section>
+
+  <section id="moves" class="panel card">
+    <h2>آخر الحركات</h2>
+    <table>
+      <thead><tr><th>التاريخ</th><th>الصنف</th><th>الموقع</th><th>النوع</th><th>الكمية</th></tr></thead>
+      <tbody id="movesBody"></tbody>
+    </table>
+  </section>
+
+  <section id="issue" class="panel card">
+    <h2>صرف FEFO</h2>
+    <div class="row">
+      <div class="field"><label>الصنف</label><select id="ii" onchange="preview()"></select></div>
+      <div class="field"><label>الموقع</label><select id="is" onchange="preview()"></select></div>
+      <div class="field"><label>الكمية المطلوبة</label><input id="iq" type="number" step=".001" oninput="preview()"></div>
+      <button class="primary" onclick="issue()">تنفيذ الصرف</button>
+    </div>
+    <div id="issueMsg"></div>
+    <table>
+      <thead><tr><th>الأولوية</th><th>التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>سيُصرف</th></tr></thead>
+      <tbody id="previewBody"></tbody>
+    </table>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const sb = createClient(
+  'https://fyqyodnboryzaejlhdlk.supabase.co',
+  'sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2'
+);
+
+let sites=[], items=[], lots=[], moves=[], units=[], user=null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[m]));
+
+function ar(e){
+  const m=String(e?.message||e||'').toLowerCase();
+  if(m.includes('invalid login')) return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+  if(m.includes('email not confirmed')) return 'الحساب موجود لكن البريد غير مؤكد. افتح رسالة التأكيد في بريدك ثم اضغط دخول.';
+  if(m.includes('already registered')) return 'الحساب موجود بالفعل. استخدم دخول.';
+  if(m.includes('password')) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+  if(m.includes('rate limit')||m.includes('security purposes')) return 'تم تفعيل حماية مؤقتة. انتظر قليلًا ثم حاول مرة واحدة.';
+  return e?.message || 'حدث خطأ.';
+}
+
+async function ensureAdmin(){
+  const r=await sb.from('inv_user_roles').upsert(
+    {user_id:user.id,role_code:'admin',active:true},
+    {onConflict:'user_id,role_code'}
+  );
+  if(r.error && !String(r.error.message).toLowerCase().includes('duplicate')) throw r.error;
+}
+
+async function start(u){
+  user=u;
+  $('auth').style.display='none';
+  $('app').style.display='block';
+  $('who').textContent=u.email||'';
+  $('status').textContent='جاري تحميل البيانات...';
+  await ensureAdmin();
+  await load();
+}
+
+window.login=async()=>{
+  const email=$('email').value.trim(), password=$('password').value;
+  if(!email||!password) return $('authMsg').innerHTML='<div class="msg bad">أدخل البريد الإلكتروني وكلمة المرور.</div>';
+  $('authMsg').innerHTML='<div class="msg">جاري التحقق...</div>';
+  const r=await sb.auth.signInWithPassword({email,password});
+  if(r.error) return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';
+  try{await start(r.data.user)}
+  catch(e){$('authMsg').innerHTML='<div class="msg bad">تم الدخول لكن تعذر تحميل البيانات: '+esc(ar(e))+'</div>'}
+};
+
+window.signup=async()=>{
+  const email=$('email').value.trim(), password=$('password').value;
+  if(!email) return $('authMsg').innerHTML='<div class="msg bad">أدخل البريد الإلكتروني أولًا.</div>';
+  if(password.length<6) return $('authMsg').innerHTML='<div class="msg bad">كلمة المرور يجب أن تكون 6 أحرف على الأقل.</div>';
+  $('authMsg').innerHTML='<div class="msg">جاري التحقق من الحساب...</div>';
+  const old=await sb.auth.signInWithPassword({email,password});
+  if(!old.error){
+    try{await start(old.data.user);return}
+    catch(e){return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(e))+'</div>'}
+  }
+  const r=await sb.auth.signUp({email,password});
+  if(r.error) return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';
+  if(r.data.session){
+    try{await start(r.data.user)}
+    catch(e){$('authMsg').innerHTML='<div class="msg bad">'+esc(ar(e))+'</div>'}
+  }else{
+    $('authMsg').innerHTML='<div class="msg ok">تم إنشاء الحساب. افتح رسالة التأكيد في بريدك ثم اضغط «دخول».</div>';
+  }
+};
+
+window.logout=async()=>{await sb.auth.signOut();location.reload()};
+
+async function load(){
+  const rs=await Promise.all([
+    sb.from('inv_sites').select('*').eq('active',true).order('name_ar'),
+    sb.from('inv_items').select('*,inv_units(name_ar)').eq('active',true).order('name_ar'),
+    sb.from('inv_lots').select('*,inv_items(name_ar,sku),inv_sites(name_ar)').order('expiry_date',{ascending:true}),
+    sb.from('inv_movements').select('*,inv_items(name_ar),inv_sites(name_ar)').order('created_at',{ascending:false}).limit(100),
+    sb.from('inv_units').select('*').eq('active',true).order('name_ar')
+  ]);
+  for(const r of rs) if(r.error) throw r.error;
+  [sites,items,lots,moves,units]=rs.map(r=>r.data);
+  render();
+  $('status').textContent='متصل بـ Supabase ✓';
+}
+
+function opts(a,label){
+  return a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
+}
+
+function render(){
+  $('sitesN').textContent=sites.length;
+  $('itemsN').textContent=items.length;
+  $('lotsN').textContent=lots.length;
+  $('qtyN').textContent=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0),0).toLocaleString();
+
+  $('fefo').innerHTML=lots.filter(x=>Number(x.qty_on_hand)>0).slice(0,20).map(x=>
+    '<tr><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+
+    esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td></tr>'
+  ).join('')||'<tr><td colspan="5">لا توجد بيانات</td></tr>';
+
+  $('itemsBody').innerHTML=items.map(x=>
+    '<tr><td>'+esc(x.sku)+'</td><td>'+esc(x.name_ar)+'</td><td>'+
+    esc(x.inv_units?.name_ar||'-')+'</td><td>'+x.min_stock+'</td></tr>'
+  ).join('');
+
+  $('lotsBody').innerHTML=lots.map(x=>
+    '<tr><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+esc(x.inv_sites?.name_ar)+'</td><td>'+
+    esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td><td>'+x.unit_cost+'</td></tr>'
+  ).join('');
+
+  $('movesBody').innerHTML=moves.map(x=>
+    '<tr><td>'+esc(x.created_at?.slice(0,10))+'</td><td>'+esc(x.inv_items?.name_ar)+'</td><td>'+
+    esc(x.inv_sites?.name_ar)+'</td><td>'+esc(x.movement_type)+'</td><td>'+x.qty+'</td></tr>'
+  ).join('');
+
+  $('unit').innerHTML=opts(units,x=>x.name_ar);
+  $('li').innerHTML=opts(items,x=>x.name_ar+' — '+x.sku);
+  $('ii').innerHTML=$('li').innerHTML;
+  $('ls').innerHTML=opts(sites,x=>x.name_ar);
+  $('is').innerHTML=$('ls').innerHTML;
+  preview();
+}
+
+window.addItem=async()=>{
+  const r=await sb.from('inv_items').insert({
+    sku:$('sku').value.trim(),
+    name_ar:$('iname').value.trim(),
+    unit_id:$('unit').value,
+    min_stock:Number($('min').value||0)
+  });
+  if(r.error) return alert(ar(r.error));
+  await load();
+};
+
+window.addLot=async()=>{
+  const r=await sb.from('inv_lots').insert({
+    item_id:$('li').value,
+    site_id:$('ls').value,
+    batch_no:$('batch').value.trim(),
+    expiry_date:$('exp').value||null,
+    qty_on_hand:Number($('lq').value||0),
+    unit_cost:Number($('cost').value||0)
+  });
+  if(r.error) return alert(ar(r.error));
+  await load();
+};
+
+window.preview=()=>{
+  const a=lots.filter(x=>x.item_id===$('ii').value&&x.site_id===$('is').value&&Number(x.qty_on_hand)>0)
+    .sort((x,y)=>(x.expiry_date||'9999').localeCompare(y.expiry_date||'9999'));
+  let rem=Number($('iq').value||0);
+  $('previewBody').innerHTML=a.map((x,i)=>{
+    const q=Math.max(0,Math.min(rem,Number(x.qty_on_hand)));
+    rem-=q;
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(x.batch_no||'-')+'</td><td>'+
+      esc(x.expiry_date||'-')+'</td><td>'+x.qty_on_hand+'</td><td>'+q+'</td></tr>';
+  }).join('')||'<tr><td colspan="5">لا توجد تشغيلات متاحة</td></tr>';
+};
+
+window.issue=async()=>{
+  const iid=$('ii').value, sid=$('is').value, need=Number($('iq').value||0);
+  if(need<=0) return alert('أدخل كمية صحيحة');
+  let rem=need;
+  const a=lots.filter(x=>x.item_id===iid&&x.site_id===sid&&Number(x.qty_on_hand)>0)
+    .sort((x,y)=>(x.expiry_date||'9999').localeCompare(y.expiry_date||'9999'));
+  const plan=[];
+  for(const x of a){
+    if(rem<=0) break;
+    const q=Math.min(rem,Number(x.qty_on_hand));
+    plan.push([x,q]); rem-=q;
+  }
+  if(rem>0) return alert('الرصيد غير كافٍ');
+
+  for(const [x,q] of plan){
+    const u=await sb.from('inv_lots').update({qty_on_hand:Number(x.qty_on_hand)-q}).eq('id',x.id);
+    if(u.error) return alert(ar(u.error));
+    const m=await sb.from('inv_movements').insert({
+      item_id:iid,site_id:sid,lot_id:x.id,movement_type:'issue',qty:q,
+      unit_cost:x.unit_cost,reference_type:'fefo_issue',notes:'صرف حسب FEFO',created_by:user.id
+    });
+    if(m.error) return alert(ar(m.error));
+  }
+  $('issueMsg').innerHTML='<div class="msg ok">تم تنفيذ الصرف حسب FEFO ✓</div>';
+  await load();
+};
+
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  $(b.dataset.p).classList.add('active');
+});
+
+const s=await sb.auth.getSession();
+if(s.data.session){
+  start(s.data.session.user).catch(e=>{
+    $('status').textContent='خطأ';
+    alert(ar(e));
+  });
+}else{
+  $('auth').style.display='block';
+  $('status').textContent='غير مسجل الدخول';
+}
+</script>
+</body>
+</html>
