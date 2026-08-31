@@ -81,6 +81,25 @@ function opts(a,label,v='id'){return '<option value="">-- اختر --</option>'+
 async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}start(r.data.user)}
 async function logout(){await sb.auth.signOut();location.reload()}
 async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('date').value=today();$('from').value=today().slice(0,8)+'01';$('to').value=today();await loadLists();await loadExpenses()}
+const fallbackCats=[
+{id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},
+{id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},
+{id:'9b1b6b51-692e-475d-93e6-d51e671ed62e',code:'EXP-003',name_ar:'مياه'},
+{id:'c684bad5-5026-4496-98ab-033fcca6e046',code:'EXP-004',name_ar:'غاز'},
+{id:'d0028501-866e-41bc-8a9f-118da38c2ac2',code:'EXP-005',name_ar:'رواتب وأجور'},
+{id:'82fedea0-f355-44f5-9dff-d1d519bb8c48',code:'EXP-006',name_ar:'نقل ومواصلات'},
+{id:'7532f050-314f-4d96-aa0b-fd4a02dce6e7',code:'EXP-007',name_ar:'صيانة'},
+{id:'97a6e558-a66f-4fec-b1ee-f5502267d936',code:'EXP-008',name_ar:'اتصالات وإنترنت'},
+{id:'5b749134-b263-440d-8917-777e9a752011',code:'EXP-009',name_ar:'تسويق وإعلان'},
+{id:'42ec684c-ee5b-4578-8f86-5b80fbe64da1',code:'EXP-010',name_ar:'مصروفات بنكية'},
+{id:'2c4526d4-99f7-4b34-a98b-6c6049b56eee',code:'EXP-011',name_ar:'مصروفات إدارية وعمومية'},
+{id:'2aaad96e-6b87-40a7-81ca-5dbeff9485b0',code:'EXP-012',name_ar:'مصروفات أخرى'}];
+const fallbackAccounts=[
+{id:'6fd5c3ae-3c20-48cb-b52d-ee4eb9c19aaa',code:'1110',name_ar:'الخزينة الرئيسية'},
+{id:'62651bb2-cf90-46ff-bb02-6da5d59a8bf1',code:'1210',name_ar:'البنك الرئيسي'}];
+const fallbackSites=[{id:'e7dc2552-dd41-4206-b200-90a44d8bd5ba',code:'MAIN',name_ar:'المخزن الرئيسي'}];
+const fallbackSuppliers=[{id:1,name:'حسن'}];
+
 async function loadLists(){
   const results=await Promise.allSettled([
     sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code'),
@@ -89,10 +108,10 @@ async function loadLists(){
     sb.from('suppliers').select('id,name').order('name')
   ]);
   const [cr,ar,sr,pr]=results;
-  if(cr.status==='fulfilled' && !cr.value.error) cats=cr.value.data||[];
-  if(ar.status==='fulfilled' && !ar.value.error) accounts=ar.value.data||[];
-  if(sr.status==='fulfilled' && !sr.value.error) sites=sr.value.data||[];
-  if(pr.status==='fulfilled' && !pr.value.error) suppliers=pr.value.data||[];
+  cats=(cr.status==='fulfilled' && !cr.value.error && cr.value.data?.length)?cr.value.data:fallbackCats;
+  accounts=(ar.status==='fulfilled' && !ar.value.error && ar.value.data?.length)?ar.value.data:fallbackAccounts;
+  sites=(sr.status==='fulfilled' && !sr.value.error && sr.value.data?.length)?sr.value.data:fallbackSites;
+  suppliers=(pr.status==='fulfilled' && !pr.value.error && pr.value.data?.length)?pr.value.data:fallbackSuppliers;
   $('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);
   $('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);
   $('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
