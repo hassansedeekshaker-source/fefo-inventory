@@ -5,16 +5,21 @@ let user,items=[],sites=[],units=[],suppliers=[],customers=[],accounts=[];
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const today=()=>new Date().toISOString().slice(0,10);
 async function init(){
+ try{
  const s=await sb.auth.getSession(); if(!s.data.session){location.href='accounting.html';return}
  user=s.data.session.user;
  [items,sites,units,suppliers,customers,accounts]=await Promise.all([
   sb.from('inv_items').select('id,name_ar,sku,unit_id,purchase_price,sale_price,tax_rate').eq('active',true).order('name_ar').then(r=>r.data||[]),
   sb.from('inv_sites').select('id,name_ar,code').eq('active',true).order('name_ar').then(r=>r.data||[]),
+  sb.from('inv_units').select('*').order('name_ar').then(r=>r.data||[]),
   sb.from('suppliers').select('id,name').order('name').then(r=>r.data||[]),
   sb.from('customers').select('id,name').order('name').then(r=>r.data||[]),
   sb.from('coa_accounts').select('*').eq('active',true).order('code').then(r=>r.data||[])
  ]);
  render();
+ }catch(e){
+   document.body.innerHTML='<div style="font-family:Arial;padding:40px;direction:rtl"><h2>تعذر تحميل الشاشة</h2><p>'+esc(e.message||e)+'</p><a href="accounting.html">🏠 العودة للرئيسية</a></div>';
+ }
 }
 function opts(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 function render(){
@@ -44,7 +49,7 @@ function buildSave(t){
  const isP=t.startsWith('purchase'), isR=t.includes('return');
  let party=isP?'<label>المورد<select id="party">'+opts(suppliers,x=>x.name)+'</select></label>':'<label>العميل<select id="party">'+opts(customers,x=>x.name)+'</select></label>';
  let rows='<tr><td><select class="item" onchange="purchaseItemChanged(this)">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td class="unit">-</td><td><input class="lastPrice" type="number" step=".01" readonly></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="tax" type="number" min="0" step=".01" value="0"></td><td class="lineTotal">0.00</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
- if(isP && !isR) rows='<tr><td><select class="item" onchange="purchaseItemChanged(this)">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calcPurchaseLine(this)"></td><td><input class="lastPrice" type="number" step=".01" readonly></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calcPurchaseLine(this)"></td><td><input class="tax" type="number" min="0" step=".01" value="0" oninput="calcPurchaseLine(this)"></td><td class="lineTotal">0.00</td><td><button onclick="this.closest(\\'tr\\').remove()">حذف</button></td></tr>';
+ if(isP && !isR) rows='<tr><td><select class="item" onchange="purchaseItemChanged(this)">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calcPurchaseLine(this)"></td><td><input class="lastPrice" type="number" step=".01" readonly></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calcPurchaseLine(this)"></td><td><input class="tax" type="number" min="0" step=".01" value="0" oninput="calcPurchaseLine(this)"></td><td class="lineTotal">0.00</td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
  if(isR) rows='<tr><td><select class="item">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="cost" type="number" min="0" step=".01" value="0"></td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
  shell('<div class="card"><h1 id="title"></h1><p>الحفظ يسجل المستند كمسودة فقط. لا يتم تحديث المخزون ولا إنشاء قيد محاسبي حتى الترحيل.</p><div class="head"><label>رقم المستند<input id="docno"></label><label>التاريخ<input id="date" type="date" value="'+today()+'"></label>'+party+'<label>الموقع<select id="site">'+opts(sites,x=>x.name_ar)+'</select></label></div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر/قيمة</th><th>ضريبة/تكلفة</th><th>إجراء</th></tr></thead><tbody id="lines">'+rows+'</tbody></table><button onclick="addLine()">+ إضافة صنف</button><button class="ok" onclick="saveDraft()">💾 حفظ فقط</button><a class="btn" href="'+(isP?(isR?'purchase-return-post.html':'purchase-post.html'):(isR?'sale-return-post.html':'sale-post.html'))+'">📤 شاشة الترحيل</a><div id="msg"></div></div>');
 
