@@ -30,7 +30,7 @@ function render(){
  'purchase-return-save':'حفظ مردودات المشتريات','purchase-return-post':'ترحيل مردودات المشتريات',
  'sale-return-save':'حفظ مرتجعات المبيعات','sale-return-post':'ترحيل مرتجعات المبيعات'
  })[t]||'نظام المحاسبة';
- if(t==='purchase-save'||t==='sale-save'||t==='purchase-return-save'||t==='sale-return-save') buildSave(t); else if(t==='purchase-saved'||t==='sale-saved') buildSaved(t); else buildPost(t);
+ if(t==='purchase-save'||t==='sale-save'||t==='purchase-return-save'||t==='sale-return-save'){const saved=new URLSearchParams(location.search).get('saved');if(saved==='1'&&(t==='purchase-save'||t==='sale-save')){document.body.dataset.workflow=t==='purchase-save'?'purchase-saved':'sale-saved';buildSaved(document.body.dataset.workflow);}else buildSave(t);} else if(t==='purchase-saved'||t==='sale-saved') buildSaved(t); else buildPost(t);
 }
 function shell(body){
  const t=document.body.dataset.workflow;
