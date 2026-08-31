@@ -1,71 +1,19 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>نظام المحاسبة | لوحة التحكم</title>
-<style>
-*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
-header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:3}
-main{max-width:1350px;margin:20px auto;padding:0 15px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-a,button{border:0;border-radius:9px;padding:10px 15px;text-decoration:none;cursor:pointer;font-size:14px}a{background:#fff;color:#18243a;border:1px solid #dce2ec}a.primary{background:#18243a;color:#fff}button{background:#e9edf5}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001}.num{font-size:27px;font-weight:bold;margin-top:8px}
-h2{margin-top:0}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}
-.row{display:flex;gap:10px;flex-wrap:wrap}.module{min-width:230px;flex:1}.module a{display:block;margin-top:10px}.small{font-size:12px;color:#667085}.ok{color:#087443}.bad{color:#b42318}
-.login{max-width:480px;margin:70px auto}.field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}input{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;width:100%}
-@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<header><b>🧾 نظام إدارة المخزون والمحاسبة</b><span id="status">جاري الاتصال...</span></header>
-<main id="login" class="login card">
-<h2>تسجيل الدخول</h2><div class="field"><label>البريد الإلكتروني</label><input id="email" type="email"></div>
-<div class="field"><label>كلمة المرور</label><input id="password" type="password"></div>
-<button class="primary" onclick="login()">دخول</button><div id="msg"></div>
-</main>
-<main id="app" style="display:none">
-<div class="bar">
-<a class="primary" href="index.html">📦 النظام التشغيلي والمخزون</a>
-<a href="expenses.html">🧾 المصروفات</a>
-<button onclick="logout()">تسجيل الخروج</button>
-</div>
-<div class="grid">
-<div class="card">قيمة المخزون<div id="stock" class="num">0.00</div></div>
-<div class="card">إجمالي المصروفات<div id="expenses" class="num">0.00</div></div>
-<div class="card">إجمالي المبيعات<div id="sales" class="num">0.00</div></div>
-<div class="card">إجمالي المشتريات<div id="purchases" class="num">0.00</div></div>
-</div>
-<section class="card" style="margin-top:16px">
-<h2>القائمة الرئيسية</h2>
-<div class="row">
-<div class="module card"><b>💰 المبيعات</b><div class="small">فواتير البيع، المرتجعات، العملاء، الخصم من المنبع، وتكلفة المبيعات.</div><a class="primary" href="index.html#sales">فتح المبيعات</a></div>
-<div class="module card"><b>🛒 المشتريات</b><div class="small">فواتير الشراء، الموردون، الخصم، الضريبة، وتحديث متوسط التكلفة.</div><a class="primary" href="index.html#purchases">فتح المشتريات</a></div>
-<div class="module card"><b>🧾 المصروفات</b><div class="small">مصروفات تشغيلية مع خزينة/بنك/مستحق وقيد تلقائي.</div><a class="primary" href="expenses.html">فتح المصروفات</a></div>
-<div class="module card"><b>📚 الحسابات</b><div class="small">دليل الحسابات وقيود اليومية والتقارير.</div><a class="primary" href="index.html#accounts">فتح الحسابات</a></div>
-<div class="module card"><b>📊 التقارير</b><div class="small">ميزان المراجعة وقائمة الأرباح والخسائر.</div><a class="primary" href="index.html#reports">فتح التقارير</a></div>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>نظام المحاسبة | لوحة التحكم</title>
+<style>*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:3}main{max-width:1350px;margin:20px auto;padding:0 15px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}a,button{border:0;border-radius:9px;padding:10px 15px;text-decoration:none;cursor:pointer;font-size:14px}a{background:#fff;color:#18243a;border:1px solid #dce2ec}a.primary{background:#18243a;color:#fff}button{background:#e9edf5}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:14px}.num{font-size:27px;font-weight:bold;margin-top:8px}h2{margin-top:0}.row{display:flex;gap:10px;flex-wrap:wrap}.module{min-width:230px;flex:1}.module a{display:block;margin-top:10px}.small{font-size:12px;color:#667085}.login{max-width:480px;margin:70px auto}.field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}input{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;width:100%}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}}</style></head>
+<body><header><b>🧾 نظام إدارة المخزون والمحاسبة</b><span id="status">جاري الاتصال...</span></header>
+<main id="login" class="login card"><h2>تسجيل الدخول</h2><div class="field"><label>البريد الإلكتروني</label><input id="email" type="email"></div><div class="field"><label>كلمة المرور</label><input id="password" type="password"></div><button class="primary" onclick="login()">دخول</button><div id="msg"></div></main>
+<main id="app" style="display:none"><div class="bar"><a class="primary" href="accounting.html">🏠 الرئيسية</a><a href="expenses.html">🧾 المصروفات</a><a href="reports.html">📊 التقارير وميزان المراجعة</a><a href="index.html">📦 المخزون والتشغيل</a><button onclick="logout()">تسجيل الخروج</button></div>
+<div class="grid"><div class="card">قيمة المخزون<div id="stock" class="num">0.00</div></div><div class="card">إجمالي المصروفات<div id="expenses" class="num">0.00</div></div><div class="card">إجمالي المبيعات<div id="sales" class="num">0.00</div></div><div class="card">إجمالي المشتريات<div id="purchases" class="num">0.00</div></div></div>
+<section class="card"><h2>القائمة الرئيسية</h2><div class="row">
+<div class="module card"><b>💰 المبيعات</b><div class="small">فواتير البيع والمرتجعات والعملاء وتكلفة المبيعات.</div><a class="primary" href="index.html#sales">فتح المبيعات</a></div>
+<div class="module card"><b>🛒 المشتريات</b><div class="small">فواتير الشراء والمرتجعات والموردون ومتوسط التكلفة.</div><a class="primary" href="index.html#purchases">فتح المشتريات</a></div>
+<div class="module card"><b>🧾 المصروفات</b><div class="small">تسجيل وترحيل المصروفات وربطها بالخزينة أو البنك.</div><a class="primary" href="expenses.html">فتح المصروفات</a></div>
+<div class="module card"><b>📊 التقارير</b><div class="small">قائمة الأرباح والخسائر وميزان المراجعة حسب الفترة.</div><a class="primary" href="reports.html">فتح التقارير</a></div>
+<div class="module card"><b>📚 الحسابات</b><div class="small">شجرة الحسابات وقيود اليومية والأرصدة الافتتاحية.</div><a class="primary" href="reports.html">فتح الحسابات والتقارير</a></div>
 <div class="module card"><b>🏬 المخزون</b><div class="small">الأرصدة، التشغيلات، FEFO، والمتوسط المرجح.</div><a class="primary" href="index.html#warehouse">فتح المخزون</a></div>
-</div>
-</section>
-<section class="card"><h2>آخر القيود</h2><table><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>المصدر</th><th>البيان</th></tr></thead><tbody id="journal"></tbody></table></section>
-</main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455Hg_XsWpS_5jrJ71A_VwHCEho2');
-const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function show(e){$('msg').innerHTML='<p class="bad">'+esc(e?.message||e)+'</p>'}
-async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error)return show(r.error);start(r.data.user)}
-async function logout(){await sb.auth.signOut();location.reload()}
-async function start(u){$('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل — '+u.email;await load()}
-async function sumTable(table,col='total'){const r=await sb.from(table).select(col);if(r.error)throw r.error;return (r.data||[]).reduce((s,x)=>s+Number(x[col]||0),0)}
-async function load(){
-try{
-let r=await sb.from('inventory_costs').select('inventory_value');if(r.error)throw r.error;$('stock').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.inventory_value||0),0).toFixed(2);
-r=await sb.from('expenses').select('amount');if(r.error)throw r.error;$('expenses').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.amount||0),0).toFixed(2);
-r=await sb.from('sales').select('total');if(r.error)throw r.error;$('sales').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.total||0),0).toFixed(2);
-r=await sb.from('purchases').select('total');if(r.error)throw r.error;$('purchases').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.total||0),0).toFixed(2);
-r=await sb.from('journal_entries').select('entry_no,entry_date,source_type,description').eq('posted',true).order('entry_date',{ascending:false}).order('entry_no',{ascending:false}).limit(10);if(r.error)throw r.error;
-$('journal').innerHTML=(r.data||[]).map(x=>'<tr><td>'+esc(x.entry_no)+'</td><td>'+esc(x.entry_date)+'</td><td>'+esc(x.source_type)+'</td><td>'+esc(x.description||'')+'</td></tr>').join('');
-}catch(e){$('status').textContent='تعذر تحميل بعض البيانات';console.error(e)}
-}
-sb.auth.getSession().then(r=>r.data.session?start(r.data.session.user):$('status').textContent='غير مسجل الدخول');
-</script>
-</body></html>
+</div></section>
+<section class="card"><h2>آخر القيود</h2><table><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>المصدر</th><th>البيان</th></tr></thead><tbody id="journal"></tbody></table></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455Hg_XsWpS_5jrJ71A_VwHCEho2');const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function show(e){$('msg').innerHTML='<p>'+esc(e?.message||e)+'</p>'}
+async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error)return show(r.error);start(r.data.user)}async function logout(){await sb.auth.signOut();location.reload()}async function start(u){$('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل — '+u.email;await load()}async function load(){try{let r=await sb.from('inventory_costs').select('inventory_value');if(r.error)throw r.error;$('stock').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.inventory_value||0),0).toFixed(2);r=await sb.from('expenses').select('amount');if(r.error)throw r.error;$('expenses').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.amount||0),0).toFixed(2);r=await sb.from('sales').select('total');if(r.error)throw r.error;$('sales').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.total||0),0).toFixed(2);r=await sb.from('purchases').select('total');if(r.error)throw r.error;$('purchases').textContent=(r.data||[]).reduce((s,x)=>s+Number(x.total||0),0).toFixed(2);r=await sb.from('journal_entries').select('entry_no,entry_date,source_type,description').eq('posted',true).order('entry_date',{ascending:false}).order('entry_no',{ascending:false}).limit(10);if(r.error)throw r.error;$('journal').innerHTML=(r.data||[]).map(x=>'<tr><td>'+esc(x.entry_no)+'</td><td>'+esc(x.entry_date)+'</td><td>'+esc(x.source_type)+'</td><td>'+esc(x.description||'')+'</td></tr>').join('')}catch(e){$('status').textContent='تعذر تحميل بعض البيانات';console.error(e)}}sb.auth.getSession().then(r=>r.data.session?start(r.data.session.user):$('status').textContent='غير مسجل الدخول');
+</script></body></html>
