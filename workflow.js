@@ -28,7 +28,17 @@ function render(){
  if(t==='purchase-save'||t==='sale-save'||t==='purchase-return-save'||t==='sale-return-save') buildSave(t); else buildPost(t);
 }
 function shell(body){
- $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a href="'+location.pathname.replace(/[^/]+$/,'')+'expenses.html">💼 المحاسبة</a></div>'+body;
+ const t=document.body.dataset.workflow;
+ const map={
+  'purchase-save':'purchase-save.html','purchase-post':'purchase-save.html',
+  'sale-save':'sale-save.html','sale-post':'sale-save.html',
+  'purchase-return-save':'purchase-return-save.html','purchase-return-post':'purchase-return-save.html',
+  'sale-return-save':'sale-return-save.html','sale-return-post':'sale-return-save.html'
+ };
+ const label={purchase:'➕ حركة مشتريات جديدة',sale:'➕ حركة مبيعات جديدة','purchase-return':'➕ مردود مشتريات جديد','sale-return':'➕ مرتجع مبيعات جديد'};
+ const k=t.startsWith('purchase-return')?'purchase-return':t.startsWith('sale-return')?'sale-return':t.startsWith('purchase')?'purchase':'sale';
+ const current=map[t]||'accounting.html';
+ $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="'+map[k+'-save']+'">'+label[k]+'</a><a href="'+(k.startsWith('purchase')?'purchase-post.html':k==='sale'?'sale-post.html':'sale-return-post.html')+'">📤 الترحيل</a></div>'+body;
 }
 function buildSave(t){
  const isP=t.startsWith('purchase'), isR=t.includes('return');
