@@ -38,7 +38,7 @@ function shell(body){
  const label={purchase:'➕ حركة مشتريات جديدة',sale:'➕ حركة مبيعات جديدة','purchase-return':'➕ مردود مشتريات جديد','sale-return':'➕ مرتجع مبيعات جديد'};
  const k=t.startsWith('purchase-return')?'purchase-return':t.startsWith('sale-return')?'sale-return':t.startsWith('purchase')?'purchase':'sale';
  const current=map[t]||'accounting.html';
- $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="'+map[k+'-save']+'">'+label[k]+'</a><a href="'+(k.startsWith('purchase')?'purchase-post.html':k==='sale'?'sale-post.html':'sale-return-post.html')+'">📤 الترحيل</a></div>'+body;
+ $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="'+map[k+'-save']+'">'+label[k]+'</a><a href="'+(k==='purchase'?'purchase-post.html':k==='sale'?'sale-post.html':k==='purchase-return'?'purchase-return-post.html':'sale-return-post.html')+'">📤 الترحيل</a></div>'+body;
 }
 function buildSave(t){
  const isP=t.startsWith('purchase'), isR=t.includes('return');
