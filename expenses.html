@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المصروفات | نظام المحاسبة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+main{max-width:1250px;margin:20px auto;padding:0 15px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{font-size:26px;font-weight:bold;margin-top:8px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px}
+input,select,textarea{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff}textarea{min-height:75px}
+button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:#e9edf5}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}
+table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}
+.msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}.bad{color:#b42318}.ok{color:#087443}.small{font-size:12px;color:#667085}
+.login{max-width:500px;margin:70px auto}.hide{display:none}.tag{padding:4px 8px;border-radius:15px;background:#eef2f7;font-size:12px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><b>🧾 نظام المحاسبة — المصروفات</b><span id="status">جاري الاتصال...</span></header>
+
+<main id="login" class="login card">
+<h2>تسجيل الدخول</h2>
+<p class="small">استخدم نفس حساب المدير الموجود في نظام المحاسبة.</p>
+<div class="field"><label>البريد الإلكتروني</label><input id="email" type="email"></div>
+<div class="field" style="margin-top:10px"><label>كلمة المرور</label><input id="password" type="password"></div>
+<button class="primary" style="margin-top:14px" onclick="login()">دخول</button>
+<div id="authMsg"></div>
+</main>
+
+<main id="app" class="hide">
+<div class="row" style="justify-content:space-between;margin-bottom:12px"><div><b id="who"></b></div><button onclick="logout()">تسجيل الخروج</button></div>
+<div class="grid">
+<div class="card">إجمالي المصروفات<div id="total" class="kpi">0.00</div></div>
+<div class="card">مصروفات الشهر<div id="month" class="kpi">0.00</div></div>
+<div class="card">عدد المستندات<div id="count" class="kpi">0</div></div>
+<div class="card">آخر مصروف<div id="last" class="kpi">0.00</div></div>
+</div>
+
+<section class="card">
+<h2>➕ تسجيل مصروف</h2>
+<div class="row">
+<div class="field"><label>التاريخ</label><input id="date" type="date"></div>
+<div class="field"><label>نوع المصروف</label><select id="category"></select></div>
+<div class="field"><label>المبلغ</label><input id="amount" type="number" min="0" step=".01"></div>
+<div class="field"><label>طريقة الدفع</label><select id="method" onchange="togglePay()">
+<option value="cash">خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
+<div class="field"><label>حساب الدفع</label><select id="payAccount"></select></div>
+<div class="field"><label>الموقع / الفرع</label><select id="site"></select></div>
+<div class="field"><label>المورد / الجهة (اختياري)</label><select id="supplier"></select></div>
+</div>
+<div class="field" style="margin-top:12px"><label>البيان</label><textarea id="desc" placeholder="مثال: فاتورة كهرباء شهر أغسطس"></textarea></div>
+<div class="row" style="margin-top:12px"><button class="success" onclick="saveExpense()">حفظ وترحيل المصروف</button><button onclick="clearForm()">مصروف جديد</button></div>
+<div id="msg"></div>
+</section>
+
+<section class="card">
+<h2>📋 حركة المصروفات</h2>
+<div class="row">
+<div class="field"><label>من</label><input id="from" type="date" onchange="loadExpenses()"></div>
+<div class="field"><label>إلى</label><input id="to" type="date" onchange="loadExpenses()"></div>
+<div class="field"><label>بحث</label><input id="search" oninput="render()" placeholder="نوع المصروف أو البيان"></div>
+<button onclick="loadExpenses()">تحديث</button>
+</div>
+<table><thead><tr><th>رقم</th><th>التاريخ</th><th>نوع المصروف</th><th>البيان</th><th>المبلغ</th><th>الدفع</th><th>الموقع</th><th>القيد</th></tr></thead>
+<tbody id="body"></tbody></table>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455Hg_XsWpS_5jrJ71A_VwHCEho2');
+let user=null,cats=[],accounts=[],sites=[],suppliers=[],rows=[];
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toISOString().slice(0,10);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function err(e){return e?.message||String(e)}
+function opts(a,label,v='id'){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x[v]+'">'+esc(label(x))+'</option>').join('')}
+async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}start(r.data.user)}
+async function logout(){await sb.auth.signOut();location.reload()}
+async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('date').value=today();$('from').value=today().slice(0,8)+'01';$('to').value=today();await loadLists();await loadExpenses()}
+async function loadLists(){
+let r=await sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code');if(r.error)throw r.error;cats=r.data;
+r=await sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code');if(r.error)throw r.error;accounts=r.data;
+r=await sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code');if(r.error)throw r.error;sites=r.data;
+r=await sb.from('suppliers').select('id,name').order('name');if(r.error)throw r.error;suppliers=r.data;
+$('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);
+$('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);
+$('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+fillPayAccounts();togglePay();
+}
+function fillPayAccounts(){const method=$('method').value;let a=[];if(method==='cash')a=accounts.filter(x=>x.code.startsWith('11'));else if(method==='bank')a=accounts.filter(x=>x.code.startsWith('12'));$('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);$('payAccount').disabled=method==='accrued'}
+function togglePay(){fillPayAccounts()}
+async function saveExpense(){
+try{
+const cat=$('category').value,amt=Number($('amount').value||0),method=$('method').value,pay=$('payAccount').value;
+if(!cat||amt<=0)return $('msg').innerHTML='<div class="msg bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</div>';
+if(method!=='accrued'&&!pay)return $('msg').innerHTML='<div class="msg bad">اختر حساب الخزينة أو البنك.</div>';
+const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'posted',created_by:user.id}).select().single();
+if(r.error)throw r.error;
+$('msg').innerHTML='<div class="msg ok">تم حفظ وترحيل المصروف وتوليد القيد المحاسبي تلقائيًا ✓</div>';clearForm(false);await loadExpenses()
+}catch(e){$('msg').innerHTML='<div class="msg bad">'+esc(err(e))+'</div>'}
+}
+function clearForm(show=true){$('date').value=today();$('category').value='';$('amount').value='';$('desc').value='';$('supplier').value='';if(show)$('msg').innerHTML=''}
+async function loadExpenses(){
+let q=sb.from('expenses').select('id,expense_no,expense_date,description,amount,payment_method,site_id,journal_entry_id,expense_categories(name_ar,code),inv_sites(name_ar,code)').order('expense_date',{ascending:false}).order('expense_no',{ascending:false});
+if($('from').value)q=q.gte('expense_date',$('from').value);if($('to').value)q=q.lte('expense_date',$('to').value);
+const r=await q;if(r.error){$('msg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}rows=r.data||[];render();
+}
+function render(){
+const s=$('search').value.trim().toLowerCase();const data=rows.filter(x=>!s||((x.description||'')+' '+(x.expense_categories?.name_ar||'')).toLowerCase().includes(s));
+$('body').innerHTML=data.map(x=>'<tr><td>'+x.expense_no+'</td><td>'+x.expense_date+'</td><td>'+esc((x.expense_categories?.code||'')+' — '+(x.expense_categories?.name_ar||''))+'</td><td>'+esc(x.description||'-')+'</td><td>'+Number(x.amount).toFixed(2)+'</td><td><span class="tag">'+({cash:'خزينة',bank:'بنك',accrued:'مستحق'}[x.payment_method]||x.payment_method)+'</span></td><td>'+esc(x.inv_sites?.name_ar||'-')+'</td><td>'+(x.journal_entry_id?'✓ مرحل':'-')+'</td></tr>').join('');
+const total=data.reduce((a,x)=>a+Number(x.amount||0),0);$('total').textContent=total.toFixed(2);$('count').textContent=data.length;$('last').textContent=data.length?Number(data[0].amount).toFixed(2):'0.00';
+const ym=today().slice(0,7);$('month').textContent=data.filter(x=>String(x.expense_date).startsWith(ym)).reduce((a,x)=>a+Number(x.amount||0),0).toFixed(2);
+}
+sb.auth.getSession().then(r=>{if(r.data.session)start(r.data.session.user);else $('status').textContent='غير مسجل الدخول'}).catch(e=>$('status').textContent='خطأ في الاتصال');
+</script>
+</body>
+</html>
