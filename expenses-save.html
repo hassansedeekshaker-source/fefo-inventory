@@ -40,7 +40,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 </div>
 
 <section class="card">
-<h2>💾 حفظ مصروف</h2>
+<h2>💾 حفظ مصروف</h2><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px"><a href="expenses-saved.html" style="text-decoration:none"><button type="button" class="primary">📋 المصروفات المحفوظة</button></a><a href="expenses.html" style="text-decoration:none"><button type="button">🧾 كل المصروفات</button></a></div>
 <div class="row">
 <div class="field"><label>التاريخ</label><input id="date" type="date"></div>
 <div class="field"><label>نوع المصروف</label><select id="category"></select></div>
@@ -52,7 +52,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="field"><label>المورد / الجهة (اختياري)</label><select id="supplier"></select></div>
 </div>
 <div class="field" style="margin-top:12px"><label>البيان</label><textarea id="desc" placeholder="مثال: فاتورة كهرباء شهر أغسطس"></textarea></div>
-<div class="row" style="margin-top:12px"><button class="success" onclick="saveExpense()">💾 حفظ المصروف</button><a href="expenses-posting.html" style="text-decoration:none"><button type="button">📤 الذهاب إلى شاشة الترحيل</button></a><a href="expenses.html" style="text-decoration:none"><button type="button">↩️ المصروفات</button></a></div>
+<div class="row" style="margin-top:12px"><button class="success" onclick="saveExpense()">💾 حفظ المصروف</button><a href="expenses-saved.html" style="text-decoration:none"><button type="button" class="primary">📋 المصروفات المحفوظة</button></a><a href="expenses-posting.html" style="text-decoration:none"><button type="button">📤 الذهاب إلى شاشة الترحيل</button></a><a href="expenses.html" style="text-decoration:none"><button type="button">↩️ المصروفات</button></a></div>
 <div id="msg"></div>
 </section>
 
