@@ -5,12 +5,12 @@
 <main id="app" style="display:none"><div class="bar"><a class="primary" href="accounting.html">🏠 الرئيسية</a><a href="expenses.html">🧾 المصروفات</a><a href="reports.html">📊 التقارير وميزان المراجعة</a><a href="index.html">📦 المخزون والتشغيل</a><button onclick="logout()">تسجيل الخروج</button></div>
 <div class="grid"><div class="card">قيمة المخزون<div id="stock" class="num">0.00</div></div><div class="card">إجمالي المصروفات<div id="expenses" class="num">0.00</div></div><div class="card">إجمالي المبيعات<div id="sales" class="num">0.00</div></div><div class="card">إجمالي المشتريات<div id="purchases" class="num">0.00</div></div></div>
 <section class="card"><h2>القائمة الرئيسية</h2><div class="row">
-<div class="module card"><b>💰 المبيعات</b><div class="small">فواتير البيع والمرتجعات والعملاء وتكلفة المبيعات.</div><a class="primary" href="index.html#sales">فتح المبيعات</a></div>
-<div class="module card"><b>🛒 المشتريات</b><div class="small">فواتير الشراء والمرتجعات والموردون ومتوسط التكلفة.</div><a class="primary" href="index.html#purchases">فتح المشتريات</a></div>
+<div class="module card"><b>💰 المبيعات</b><div class="small">فواتير البيع والمرتجعات والعملاء وتكلفة المبيعات.</div><a class="primary" href="index.html?module=sales">فتح المبيعات</a></div>
+<div class="module card"><b>🛒 المشتريات</b><div class="small">فواتير الشراء والمرتجعات والموردون ومتوسط التكلفة.</div><a class="primary" href="index.html?module=purchases">فتح المشتريات</a></div>
 <div class="module card"><b>🧾 المصروفات</b><div class="small">تسجيل وترحيل المصروفات وربطها بالخزينة أو البنك.</div><a class="primary" href="expenses.html">فتح المصروفات</a></div>
 <div class="module card"><b>📊 التقارير</b><div class="small">قائمة الأرباح والخسائر وميزان المراجعة حسب الفترة.</div><a class="primary" href="reports.html">فتح التقارير</a></div>
 <div class="module card"><b>📚 الحسابات</b><div class="small">شجرة الحسابات وقيود اليومية والأرصدة الافتتاحية.</div><a class="primary" href="reports.html">فتح الحسابات والتقارير</a></div>
-<div class="module card"><b>🏬 المخزون</b><div class="small">الأرصدة، التشغيلات، FEFO، والمتوسط المرجح.</div><a class="primary" href="index.html#warehouse">فتح المخزون</a></div>
+<div class="module card"><b>🏬 المخزون</b><div class="small">الأرصدة، التشغيلات، FEFO، والمتوسط المرجح.</div><a class="primary" href="index.html?module=warehouse">فتح المخزون</a></div>
 </div></section>
 <section class="card"><h2>آخر القيود</h2><table><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>المصدر</th><th>البيان</th></tr></thead><tbody id="journal"></tbody></table></section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
