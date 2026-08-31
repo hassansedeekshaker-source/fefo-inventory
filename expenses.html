@@ -116,9 +116,9 @@ try{
 const cat=$('category').value,amt=Number($('amount').value||0),method=$('method').value,pay=$('payAccount').value;
 if(!cat||amt<=0)return $('msg').innerHTML='<div class="msg bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</div>';
 if(method!=='accrued'&&!pay)return $('msg').innerHTML='<div class="msg bad">اختر حساب الخزينة أو البنك.</div>';
-const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'posted',created_by:user.id}).select().single();
+const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,cash_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'draft',created_by:user.id}).select().single();
 if(r.error)throw r.error;
-$('msg').innerHTML='<div class="msg ok">تم حفظ وترحيل المصروف وتوليد القيد المحاسبي تلقائيًا ✓</div>';clearForm(false);await loadExpenses()
+$('msg').innerHTML='<div class="msg ok">تم حفظ المصروف كمسودة. انتقل إلى شاشة الترحيل لإتمام الترحيل.</div>';clearForm(false);await loadExpenses()
 }catch(e){$('msg').innerHTML='<div class="msg bad">'+esc(err(e))+'</div>'}
 }
 function clearForm(show=true){$('date').value=today();$('category').value='';$('amount').value='';$('desc').value='';$('supplier').value='';if(show)$('msg').innerHTML=''}
