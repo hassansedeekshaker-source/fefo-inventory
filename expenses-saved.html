@@ -11,17 +11,70 @@
 <label class="field" style="grid-column:1/-1">البيان<textarea id="edDesc"></textarea></label></div>
 <div style="margin-top:15px"><button class="success" onclick="saveEdit()">💾 حفظ التعديل</button><button onclick="closeEdit()">إلغاء</button></div><div id="editMsg"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2'),$=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));let data=[],cats=[],accounts=[]; async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}start()} async function start(){ $('login').style.display='none'; $('app').style.display='block'; await init(); }
-const fallbackCats=[{id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},{id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},{id:'9b1b6b51-692e-475d-93e6-d51e671ed62e',code:'EXP-003',name_ar:'مياه'},{id:'c684bad5-5026-4496-98ab-033fcca6e046',code:'EXP-004',name_ar:'غاز'},{id:'d0028501-866e-41bc-8a9f-118da38c2ac2',code:'EXP-005',name_ar:'رواتب وأجور'},{id:'82fedea0-f355-44f5-9dff-d1d519bb8c48',code:'EXP-006',name_ar:'نقل ومواصلات'}];
+const SUPABASE_URL='https://fyqyodnboryzaejlhdlk.supabase.co';
+const SUPABASE_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+let sb=null,user=null,data=[],cats=[],accounts=[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const err=e=>e?.message||String(e||'حدث خطأ');
+const show=(id,html)=>{const el=$(id);if(el)el.innerHTML=html};
+function authMessage(message,kind='bad'){show('authMsg','<div class="msg '+kind+'">'+esc(message)+'</div>')}
+function setBusy(b){const btn=document.querySelector('#login button[onclick*="login"]');if(btn){btn.disabled=b;btn.textContent=b?'جاري التحقق...':'دخول'}}
+function arError(e){
+ const m=String(e?.message||e||'').toLowerCase();
+ if(m.includes('invalid login'))return'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+ if(m.includes('email not confirmed'))return'الحساب غير مؤكد. افتح رسالة التأكيد ثم اضغط دخول.';
+ if(m.includes('too many requests'))return'تم تجاوز عدد محاولات الدخول. انتظر قليلًا ثم حاول مرة أخرى.';
+ return err(e);
+}
+async function ensureClient(){
+ if(sb)return sb;
+ if(!window.supabase){authMessage('لم يتم تحميل خدمة تسجيل الدخول. حدّث الصفحة بـ Ctrl+F5 ثم حاول مرة أخرى.');return null}
+ sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+ return sb;
+}
+window.login=async function(){
+ try{
+  const client=await ensureClient();if(!client)return;
+  const email=$('email').value.trim(),password=$('password').value;
+  if(!email||!password){authMessage('أدخل البريد الإلكتروني وكلمة المرور.');return}
+  setBusy(true);authMessage('جاري التحقق من بيانات الدخول...','');
+  const r=await client.auth.signInWithPassword({email,password});
+  if(r.error){authMessage(arError(r.error));return}
+  await start(r.data.user);
+ }catch(e){authMessage(arError(e))}finally{setBusy(false)}
+};
+window.logout=async function(){try{const client=await ensureClient();if(client)await client.auth.signOut()}finally{location.href='expenses.html'}};
+async function start(u){
+ user=u;$('login').style.display='none';$('app').style.display='block';
+ await init();
+}
+const fallbackCats=[
+{id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},{id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},{id:'9b1b6b51-692e-475d-93e6-d51e671ed62e',code:'EXP-003',name_ar:'مياه'},{id:'c684bad5-5026-4496-98ab-033fcca6e046',code:'EXP-004',name_ar:'غاز'},{id:'d0028501-866e-41bc-8a9f-118da38c2ac2',code:'EXP-005',name_ar:'رواتب وأجور'},{id:'82fedea0-f355-44f5-9dff-d1d519bb8c48',code:'EXP-006',name_ar:'نقل ومواصلات'}];
 const fallbackAccounts=[{id:'6fd5c3ae-3c20-48cb-b52d-ee4eb9c19aaa',code:'1110',name_ar:'الخزينة الرئيسية'},{id:'62651bb2-cf90-46ff-bb02-6da5d59a8bf1',code:'1210',name_ar:'البنك الرئيسي'}];
-async function init(){let c=await sb.from('expense_categories').select('id,code,name_ar,account_id').eq('active',true).order('code');let a=await sb.from('coa_accounts').select('id,code,name_ar,active,is_postable').eq('active',true).eq('is_postable',true).order('code');cats=c.error||!c.data?.length?fallbackCats:c.data;accounts=a.error||!a.data?.length?fallbackAccounts:a.data;$('edCat').innerHTML=cats.map(x=>'<option value="'+x.id+'">'+esc(x.code+' — '+x.name_ar)+'</option>').join('');load()}
 function payOpts(m,sel){let a=m==='cash'?accounts.filter(x=>String(x.code).startsWith('11')):m==='bank'?accounts.filter(x=>String(x.code).startsWith('12')):[];$('edPay').innerHTML='<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'" '+(x.id===sel?'selected':'')+'>'+esc(x.code+' — '+x.name_ar)+'</option>').join('');$('edPay').disabled=m==='accrued'}
 $('edMethod').onchange=()=>payOpts($('edMethod').value,$('edPay').value);
-async function load(){let r=await sb.from('expenses').select('id,expense_no,expense_date,description,amount,payment_method,payment_account_id,cash_account_id,site_id,supplier_id,status,category_id,expense_categories(name_ar,code),inv_sites(name_ar,code)').eq('status','draft').order('expense_date',{ascending:false}).order('expense_no',{ascending:false});if(r.error)return $('msg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';data=r.data||[];$('body').innerHTML=data.length?data.map(x=>'<tr><td><input type="checkbox" class="ck" value="'+x.id+'"></td><td>'+x.expense_no+'</td><td>'+x.expense_date+'</td><td>'+esc((x.expense_categories?.code||'')+' — '+(x.expense_categories?.name_ar||''))+'</td><td>'+esc(x.description||'-')+'</td><td>'+Number(x.amount||0).toFixed(2)+'</td><td>'+({cash:'خزينة',bank:'بنك',accrued:'مستحق'}[x.payment_method]||x.payment_method)+'</td><td>'+esc(x.inv_sites?.name_ar||'-')+'</td><td><button onclick="edit(''+x.id+'')">✏️ فتح وتعديل</button><button class="danger" onclick="del(''+x.id+'')">🗑 حذف</button><button class="success" onclick="postOne(''+x.id+'')">📤 ترحيل</button></td></tr>').join(''):'<tr><td colspan="9">لا توجد مصروفات محفوظة حاليًا.</td></tr>'}
-function edit(id){let x=data.find(v=>v.id===id);if(!x)return;$('editId').value=id;$('edDate').value=x.expense_date;$('edAmount').value=x.amount;$('edCat').value=x.category_id||'';$('edMethod').value=x.payment_method;$('edSupplier').value=x.supplier_id||'';$('edDesc').value=x.description||'';payOpts(x.payment_method,x.payment_account_id||x.cash_account_id);$('modal').classList.add('open')}
-function closeEdit(){$('modal').classList.remove('open');$('editMsg').innerHTML=''}
-async function saveEdit(){try{let id=$('editId').value,m=$('edMethod').value,p=$('edPay').value;if(!$('edCat').value||Number($('edAmount').value)<0)return $('editMsg').innerHTML='<div class="msg bad">راجع البيانات.</div>';if(m!=='accrued'&&!p)return $('editMsg').innerHTML='<div class="msg bad">اختر حساب الدفع.</div>';let r=await sb.from('expenses').update({expense_date:$('edDate').value,category_id:$('edCat').value,description:$('edDesc').value.trim()||null,amount:Number($('edAmount').value),payment_method:m,payment_account_id:m==='accrued'?null:p,cash_account_id:m==='accrued'?null:p,supplier_id:$('edSupplier').value?Number($('edSupplier').value):null,updated_at:new Date().toISOString()}).eq('id',id).eq('status','draft');if(r.error)throw r.error;closeEdit();await load();$('msg').innerHTML='<div class="msg ok">تم حفظ التعديل ✓</div>'}catch(e){$('editMsg').innerHTML='<div class="msg bad">'+esc(e.message||e)+'</div>'}}
-async function del(id){if(!confirm('هل تريد حذف هذه المسودة؟'))return;let r=await sb.from('expenses').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',id).eq('status','draft');if(r.error)return $('msg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';await load();$('msg').innerHTML='<div class="msg ok">تم حذف المسودة ✓</div>'}
-function postOne(id){location.href='expenses-posting.html?select='+encodeURIComponent(id)}
-sb.auth.getSession().then(r=>{if(r.data.session){start()}else{$('login').style.display='block';$('app').style.display='none'}}).catch(e=>{$('login').style.display='block';$('app').style.display='none';$('authMsg').innerHTML='<div class="msg bad">تعذر الاتصال: '+esc(e.message||e)+'</div>'});
+async function init(){
+ try{
+  const [c,a]=await Promise.all([sb.from('expense_categories').select('id,code,name_ar,account_id').eq('active',true).order('code'),sb.from('coa_accounts').select('id,code,name_ar,active,is_postable').eq('active',true).eq('is_postable',true).order('code')]);
+  cats=c.error||!c.data?.length?fallbackCats:c.data;accounts=a.error||!a.data?.length?fallbackAccounts:a.data;
+  $('edCat').innerHTML=cats.map(x=>'<option value="'+x.id+'">'+esc(x.code+' — '+x.name_ar)+'</option>').join('');
+  await load();
+ }catch(e){show('msg','<div class="msg bad">'+esc(err(e))+'</div>')}
+}
+async function load(){
+ const r=await sb.from('expenses').select('id,expense_no,expense_date,description,amount,payment_method,payment_account_id,cash_account_id,site_id,supplier_id,status,category_id,expense_categories(name_ar,code),inv_sites(name_ar,code)').eq('status','draft').order('expense_date',{ascending:false}).order('expense_no',{ascending:false});
+ if(r.error){show('msg','<div class="msg bad">'+esc(err(r.error))+'</div>');return}
+ data=r.data||[];$('body').innerHTML=data.length?data.map(x=>'<tr><td><input type="checkbox" class="ck" value="'+x.id+'"></td><td>'+esc(x.expense_no)+'</td><td>'+esc(x.expense_date)+'</td><td>'+esc((x.expense_categories?.code||'')+' — '+(x.expense_categories?.name_ar||''))+'</td><td>'+esc(x.description||'-')+'</td><td>'+Number(x.amount||0).toFixed(2)+'</td><td>'+({cash:'خزينة',bank:'بنك',accrued:'مستحق'}[x.payment_method]||x.payment_method)+'</td><td>'+esc(x.inv_sites?.name_ar||'-')+'</td><td><button onclick="edit(\''+x.id+'\')">✏️ فتح وتعديل</button><button class="danger" onclick="del(\''+x.id+'\')">🗑 حذف</button><button class="success" onclick="postOne(\''+x.id+'\')">📤 ترحيل</button></td></tr>').join(''):'<tr><td colspan="9">لا توجد مصروفات محفوظة حاليًا.</td></tr>';
+}
+window.edit=function(id){let x=data.find(v=>v.id===id);if(!x)return;$('editId').value=id;$('edDate').value=x.expense_date;$('edAmount').value=x.amount;$('edCat').value=x.category_id||'';$('edMethod').value=x.payment_method;$('edSupplier').value=x.supplier_id||'';$('edDesc').value=x.description||'';payOpts(x.payment_method,x.payment_account_id||x.cash_account_id);$('modal').classList.add('open')};
+window.closeEdit=function(){$('modal').classList.remove('open');$('editMsg').innerHTML=''};
+window.saveEdit=async function(){try{let id=$('editId').value,m=$('edMethod').value,p=$('edPay').value;if(!$('edCat').value||Number($('edAmount').value)<0)return show('editMsg','<div class="msg bad">راجع البيانات.</div>');if(m!=='accrued'&&!p)return show('editMsg','<div class="msg bad">اختر حساب الدفع.</div>');let r=await sb.from('expenses').update({expense_date:$('edDate').value,category_id:$('edCat').value,description:$('edDesc').value.trim()||null,amount:Number($('edAmount').value),payment_method:m,payment_account_id:m==='accrued'?null:p,cash_account_id:m==='accrued'?null:p,supplier_id:$('edSupplier').value?Number($('edSupplier').value):null,updated_at:new Date().toISOString()}).eq('id',id).eq('status','draft');if(r.error)throw r.error;closeEdit();await load();show('msg','<div class="msg ok">تم حفظ التعديل ✓</div>')}catch(e){show('editMsg','<div class="msg bad">'+esc(err(e))+'</div>')}};
+window.del=async function(id){if(!confirm('هل تريد حذف هذه المسودة؟'))return;let r=await sb.from('expenses').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',id).eq('status','draft');if(r.error)return show('msg','<div class="msg bad">'+esc(err(r.error))+'</div>');await load();show('msg','<div class="msg ok">تم حذف المسودة ✓</div>')};
+window.postOne=function(id){location.href='expenses-posting.html?select='+encodeURIComponent(id)};
+async function boot(){
+ const client=await ensureClient();if(!client)return;
+ try{const r=await client.auth.getSession();if(r.data.session)await start(r.data.session.user);else $('login').style.display='block'}catch(e){authMessage(arError(e))}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 </script></body></html>
