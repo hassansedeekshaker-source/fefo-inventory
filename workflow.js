@@ -27,10 +27,10 @@ function render(){
  document.title=({
  'purchase-save':'حفظ المشتريات','purchase-saved':'المشتريات المحفوظة','purchase-post':'ترحيل المشتريات',
  'sale-save':'حفظ المبيعات','sale-saved':'المبيعات المحفوظة','sale-post':'ترحيل المبيعات',
- 'purchase-return-save':'حفظ مردودات المشتريات','purchase-return-post':'ترحيل مردودات المشتريات',
- 'sale-return-save':'حفظ مرتجعات المبيعات','sale-return-post':'ترحيل مرتجعات المبيعات'
+ 'purchase-return-save':'حفظ مردودات المشتريات','purchase-return-saved':'المردودات المحفوظة للمشتريات','purchase-return-post':'ترحيل مردودات المشتريات',
+ 'sale-return-save':'حفظ مرتجعات المبيعات','sale-return-saved':'المرتجعات المحفوظة للمبيعات','sale-return-post':'ترحيل مرتجعات المبيعات'
  })[t]||'نظام المحاسبة';
- if(t==='purchase-save'||t==='sale-save'||t==='purchase-return-save'||t==='sale-return-save'){const saved=new URLSearchParams(location.search).get('saved');if(saved==='1'&&(t==='purchase-save'||t==='sale-save')){document.body.dataset.workflow=t==='purchase-save'?'purchase-saved':'sale-saved';buildSaved(document.body.dataset.workflow);}else buildSave(t);} else if(t==='purchase-saved'||t==='sale-saved') buildSaved(t); else buildPost(t);
+ if(t==='purchase-save'||t==='sale-save'||t==='purchase-return-save'||t==='sale-return-save'){const saved=new URLSearchParams(location.search).get('saved');if(saved==='1'){document.body.dataset.workflow=t==='purchase-save'?'purchase-saved':t==='sale-save'?'sale-saved':t==='purchase-return-save'?'purchase-return-saved':'sale-return-saved';buildSaved(document.body.dataset.workflow);}else buildSave(t);} else if(t==='purchase-saved'||t==='sale-saved'||t==='purchase-return-saved'||t==='sale-return-saved') buildSaved(t); else buildPost(t);
 }
 function shell(body){
  const t=document.body.dataset.workflow;
@@ -113,13 +113,20 @@ async function postSaleReturn(id){
 }
  if(editingId && !isR){setTimeout(()=>loadDraftForEdit(editingId),60)}
 async function buildSaved(t){
- const isP=t==='purchase-saved',table=isP?'purchases':'sales',lineTable=isP?'purchase_lines':'sale_lines',dateCol=isP?'purchase_date':'sale_date';
+ const isR=t.includes('-return-saved'), isP=t.startsWith('purchase');
+ const isNormal=!isR;
+ const table=isNormal?(isP?'purchases':'sales'):(isP?'purchase_returns':'sales_returns');
+ const lineTable=isNormal?(isP?'purchase_lines':'sale_lines'):(isP?'purchase_return_lines':'sales_return_lines');
+ const dateCol=isNormal?(isP?'purchase_date':'sale_date'):'return_date';
  const rel=isP?'suppliers(name)':'customers(name)';
- $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="'+(isP?'purchase-save.html':'sale-save.html')+'">➕ حركة جديدة</a><a href="'+(isP?'purchase-post.html':'sale-post.html')+'">📤 الترحيل</a></div><div class="card"><h1>📋 '+(isP?'المشتريات المحفوظة':'المبيعات المحفوظة')+'</h1><p>الفواتير المحفوظة كمسودات ولم يتم ترحيلها. يمكنك فتحها وتعديلها أو حذفها أو ترحيلها.</p><div id="savedMsg"></div><button onclick="loadSaved()">🔄 تحديث</button><table><thead><tr><th>تحديد</th><th>رقم الفاتورة</th><th>التاريخ</th><th>الطرف</th><th>قيمة الفاتورة</th><th>الضريبة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody id="savedBody"></tbody></table></div>';
- window.loadSaved=async()=>{const r=await sb.from(table).select('*, '+rel).eq('status','draft').order(dateCol,{ascending:false});if(r.error)return savedMsg(r.error.message,'bad');const rows=r.data||[];$('savedBody').innerHTML=rows.map(x=>'<tr><td><input type="checkbox" class="savedck" value="'+x.id+'"></td><td>'+esc(x.invoice_no||x.id.slice(0,8))+'</td><td>'+esc(x[dateCol]||'')+'</td><td>'+esc((isP?x.suppliers?.name:x.customers?.name)||'-')+'</td><td>'+Number(x.subtotal||0).toFixed(2)+'</td><td>'+Number(x.tax||0).toFixed(2)+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td><button onclick="openSaved(\''+x.id+'\')">✏️ فتح / تعديل</button><button onclick="deleteSaved(\''+x.id+'\')">🗑 حذف</button><button class="ok" onclick="postSaved(\''+x.id+'\')">📤 ترحيل</button></td></tr>').join('')||'<tr><td colspan="8">لا توجد فواتير محفوظة حاليًا.</td></tr>'};
- window.openSaved=id=>location.href=(isP?'purchase-save.html':'sale-save.html')+'?edit='+encodeURIComponent(id);
- window.deleteSaved=async id=>{if(!confirm('هل تريد حذف هذه المسودة نهائيًا؟'))return;const d=await sb.from(lineTable).delete().eq(isP?'purchase_id':'sale_id',id);if(d.error)return savedMsg(d.error.message,'bad');const r=await sb.from(table).update({status:'cancelled'}).eq('id',id).eq('status','draft');if(r.error)return savedMsg(r.error.message,'bad');savedMsg('تم حذف المسودة ✓','ok');await loadSaved()};
- window.postSaved=id=>location.href=(isP?'purchase-post.html':'sale-post.html')+'?select='+encodeURIComponent(id);
+ const savePage=isR?(isP?'purchase-return-save.html':'sale-return-save.html'):(isP?'purchase-save.html':'sale-save.html');
+ const postPage=isR?(isP?'purchase-return-post.html':'sale-return-post.html'):(isP?'purchase-post.html':'sale-post.html');
+ const title=isR?(isP?'مردودات المشتريات المحفوظة':'مرتجعات المبيعات المحفوظة'):(isP?'المشتريات المحفوظة':'المبيعات المحفوظة');
+ $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="'+savePage+'">➕ حركة جديدة</a><a href="'+postPage+'">📤 الترحيل</a></div><div class="card"><h1>📋 '+title+'</h1><p>الفواتير المحفوظة كمسودات ولم يتم ترحيلها. يمكنك فتحها وتعديلها أو حذفها أو ترحيلها.</p><div id="savedMsg"></div><button onclick="loadSaved()">🔄 تحديث</button><table><thead><tr><th>تحديد</th><th>رقم الفاتورة</th><th>التاريخ</th><th>الطرف</th><th>قيمة الفاتورة</th><th>الضريبة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody id="savedBody"></tbody></table></div>';
+ window.loadSaved=async()=>{const r=await sb.from(table).select('*, '+rel).eq('status','draft').order(dateCol,{ascending:false});if(r.error)return savedMsg(r.error.message,'bad');const rows=r.data||[];$('savedBody').innerHTML=rows.map(x=>'<tr><td><input type="checkbox" class="savedck" value="'+x.id+'"></td><td>'+esc(x.invoice_no||x.id.slice(0,8))+'</td><td>'+esc(x[dateCol]||'')+'</td><td>'+esc((isP?x.suppliers?.name:x.customers?.name)||'-')+'</td><td>'+Number(x.subtotal||0).toFixed(2)+'</td><td>'+Number(x.tax||0).toFixed(2)+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td><button onclick="openSaved(\''+x.id+'\')">✏️ فتح / تعديل</button><button onclick="deleteSaved(\''+x.id+'\')">🗑 حذف</button><button class="ok" onclick="postSaved(\''+x.id+'\')">📤 ترحيل</button></td></tr>').join('')||'<tr><td colspan="8">لا توجد مسودات محفوظة حاليًا.</td></tr>'};
+ window.openSaved=id=>location.href=savePage+'?edit='+encodeURIComponent(id);
+ window.deleteSaved=async id=>{if(!confirm('هل تريد حذف هذه المسودة نهائيًا؟'))return;const fk=isR?'return_id':(isP?'purchase_id':'sale_id');const d=await sb.from(lineTable).delete().eq(fk,id);if(d.error)return savedMsg(d.error.message,'bad');const r=await sb.from(table).update({status:'cancelled'}).eq('id',id).eq('status','draft');if(r.error)return savedMsg(r.error.message,'bad');savedMsg('تم حذف المسودة ✓','ok');await loadSaved()};
+ window.postSaved=id=>location.href=postPage+'?select='+encodeURIComponent(id);
  function savedMsg(s,c){$('savedMsg').innerHTML='<div class="msg '+c+'">'+esc(s)+'</div>'}
  loadSaved();
 }
