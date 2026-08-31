@@ -45,7 +45,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="row" style="margin-top:12px">
 <a href="expenses-save.html" style="text-decoration:none"><button>💾 حفظ مصروف جديد</button></a>
 <button class="primary" onclick="loadDrafts()">🔄 تحديث</button>
-<a href="expenses.html" style="text-decoration:none"><button>↩️ المصروفات</button></a>
+<a href="expenses.html" style="text-decoration:none"><button>↩️ المصروفات</button></a><a href="expenses-saved.html" style="text-decoration:none"><button>📋 المصروفات المحفوظة</button></a>
 </div>
 <div id="postMsg"></div>
 <table><thead><tr><th>تحديد</th><th>رقم</th><th>التاريخ</th><th>نوع المصروف</th><th>البيان</th><th>المبلغ</th><th>الدفع</th><th>الموقع</th><th>الحالة</th></tr></thead>
@@ -67,7 +67,7 @@ function err(e){return e?.message||String(e)}
 function opts(a,label,v='id'){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x[v]+'">'+esc(label(x))+'</option>').join('')}
 async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}start(r.data.user)}
 async function logout(){await sb.auth.signOut();location.reload()}
-async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('date').value=today();$('from').value=today().slice(0,8)+'01';$('to').value=today();await loadDrafts()}
+async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('from').value=today().slice(0,8)+'01';$('to').value=today();await loadDrafts()}
 const fallbackCats=[
 {id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},
 {id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},
