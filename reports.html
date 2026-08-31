@@ -7,7 +7,7 @@
 <section class="card"><h2>قائمة الأرباح والخسائر</h2><table><thead><tr><th>الكود</th><th>الحساب</th><th>نوع الحساب</th><th>المبلغ</th></tr></thead><tbody id="income"></tbody></table></section>
 <section class="card"><h2>ميزان المراجعة</h2><table><thead><tr><th>الكود</th><th>الحساب</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead><tbody id="tb"></tbody></table></section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455Hg_XsWpS_5jrJ71A_VwHCEho2');const $=id=>document.getElementById(id);
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function dates(){let d=new Date(),to=d.toISOString().slice(0,10);let f=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);$('from').value=f;$('to').value=to}
 async function login(){let r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('msg').textContent=r.error.message;return}start()}
