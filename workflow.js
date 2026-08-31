@@ -72,6 +72,8 @@ function buildSave(t){
  if(v)v.textContent=value.toFixed(2); if(tx)tx.textContent=tax.toFixed(2); if(tot)tot.textContent=(value+tax).toFixed(2);
 };
 window.calcPurchaseLine=el=>{const tr=el.closest('tr');const q=Number(tr.querySelector('.qty')?.value||0),p=Number(tr.querySelector('.price')?.value||0),tax=Number(tr.querySelector('.tax')?.value||0);const unitTax=p*tax/100,lineTax=q*unitTax;const ut=tr.querySelector('.unitTax'),tv=tr.querySelector('.taxValue'),lt=tr.querySelector('.lineTotal');if(ut)ut.textContent=unitTax.toFixed(2);if(tv)tv.textContent=lineTax.toFixed(2);if(lt)lt.textContent=(q*p+lineTax).toFixed(2);updateInvoiceSummary()};
+ window.addLineAndFocus=()=>{window.addLine();setTimeout(()=>{const rows=document.querySelectorAll('#lines tr');const last=rows[rows.length-1];const sel=last?.querySelector('.item');if(sel){sel.focus();sel.scrollIntoView({block:'nearest'});}},30)};
+ document.addEventListener('keydown',e=>{const el=e.target;if(!el.classList?.contains('item')||e.key!=='Enter')return;e.preventDefault();e.stopPropagation();if(typeof window.addLineAndFocus==='function')window.addLineAndFocus();});
  window.saveDraft=async()=>{
   try{
    const party=$('party').value,site=$('site').value; if(!party||!site)return msg('اختر الطرف والموقع','bad');
