@@ -51,13 +51,31 @@ function buildSave(t){
  let rows='<tr><td><select class="item" onchange="purchaseItemChanged(this)">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td class="unit">-</td><td><input class="lastPrice" type="number" step=".01" readonly></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="tax" type="number" min="0" step=".01" value="0"></td><td class="lineTotal">0.00</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
  if(isP && !isR) rows='<tr><td><select class="item" onchange="purchaseItemChanged(this)">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calcPurchaseLine(this)"></td><td><input class="lastPrice" type="number" step=".01" readonly></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calcPurchaseLine(this)"></td><td><input class="tax" type="number" min="0" step=".01" value="0" readonly></td><td class="lineTotal">0.00</td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
  if(isR) rows='<tr><td><select class="item">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="cost" type="number" min="0" step=".01" value="0"></td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
- shell('<div class="card"><h1 id="title"></h1><p>الحفظ يسجل المستند كمسودة فقط. لا يتم تحديث المخزون ولا إنشاء قيد محاسبي حتى الترحيل.</p><div class="head"><label>رقم المستند<input id="docno"></label><label>التاريخ<input id="date" type="date" value="'+today()+'"></label>'+party+'<label>الموقع<select id="site">'+opts(sites,x=>x.name_ar)+'</select></label></div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر/قيمة</th><th>ضريبة/تكلفة</th><th>إجراء</th></tr></thead><tbody id="lines">'+rows+'</tbody></table><button onclick="addLine()">+ إضافة صنف</button><button class="ok" onclick="saveDraft()">💾 حفظ فقط</button><a class="btn" href="'+(isP?(isR?'purchase-return-post.html':'purchase-post.html'):(isR?'sale-return-post.html':'sale-post.html'))+'">📤 شاشة الترحيل</a><div id="msg"></div></div>');
+ shell('<div class="card"><h1 id="title"></h1><p>الحفظ يسجل المستند كمسودة فقط. لا يتم تحديث المخزون ولا إنشاء قيد محاسبي حتى الترحيل.</p><div class="head"><label>رقم المستند<input id="docno"></label><label>التاريخ<input id="date" type="date" value="'+today()+'"></label>'+party+'<label>الموقع<select id="site">'+opts(sites,x=>x.name_ar)+'</select></label></div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر/قيمة</th><th>ضريبة/تكلفة</th><th>إجراء</th></tr></thead><tbody id="lines">'+rows+'</tbody></table><button onclick="addLine()">+ إضافة صنف</button><button class="ok" onclick="saveDraft()">💾 حفظ فقط</button><div id="invoiceSummary" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;direction:rtl">
+ <div class="card"><b>قيمة الفاتورة</b><div id="invoiceValue">0.00</div></div>
+ <div class="card"><b>إجمالي الضريبة</b><div id="invoiceTax">0.00</div></div>
+ <div class="card"><b>إجمالي الفاتورة</b><div id="invoiceTotal">0.00</div></div>
+</div><a class="btn" href="'+(isP?(isR?'purchase-return-post.html':'purchase-post.html'):(isR?'sale-return-post.html':'sale-post.html'))+'">📤 شاشة الترحيل</a><div id="msg"></div></div>');
 
- if(isP&&!isR){document.querySelector('thead tr').innerHTML='<th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>آخر سعر شراء</th><th>سعر الشراء الجديد</th><th>القيمة المضافة %</th><th>الإجمالي</th><th>إجراء</th>';setTimeout(()=>document.querySelectorAll('.item').forEach(purchaseItemChanged),0);}
+ if(isP&&!isR){document.querySelector('thead tr').innerHTML='<th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>آخر سعر شراء</th><th>سعر الشراء الجديد</th><th>القيمة المضافة %</th><th>الإجمالي</th><th>إجراء</th>';setTimeout(()=>{document.querySelectorAll('.item').forEach(purchaseItemChanged);updateInvoiceSummary()},0);}
  if(isR) document.querySelector('thead tr').innerHTML='<th>الصنف</th><th>الكمية</th><th>سعر البيع/الشراء</th><th>تكلفة المخزون</th><th>إجراء</th>';
- window.addLine=()=>{$('lines').insertAdjacentHTML('beforeend',rows);const n=$('lines').lastElementChild?.querySelector('.item');if(n)purchaseItemChanged(n)};
+ window.addLine=()=>{$('lines').insertAdjacentHTML('beforeend',rows);const n=$('lines').lastElementChild?.querySelector('.item');if(n)purchaseItemChanged(n);updateInvoiceSummary()};
  window.purchaseItemChanged=el=>{const tr=el.closest('tr'),x=items.find(i=>i.id===el.value);if(!x)return;tr.querySelector('.unit').textContent=(units.find(u=>u.id===x.unit_id)?.name_ar||units.find(u=>u.id===x.unit_id)?.name||'-');tr.querySelector('.lastPrice').value=Number(x.purchase_price||0).toFixed(2);tr.querySelector('.price').value=Number(x.purchase_price||0).toFixed(2);tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);calcPurchaseLine(tr.querySelector('.price'))};
- window.calcPurchaseLine=el=>{const tr=el.closest('tr');const q=Number(tr.querySelector('.qty')?.value||0),p=Number(tr.querySelector('.price')?.value||0),tax=Number(tr.querySelector('.tax')?.value||0);tr.querySelector('.lineTotal').textContent=(q*p*(1+tax/100)).toFixed(2)};
+ window.updateInvoiceSummary=()=>{
+ let value=0,tax=0;
+ document.querySelectorAll('#lines tr').forEach(tr=>{
+  const q=Number(tr.querySelector('.qty')?.value||0);
+  const p=Number(tr.querySelector('.price')?.value||0);
+  const cost=Number(tr.querySelector('.cost')?.value||0);
+  const item=items.find(i=>i.id===tr.querySelector('.item')?.value);
+  const base=p||cost;
+  const rate=Number(item?.tax_rate||tr.querySelector('.tax')?.value||0);
+  value+=q*base; tax+=q*base*rate/100;
+ });
+ const v=document.getElementById('invoiceValue'),tx=document.getElementById('invoiceTax'),tot=document.getElementById('invoiceTotal');
+ if(v)v.textContent=value.toFixed(2); if(tx)tx.textContent=tax.toFixed(2); if(tot)tot.textContent=(value+tax).toFixed(2);
+};
+window.calcPurchaseLine=el=>{const tr=el.closest('tr');const q=Number(tr.querySelector('.qty')?.value||0),p=Number(tr.querySelector('.price')?.value||0),tax=Number(tr.querySelector('.tax')?.value||0);const lt=tr.querySelector('.lineTotal');if(lt)lt.textContent=(q*p*(1+tax/100)).toFixed(2);updateInvoiceSummary()};
  window.saveDraft=async()=>{
   try{
    const party=$('party').value,site=$('site').value; if(!party||!site)return msg('اختر الطرف والموقع','bad');
