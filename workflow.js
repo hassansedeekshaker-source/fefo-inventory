@@ -19,12 +19,12 @@ async function init(){
 function opts(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 function render(){
  const t=document.body.dataset.workflow;
- $('title').textContent=({
+ document.title=({
  'purchase-save':'حفظ المشتريات','purchase-post':'ترحيل المشتريات',
  'sale-save':'حفظ المبيعات','sale-post':'ترحيل المبيعات',
  'purchase-return-save':'حفظ مردودات المشتريات','purchase-return-post':'ترحيل مردودات المشتريات',
  'sale-return-save':'حفظ مرتجعات المبيعات','sale-return-post':'ترحيل مرتجعات المبيعات'
- })[t];
+ })[t]||'نظام المحاسبة';
  if(t==='purchase-save'||t==='sale-save'||t==='purchase-return-save'||t==='sale-return-save') buildSave(t); else buildPost(t);
 }
 function shell(body){
@@ -47,7 +47,7 @@ function buildSave(t){
  if(isP && !isR) rows='<tr><td><select class="item">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="disc" type="number" min="0" step=".01" value="0"></td><td><input class="tax" type="number" min="0" step=".01" value="0"></td><td><input class="batch"></td><td><input class="exp" type="date"></td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
  if(isR) rows='<tr><td><select class="item">'+opts(items,x=>x.name_ar+' — '+x.sku)+'</select></td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="cost" type="number" min="0" step=".01" value="0"></td><td><button onclick="this.closest(\'tr\').remove()">حذف</button></td></tr>';
  shell('<div class="card"><h1 id="title"></h1><p>الحفظ يسجل المستند كمسودة فقط. لا يتم تحديث المخزون ولا إنشاء قيد محاسبي حتى الترحيل.</p><div class="head"><label>رقم المستند<input id="docno"></label><label>التاريخ<input id="date" type="date" value="'+today()+'"></label>'+party+'<label>الموقع<select id="site">'+opts(sites,x=>x.name_ar)+'</select></label></div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر/قيمة</th><th>ضريبة/تكلفة</th><th>إجراء</th></tr></thead><tbody id="lines">'+rows+'</tbody></table><button onclick="addLine()">+ إضافة صنف</button><button class="ok" onclick="saveDraft()">💾 حفظ فقط</button><a class="btn" href="'+(isP?(isR?'purchase-return-post.html':'purchase-post.html'):(isR?'sale-return-post.html':'sale-post.html'))+'">📤 شاشة الترحيل</a><div id="msg"></div></div>');
- $('title').textContent=document.body.dataset.workflow;
+
  if(isP&&!isR) document.querySelector('thead tr').innerHTML='<th>الصنف</th><th>الكمية</th><th>التكلفة</th><th>خصم%</th><th>ضريبة%</th><th>تشغيلة</th><th>صلاحية</th><th>إجراء</th>';
  if(isR) document.querySelector('thead tr').innerHTML='<th>الصنف</th><th>الكمية</th><th>سعر البيع/الشراء</th><th>تكلفة المخزون</th><th>إجراء</th>';
  window.addLine=()=>{$('lines').insertAdjacentHTML('beforeend',rows)};
