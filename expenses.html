@@ -46,7 +46,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="field"><label>نوع المصروف</label><select id="category"></select></div>
 <div class="field"><label>المبلغ</label><input id="amount" type="number" min="0" step=".01"></div>
 <div class="field"><label>طريقة الدفع</label><select id="method" onchange="togglePay()">
-<option value="cash">خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
+<option value="cash" selected>خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
 <div class="field"><label>حساب الدفع</label><select id="payAccount"></select></div>
 <div class="field"><label>الموقع / الفرع</label><select id="site"></select></div>
 <div class="field"><label>المورد / الجهة (اختياري)</label><select id="supplier"></select></div>
@@ -82,16 +82,30 @@ async function login(){const r=await sb.auth.signInWithPassword({email:$('email'
 async function logout(){await sb.auth.signOut();location.reload()}
 async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('date').value=today();$('from').value=today().slice(0,8)+'01';$('to').value=today();await loadLists();await loadExpenses()}
 async function loadLists(){
-let r=await sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code');if(r.error)throw r.error;cats=r.data;
-r=await sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code');if(r.error)throw r.error;accounts=r.data;
-r=await sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code');if(r.error)throw r.error;sites=r.data;
-r=await sb.from('suppliers').select('id,name').order('name');if(r.error)throw r.error;suppliers=r.data;
-$('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);
-$('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);
-$('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
-fillPayAccounts();togglePay();
+  const results=await Promise.allSettled([
+    sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code'),
+    sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code'),
+    sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code'),
+    sb.from('suppliers').select('id,name').order('name')
+  ]);
+  const [cr,ar,sr,pr]=results;
+  if(cr.status==='fulfilled' && !cr.value.error) cats=cr.value.data||[];
+  if(ar.status==='fulfilled' && !ar.value.error) accounts=ar.value.data||[];
+  if(sr.status==='fulfilled' && !sr.value.error) sites=sr.value.data||[];
+  if(pr.status==='fulfilled' && !pr.value.error) suppliers=pr.value.data||[];
+  $('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);
+  $('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);
+  $('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+  fillPayAccounts();
 }
-function fillPayAccounts(){const method=$('method').value;let a=[];if(method==='cash')a=accounts.filter(x=>x.code.startsWith('11'));else if(method==='bank')a=accounts.filter(x=>x.code.startsWith('12'));$('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);$('payAccount').disabled=method==='accrued'}
+function fillPayAccounts(){
+  const method=$('method').value;
+  let a=[];
+  if(method==='cash') a=accounts.filter(x=>String(x.code).startsWith('11'));
+  else if(method==='bank') a=accounts.filter(x=>String(x.code).startsWith('12'));
+  $('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);
+  $('payAccount').disabled=method==='accrued';
+}
 function togglePay(){fillPayAccounts()}
 async function saveExpense(){
 try{
