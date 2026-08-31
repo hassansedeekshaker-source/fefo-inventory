@@ -1,0 +1,10 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>جاري فتح الشاشة</title><script>
+(function(){
+  var p=location.pathname.toLowerCase();
+  var q=location.search||'';
+  if(p.endsWith('/purchase-saved.html')){location.replace('purchase-save.html?saved=1');return;}
+  if(p.endsWith('/sale-saved.html')){location.replace('sale-save.html?saved=1');return;}
+  if(p.endsWith('/purchase-return-saved.html')){location.replace('purchase-return-save.html?saved=1');return;}
+  if(p.endsWith('/sale-return-saved.html')){location.replace('sale-return-save.html?saved=1');return;}
+  location.replace('accounting.html');
+})();</script><body style="font-family:Arial;padding:40px;text-align:center">جاري فتح الشاشة...</body></html>
