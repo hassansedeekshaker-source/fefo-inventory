@@ -102,7 +102,7 @@ window.logout=async()=>{await sb.auth.signOut();location.reload()};
 async function start(u){user=u;$('auth').style.display='none';$('app').style.display='block';$('who').textContent=u.email||'';$('pdate').value=today();$('sdate').value=today();$('status').textContent='جاري تحميل البيانات...';await load();$('status').textContent='متصل ✓'}
 async function q(table,query){const r=await query;if(r.error)throw r.error;return r.data||[]}
 async function load(){
-[sites,items,lots,moves,units,suppliers,customers,accounts,journals]=await Promise.all([
+[sites,items,lots,moves,units,suppliers,customers,accounts,journals,costs]=await Promise.all([
 q('sites',sb.from('inv_sites').select('*').eq('active',true).order('name_ar')),
 q('items',sb.from('inv_items').select('*,inv_units(name_ar)').eq('active',true).order('name_ar')),
 q('lots',sb.from('inv_lots').select('*,inv_items(name_ar,sku),inv_sites(name_ar)').order('expiry_date',{ascending:true})),
