@@ -1,0 +1,38 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>المستندات المترحلة</title>
+<style>*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between}main{max-width:1350px;margin:20px auto;padding:0 15px}.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.top a,.btn{display:inline-block;border-radius:9px;padding:10px 15px;text-decoration:none;background:#fff;color:#18243a;border:1px solid #dce2ec}.primary{background:#18243a!important;color:#fff!important}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.filters label{display:flex;flex-direction:column;gap:5px}input,select,button{padding:10px;border:1px solid #d6dce8;border-radius:9px;font-size:14px}button{cursor:pointer;background:#18243a;color:#fff;border:0}.msg{padding:10px;border-radius:9px;margin:10px 0}.bad{background:#fee2e2}.ok{background:#dcfce7}.muted{color:#667085;font-size:12px}.num{font-weight:bold}.empty{text-align:center;color:#667085}@media(max-width:700px){table{font-size:12px}th,td{padding:7px}}</style></head>
+<body><header><b>📋 المستندات المترحلة</b><span id="status">جاري الاتصال...</span></header><main id="app" style="display:none">
+<div class="top"><a class="primary" href="accounting.html">🏠 الرئيسية</a><a href="sales.html">💰 المبيعات</a><a href="purchases.html">🛒 المشتريات</a><a href="reports.html">📊 التقارير والحسابات</a></div>
+<section class="card"><h1>📋 المستندات المترحلة</h1><p class="muted">هنا تظهر المستندات التي تم ترحيلها فقط. المستندات الملغاة أو المسودات لا تظهر، ورقم القيد المحاسبي لا يُنشأ إلا لحظة الترحيل.</p>
+<div class="filters"><label>النوع<select id="type"><option value="">كل الأنواع</option><option value="sale">مبيعات</option><option value="purchase">مشتريات</option><option value="sale_return">مرتجع مبيعات</option><option value="purchase_return">مردود مشتريات</option><option value="expense">مصروفات</option></select></label><label>من<input id="from" type="date"></label><label>إلى<input id="to" type="date"></label><button onclick="load()">🔄 تحديث</button></div><div id="msg"></div></section>
+<section class="card"><h2>القيود المحاسبية المترحلة</h2><table><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>نوع العملية</th><th>البيان</th><th>المصدر</th></tr></thead><tbody id="journal"></tbody></table></section>
+<section class="card"><h2>تفاصيل المستندات المترحلة</h2><table><thead><tr><th>النوع</th><th>رقم المستند</th><th>التاريخ</th><th>الطرف</th><th>الإجمالي</th><th>رقم القيد</th></tr></thead><tbody id="docs"></tbody></table></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const labels={sale:'مبيعات',purchase:'مشتريات',sale_return:'مرتجع مبيعات',purchase_return:'مردود مشتريات',expense:'مصروفات'};
+function setDates(){const d=new Date(),to=d.toISOString().slice(0,10),f=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);$('from').value=f;$('to').value=to}
+async function start(){ $('app').style.display='block';$('status').textContent='متصل';setDates();await load()}
+function err(s){$('msg').innerHTML='<div class="msg bad">'+esc(s)+'</div>'}
+async function load(){try{
+ const type=$('type').value,from=$('from').value,to=$('to').value;
+ let q=sb.from('journal_entries').select('id,entry_no,entry_date,source_type,source_id,description').eq('posted',true).gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}).order('entry_no',{ascending:false});
+ if(type)q=q.eq('source_type',type);
+ let r=await q;if(r.error)throw r.error;const js=r.data||[];
+ $('journal').innerHTML=js.length?js.map(x=>'<tr><td class="num">'+esc(x.entry_no)+'</td><td>'+esc(x.entry_date)+'</td><td>'+esc(labels[x.source_type]||x.source_type||'-')+'</td><td>'+esc(x.description||'')+'</td><td>'+esc(x.source_id||'')+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد قيود مترحلة في الفترة المحددة.</td></tr>';
+ const [sales,purchases,sr,pr,expenses]=await Promise.all([
+  sb.from('sales').select('id,invoice_no,sale_date,total,customer_id,status').eq('status','posted').gte('sale_date',from).lte('sale_date',to),
+  sb.from('purchases').select('id,invoice_no,purchase_date,total,supplier_id,status').eq('status','posted').gte('purchase_date',from).lte('purchase_date',to),
+  sb.from('sales_returns').select('id,return_no,return_date,total,customer_id,status').eq('status','posted').gte('return_date',from).lte('return_date',to),
+  sb.from('purchase_returns').select('id,return_no,return_date,total,supplier_id,status').eq('status','posted').gte('return_date',from).lte('return_date',to),
+  sb.from('expenses').select('id,expense_no,expense_date,amount,supplier_id,customer_id,status').eq('status','posted').gte('expense_date',from).lte('expense_date',to)
+ ]);
+ for(const z of [sales,purchases,sr,pr,expenses])if(z.error)throw z.error;
+ const wanted=type?new Set([type]):null;
+ const rows=[];
+ const add=(arr,t,date,no,total,party)=>{if(!wanted||wanted.has(t))for(const x of (arr||[]))rows.push({t,date:x[date],no:x[no],total:x[total],party:x[party],id:x.id})};
+ add(sales.data,'sale','sale_date','invoice_no','total','customer_id');add(purchases.data,'purchase','purchase_date','invoice_no','total','supplier_id');add(sr.data,'sale_return','return_date','return_no','total','customer_id');add(pr.data,'purchase_return','return_date','return_no','total','supplier_id');add(expenses.data,'expense','expense_date','expense_no','amount','supplier_id');
+ const bySource=new Map(js.map(x=>[x.source_type+'|'+x.source_id,x.entry_no]));
+ rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))||Number(bySource.get(a.t+'|'+a.id)||0)-Number(bySource.get(b.t+'|'+b.id)||0));
+ $('docs').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(labels[x.t]||x.t)+'</td><td>'+esc(x.no||x.id.slice(0,8))+'</td><td>'+esc(x.date||'')+'</td><td>'+esc(x.party||'-')+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td class="num">'+esc(bySource.get(x.t+'|'+x.id)||'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">لا توجد مستندات مترحلة في الفترة المحددة.</td></tr>';
+ }catch(e){err(e.message||e)}}
+sb.auth.getSession().then(r=>r.data.session?start():location.href='accounting.html');
+</script></body></html>
