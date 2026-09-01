@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>العملاء والموردون | نظام المحاسبة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#172033;font-family:Tahoma,Arial,sans-serif}
+header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+main{max-width:1350px;margin:20px auto;padding:0 15px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}
+input,textarea,select{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff;width:100%}textarea{min-height:75px;resize:vertical}
+button,a.btn{border:0;border-radius:9px;padding:10px 15px;cursor:pointer;font-size:14px;text-decoration:none;display:inline-block}
+button.primary,a.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}button.danger{background:#b42318;color:#fff}
+.tabs{display:flex;gap:8px;margin-bottom:15px}.tabs button.active{background:#18243a;color:#fff}
+.panel{display:none}.panel.active{display:block}
+table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right;vertical-align:middle}th{background:#eef2f7}
+.msg{padding:10px;border-radius:9px;margin-top:12px}.ok{background:#ecfdf3;color:#087443}.bad{background:#fef3f2;color:#b42318}.small{font-size:12px;color:#667085}
+.edit{background:#e9edf5;color:#172033}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eef2f7;font-size:12px}
+@media(max-width:650px){th,td{padding:7px;font-size:13px}.field{min-width:100%}}
+</style>
+</head>
+<body>
+<header><b>👥 العملاء والموردون</b><div><a class="btn primary" href="accounting.html">🏠 الرئيسية</a> <button onclick="logout()">تسجيل الخروج</button> <span id="status">جاري الاتصال...</span></div></header>
+
+<main id="login" class="card" style="max-width:500px">
+<h2>تسجيل الدخول</h2><p class="small">استخدم نفس حساب المدير في نظام المحاسبة.</p>
+<div class="field"><label>البريد الإلكتروني</label><input id="email" type="email" autocomplete="username"></div>
+<div class="field" style="margin-top:10px"><label>كلمة المرور</label><input id="password" type="password" autocomplete="current-password"></div>
+<button class="primary" style="margin-top:12px" onclick="login()">دخول</button><div id="authMsg"></div>
+</main>
+
+<main id="app" style="display:none">
+<section class="card">
+<h2>👥 دليل العملاء والموردين</h2>
+<p class="small">إضافة وتعديل بيانات العملاء والموردين من شاشة واحدة. رقم السجل في قاعدة البيانات لا يتغير عند التعديل.</p>
+<div class="tabs">
+<button id="tabCustomers" class="active" onclick="switchTab('customers')">👤 العملاء</button>
+<button id="tabSuppliers" onclick="switchTab('suppliers')">🚚 الموردون</button>
+</div>
+
+<section id="customers" class="panel active">
+<div class="row">
+<div class="field"><label>اسم العميل *</label><input id="cName"></div>
+<div class="field"><label>رقم الهاتف</label><input id="cPhone"></div>
+<div class="field"><label>العنوان</label><input id="cAddress"></div>
+<div class="field"><label>معفى من خصم المنبع؟</label><select id="cWithhold"><option value="no">لا</option><option value="yes">نعم</option></select></div>
+<div class="field"><label>نسبة خصم المنبع %</label><input id="cRate" type="number" min="0" max="100" step=".01" value="0"></div>
+<div class="field"><label>ملاحظات</label><textarea id="cNotes"></textarea></div>
+</div>
+<div class="row" style="margin-top:12px"><button class="success" id="cSave" onclick="saveCustomer()">➕ إضافة العميل</button><button onclick="clearCustomer()">جديد</button></div>
+<div id="cMsg"></div>
+<table><thead><tr><th>#</th><th>اسم العميل</th><th>الهاتف</th><th>العنوان</th><th>خصم المنبع</th><th>الإجراء</th></tr></thead><tbody id="cBody"></tbody></table>
+</section>
+
+<section id="suppliers" class="panel">
+<div class="row">
+<div class="field"><label>اسم المورد *</label><input id="sName"></div>
+<div class="field"><label>رقم الهاتف</label><input id="sPhone"></div>
+<div class="field"><label>العنوان</label><input id="sAddress"></div>
+<div class="field"><label>ملاحظات</label><textarea id="sNotes"></textarea></div>
+</div>
+<div class="row" style="margin-top:12px"><button class="success" id="sSave" onclick="saveSupplier()">➕ إضافة المورد</button><button onclick="clearSupplier()">جديد</button></div>
+<div id="sMsg"></div>
+<table><thead><tr><th>#</th><th>اسم المورد</th><th>الهاتف</th><th>العنوان</th><th>الإجراء</th></tr></thead><tbody id="sBody"></tbody></table>
+</section>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let editingCustomer=null,editingSupplier=null;
+
+async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}start()}
+async function logout(){await sb.auth.signOut();location.reload()}
+async function start(){ $('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل';await loadCustomers();await loadSuppliers()}
+
+function switchTab(tab){
+  $('customers').classList.toggle('active',tab==='customers');$('suppliers').classList.toggle('active',tab==='suppliers');
+  $('tabCustomers').classList.toggle('active',tab==='customers');$('tabSuppliers').classList.toggle('active',tab==='suppliers');
+}
+
+async function loadCustomers(){
+ const r=await sb.from('customers').select('id,name,phone,address,notes,withholding_enabled,withholding_rate').order('id');
+ if(r.error){$('cMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}
+ $('cBody').innerHTML=(r.data||[]).map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>').join('');
+}
+async function loadSuppliers(){
+ const r=await sb.from('suppliers').select('id,name,phone,address,notes').order('id');
+ if(r.error){$('sMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}
+ $('sBody').innerHTML=(r.data||[]).map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td><button class="edit" onclick="editSupplier('+x.id+')">✏️ تعديل</button></td></tr>').join('');
+}
+async function saveCustomer(){
+ const name=$('cName').value.trim();if(!name){$('cMsg').innerHTML='<div class="msg bad">اكتب اسم العميل.</div>';return}
+ const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0)};
+ let r=editingCustomer?await sb.from('customers').update(payload).eq('id',editingCustomer):await sb.from('customers').insert(payload);
+ if(r.error){$('cMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}
+ $('cMsg').innerHTML='<div class="msg ok">'+(editingCustomer?'تم تعديل بيانات العميل.':'تم إضافة العميل بنجاح.')+'</div>';clearCustomer();await loadCustomers();
+}
+async function saveSupplier(){
+ const name=$('sName').value.trim();if(!name){$('sMsg').innerHTML='<div class="msg bad">اكتب اسم المورد.</div>';return}
+ const payload={name,phone:$('sPhone').value.trim()||null,address:$('sAddress').value.trim()||null,notes:$('sNotes').value.trim()||null};
+ let r=editingSupplier?await sb.from('suppliers').update(payload).eq('id',editingSupplier):await sb.from('suppliers').insert(payload);
+ if(r.error){$('sMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}
+ $('sMsg').innerHTML='<div class="msg ok">'+(editingSupplier?'تم تعديل بيانات المورد.':'تم إضافة المورد بنجاح.')+'</div>';clearSupplier();await loadSuppliers();
+}
+async function editCustomer(id){
+ const r=await sb.from('customers').select('*').eq('id',id).single();if(r.error){alert(r.error.message);return}
+ const x=r.data;editingCustomer=id;$('cName').value=x.name||'';$('cPhone').value=x.phone||'';$('cAddress').value=x.address||'';$('cNotes').value=x.notes||'';$('cWithhold').value=x.withholding_enabled?'yes':'no';$('cRate').value=Number(x.withholding_rate||0);$('cSave').textContent='💾 حفظ تعديل العميل';switchTab('customers');window.scrollTo({top:0,behavior:'smooth'});
+}
+async function editSupplier(id){
+ const r=await sb.from('suppliers').select('*').eq('id',id).single();if(r.error){alert(r.error.message);return}
+ const x=r.data;editingSupplier=id;$('sName').value=x.name||'';$('sPhone').value=x.phone||'';$('sAddress').value=x.address||'';$('sNotes').value=x.notes||'';$('sSave').textContent='💾 حفظ تعديل المورد';switchTab('suppliers');window.scrollTo({top:0,behavior:'smooth'});
+}
+function clearCustomer(){$('cName').value='';$('cPhone').value='';$('cAddress').value='';$('cNotes').value='';$('cWithhold').value='no';$('cRate').value='0';editingCustomer=null;$('cSave').textContent='➕ إضافة العميل'}
+function clearSupplier(){$('sName').value='';$('sPhone').value='';$('sAddress').value='';$('sNotes').value='';editingSupplier=null;$('sSave').textContent='➕ إضافة المورد'}
+sb.auth.getSession().then(r=>r.data.session?start():$('status').textContent='غير مسجل الدخول');
+</script>
+</body>
+</html>
