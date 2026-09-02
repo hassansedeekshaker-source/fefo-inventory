@@ -16,10 +16,6 @@ async function load(){try{
  const p=new URLSearchParams(location.search),presetType=p.get('type')||'',customerId=p.get('customer_id'),supplierId=p.get('supplier_id');
  if(presetType)$('type').value=presetType;
  const type=$('type').value,from=$('from').value,to=$('to').value;
- let q=sb.from('journal_entries').select('id,entry_no,entry_date,source_type,source_id,description').eq('posted',true).gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}).order('entry_no',{ascending:false});
- if(type)q=q.eq('source_type',type);
- let r=await q;if(r.error)throw r.error;const js=r.data||[];
- $('journal').innerHTML=js.length?js.map(x=>'<tr><td class="num">'+esc(x.entry_no)+'</td><td>'+esc(x.entry_date)+'</td><td>'+esc(labels[x.source_type]||x.source_type||'-')+'</td><td>'+esc(x.description||'')+'</td><td>'+esc(x.source_id||'')+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد قيود مترحلة في الفترة المحددة.</td></tr>';
  const [sales,purchases,sr,pr,expenses]=await Promise.all([
   sb.from('sales').select('id,invoice_no,sale_date,total,customer_id,status').eq('status','posted').gte('sale_date',from).lte('sale_date',to),
   sb.from('purchases').select('id,invoice_no,purchase_date,total,supplier_id,status').eq('status','posted').gte('purchase_date',from).lte('purchase_date',to),
@@ -31,11 +27,34 @@ async function load(){try{
  const wanted=type?new Set([type]):null;
  let rows=[];
  const add=(arr,t,date,no,total,party)=>{if(!wanted||wanted.has(t))for(const x of (arr||[]))rows.push({t,date:x[date],no:x[no],total:x[total],party:x[party],id:x.id})};
- add(sales.data,'sale','sale_date','invoice_no','total','customer_id');add(purchases.data,'purchase','purchase_date','invoice_no','total','supplier_id');add(sr.data,'sale_return','return_date','return_no','total','customer_id');add(pr.data,'purchase_return','return_date','return_no','total','supplier_id');add(expenses.data,'expense','expense_date','expense_no','amount','supplier_id');
- const displayRows=rows.filter(x=>!customerId||(['sale','sale_return'].includes(x.t)&&String(x.party)===String(customerId))).filter(x=>!supplierId||(['purchase','purchase_return'].includes(x.t)&&String(x.party)===String(supplierId)));
- const bySource=new Map(js.map(x=>[x.source_type+'|'+x.source_id,x.entry_no]));
- displayRows.sort((a,b)=>String(b.date).localeCompare(String(a.date))||Number(bySource.get(a.t+'|'+a.id)||0)-Number(bySource.get(b.t+'|'+b.id)||0));
- $('docs').innerHTML=displayRows.length?displayRows.map(x=>'<tr><td>'+esc(labels[x.t]||x.t)+'</td><td>'+esc(x.no||x.id.slice(0,8))+'</td><td>'+esc(x.date||'')+'</td><td>'+esc(x.party||'-')+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td class="num">'+esc(bySource.get(x.t+'|'+x.id)||'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">لا توجد مستندات مترحلة في الفترة المحددة.</td></tr>';
- }catch(e){err(e.message||e)}}
-sb.auth.getSession().then(r=>r.data.session?start():location.href='accounting.html');
+ add(sales.data,'sale','sale_date','invoice_no','total','customer_id');
+ add(purchases.data,'purchase','purchase_date','invoice_no','total','supplier_id');
+ add(sr.data,'sale_return','return_date','return_no','total','customer_id');
+ add(pr.data,'purchase_return','return_date','return_no','total','supplier_id');
+ add(expenses.data,'expense','expense_date','expense_no','amount','supplier_id');
+
+ const partyRows=rows.filter(x=>!customerId||(['sale','sale_return'].includes(x.t)&&String(x.party)===String(customerId)))
+                    .filter(x=>!supplierId||(['purchase','purchase_return'].includes(x.t)&&String(x.party)===String(supplierId)));
+ const sourceIds=new Set(partyRows.map(x=>x.t+'|'+x.id));
+ let q=sb.from('journal_entries').select('id,entry_no,entry_date,source_type,source_id,description').eq('posted',true).gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}).order('entry_no',{ascending:false});
+ if(type)q=q.eq('source_type',type);
+ let r=await q;if(r.error)throw r.error;
+ let js=r.data||[];
+ if(customerId||supplierId)js=js.filter(x=>sourceIds.has(x.source_type+'|'+x.source_id));
+ $('journal').innerHTML=js.length?js.map(x=>'<tr><td class="num">'+esc(x.entry_no)+'</td><td>'+esc(x.entry_date)+'</td><td>'+esc(labels[x.source_type]||x.source_type||'-')+'</td><td>'+esc(x.description||'')+'</td><td>'+esc(x.source_id||'')+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد قيود مترحلة للطرف المختار في الفترة المحددة.</td></tr>';
+
+ const ids=[...new Set(partyRows.map(x=>x.party).filter(Boolean))];
+ let partyMap=new Map();
+ if(ids.length){
+  if(customerId){const z=await sb.from('customers').select('id,name').in('id',ids);if(z.error)throw z.error;(z.data||[]).forEach(x=>partyMap.set(String(x.id),x.name))}
+  if(supplierId){const z=await sb.from('suppliers').select('id,name').in('id',ids);if(z.error)throw z.error;(z.data||[]).forEach(x=>partyMap.set(String(x.id),x.name))}
+ }
+ partyRows.sort((x,y)=>String(y.date).localeCompare(String(x.date)));
+ $('docs').innerHTML=partyRows.length?partyRows.map(x=>'<tr><td>'+esc(labels[x.t]||x.t)+'</td><td>'+esc(x.no||x.id.slice(0,8))+'</td><td>'+esc(x.date||'')+'</td><td>'+esc(partyMap.get(String(x.party))||x.party||'-')+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td class="num">'+esc((js.find(j=>j.source_type===x.t&&j.source_id===x.id)||{}).entry_no||'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">لا توجد مستندات مترحلة للطرف المختار في الفترة المحددة.</td></tr>';
+
+ if(customerId||supplierId){
+  const partyName=customerId?(partyMap.get(String(customerId))||'العميل المختار'):(partyMap.get(String(supplierId))||'المورد المختار');
+  const title=document.querySelector('h1'); if(title)title.textContent='📋 '+partyName+' — العمليات المترحلة';
+ }
+ }catch(e){err(e.message||e)}}sb.auth.getSession().then(r=>r.data.session?start():location.href='accounting.html');
 </script></body></html>
