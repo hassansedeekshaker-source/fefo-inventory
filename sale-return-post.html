@@ -1,1 +1,18 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ترحيل مرتجعات المبيعات</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{font-family:Arial,sans-serif;background:#f4f6fa;margin:0;color:#17233b}#app{max-width:1250px;margin:25px auto}.card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 3px 16px #0001}.top{display:flex;gap:10px;margin-bottom:14px}.top a,.btn,button{border:0;border-radius:9px;padding:10px 16px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}.top a:first-child,.ok{background:#087f4f;color:#fff}.head{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}label{display:flex;flex-direction:column;gap:6px}input,select{padding:10px;border:1px solid #ccd5e3;border-radius:8px}table{width:100%;border-collapse:collapse;margin:18px 0}th,td{padding:10px;border-bottom:1px solid #e5e9f0;text-align:right}th{background:#eef2f7}.msg{padding:12px;margin-top:14px;border-radius:8px}.msg.ok{background:#e5f7ee;color:#087f4f}.msg.bad{background:#fdecec;color:#b42318}@media(max-width:800px){.head{grid-template-columns:1fr 1fr}}</style></head><body data-workflow="sale-return-post"><main id="app"></main><script src="workflow.js"></script></body></html>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ترحيل مرتجعات المبيعات</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{font-family:Arial,sans-serif;background:#f4f6fa;margin:0;color:#17233b}#app{max-width:1250px;margin:25px auto}.card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 3px 16px #0001}.top{display:flex;gap:10px;margin-bottom:14px}.top a,.btn,button{border:0;border-radius:9px;padding:10px 16px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}.top a:first-child,.ok{background:#087f4f;color:#fff}.head{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}label{display:flex;flex-direction:column;gap:6px}input,select{padding:10px;border:1px solid #ccd5e3;border-radius:8px}table{width:100%;border-collapse:collapse;margin:18px 0}th,td{padding:10px;border-bottom:1px solid #e5e9f0;text-align:right}th{background:#eef2f7}.msg{padding:12px;margin-top:14px;border-radius:8px}.msg.ok{background:#e5f7ee;color:#087f4f}.msg.bad{background:#fdecec;color:#b42318}@media(max-width:800px){.head{grid-template-columns:1fr 1fr}}</style></head><body data-workflow="sale-return-post"><main id="app"></main><script src="workflow.js"></script><script>
+(function(){
+  function addBack(){
+    const exists=[...document.querySelectorAll('button,a')].some(el=>el.textContent.includes('رجوع للشاشة السابقة'));
+    if(exists)return;
+    const b=document.createElement('button');
+    b.type='button';
+    b.textContent='↩ رجوع للشاشة السابقة';
+    b.className='btn';
+    b.style.cssText='margin-left:8px;cursor:pointer;';
+    b.onclick=function(){ if(window.history.length>1){window.history.back();}else{window.location.href='accounting.html';} };
+    const main=document.querySelector('main')||document.body;
+    const top=main.querySelector('.top');
+    if(top) top.prepend(b); else main.insertBefore(b,main.firstChild);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBack);else addBack();
+})();
+</script></body></html>
