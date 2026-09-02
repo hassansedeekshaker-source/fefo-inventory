@@ -12,7 +12,30 @@
 const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));let accounts=[];
 function dates(){let d=new Date(),to=d.toISOString().slice(0,10),f=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);$('from').value=f;$('to').value=to}
 async function login(){let r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('msg').textContent=r.error.message;return}start()}
-async function start(){ $('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل';dates();await loadAccounts()}
+async function start(){ $('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل';dates();const p=new URLSearchParams(location.search);if(p.get('customer_id')||p.get('supplier_id')){await loadPartyStatement(p);return}await loadAccounts()}
+async function loadPartyStatement(p){try{
+ const customerId=p.get('customer_id'),supplierId=p.get('supplier_id'),isC=!!customerId,id=Number(customerId||supplierId);
+ const table=isC?'customers':'suppliers', key=isC?'customer_id':'supplier_id';
+ let r=await sb.from(table).select('id,name,opening_balance').eq('id',id).single();if(r.error)throw r.error;const party=r.data;
+ const [docs,rets]=await Promise.all([
+  sb.from(isC?'sales':'purchases').select('id,'+(isC?'invoice_no,sale_date,total':'invoice_no,purchase_date,total')).eq(key,id).eq('status','posted'),
+  sb.from(isC?'sales_returns':'purchase_returns').select('id,return_no,return_date,total').eq(key,id).eq('status','posted')
+ ]);
+ if(docs.error)throw docs.error;if(rets.error)throw rets.error;
+ const rows=[];let balance=Number(party.opening_balance||0),d=0,cr=0;
+ for(const x of docs.data||[]){const amount=Number(x.total||0);rows.push({date:x[isC?'sale_date':'purchase_date'],no:x.invoice_no||x.id,desc:isC?'فاتورة مبيعات':'فاتورة مشتريات',debit:isC?amount:0,credit:isC?0:amount});}
+ for(const x of rets.data||[]){const amount=Number(x.total||0);rows.push({date:x.return_date,no:x.return_no||x.id,desc:isC?'مرتجع مبيعات':'مردود مشتريات',debit:isC?0:amount,credit:isC?amount:0});}
+ rows.sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+ const title= isC?'كشف حساب العميل':'كشف حساب المورد';
+ $('account').innerHTML='<option value="">'+title+' — '+esc(party.name)+'</option>';$('account').disabled=true;
+ $('accountName').innerHTML='<b>'+title+': '+esc(party.name)+'</b><div class="muted">الكود: '+(isC?'CUS-':'SUP-')+String(id).padStart(6,'0')+'</div>';
+ for(const x of rows){d+=x.debit;cr+=x.credit;balance+=x.debit-x.credit;}
+ $('opening').textContent=Number(party.opening_balance||0).toFixed(2);$('debit').textContent=d.toFixed(2);$('credit').textContent=cr.toFixed(2);$('closing').textContent=balance.toFixed(2);
+ let running=Number(party.opening_balance||0);
+ $('lines').innerHTML=rows.map(x=>{running+=x.debit-x.credit;return '<tr><td>'+esc(x.date)+'</td><td>'+esc(x.no)+'</td><td>'+esc(x.desc)+'</td><td>'+esc(isC?'عميل':'مورد')+'</td><td>'+x.debit.toFixed(2)+'</td><td>'+x.credit.toFixed(2)+'</td><td>'+running.toFixed(2)+'</td></tr>'}).join('')||'<tr><td colspan="7" class="empty">لا توجد حركة للطرف المختار.</td></tr>';
+ $('statement').style.display='block';document.querySelector('.filters h2').textContent='📒 '+title;document.querySelector('.filters .row').querySelector('button[onclick="loadStatement()"]').style.display='none';
+}catch(e){$('msg2').textContent='تعذر تحميل كشف الطرف: '+e.message}}
+
 async function loadAccounts(){try{let r=await sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code');if(r.error)throw r.error;accounts=r.data||[];$('account').innerHTML='<option value="">اختر الحساب...</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code)+' — '+esc(a.name_ar)+'</option>').join('')}catch(e){$('msg2').textContent='تعذر تحميل الحسابات: '+e.message}}
 async function loadStatement(){const aid=$('account').value,from=$('from').value,to=$('to').value;if(!aid||!from||!to){$('msg2').textContent='اختر الحساب والفترة أولاً';return}try{
 let r=await sb.from('journal_entries').select('id,entry_no,entry_date,source_type,description').eq('posted',true).lt('entry_date',from).order('entry_date').order('entry_no');if(r.error)throw r.error;let opening=0;const oldIds=(r.data||[]).map(x=>x.id);
