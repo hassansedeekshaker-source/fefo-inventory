@@ -29,7 +29,7 @@ async function load(){try{
  ]);
  for(const z of [sales,purchases,sr,pr,expenses])if(z.error)throw z.error;
  const wanted=type?new Set([type]):null;
- const rows=[];
+ let rows=[];
  const add=(arr,t,date,no,total,party)=>{if(!wanted||wanted.has(t))for(const x of (arr||[]))rows.push({t,date:x[date],no:x[no],total:x[total],party:x[party],id:x.id})};
  add(sales.data,'sale','sale_date','invoice_no','total','customer_id');add(purchases.data,'purchase','purchase_date','invoice_no','total','supplier_id');add(sr.data,'sale_return','return_date','return_no','total','customer_id');add(pr.data,'purchase_return','return_date','return_no','total','supplier_id');add(expenses.data,'expense','expense_date','expense_no','amount','supplier_id');
  let filteredRows=rows;
