@@ -32,13 +32,10 @@ async function load(){try{
  let rows=[];
  const add=(arr,t,date,no,total,party)=>{if(!wanted||wanted.has(t))for(const x of (arr||[]))rows.push({t,date:x[date],no:x[no],total:x[total],party:x[party],id:x.id})};
  add(sales.data,'sale','sale_date','invoice_no','total','customer_id');add(purchases.data,'purchase','purchase_date','invoice_no','total','supplier_id');add(sr.data,'sale_return','return_date','return_no','total','customer_id');add(pr.data,'purchase_return','return_date','return_no','total','supplier_id');add(expenses.data,'expense','expense_date','expense_no','amount','supplier_id');
- let filteredRows=rows;
- if(customerId) filteredRows=filteredRows.filter(x=>['sale','sale_return'].includes(x.t)&&String(x.party)===String(customerId));
- if(supplierId) filteredRows=filteredRows.filter(x=>['purchase','purchase_return'].includes(x.t)&&String(x.party)===String(supplierId));
+ const displayRows=rows.filter(x=>!customerId||(['sale','sale_return'].includes(x.t)&&String(x.party)===String(customerId))).filter(x=>!supplierId||(['purchase','purchase_return'].includes(x.t)&&String(x.party)===String(supplierId)));
  const bySource=new Map(js.map(x=>[x.source_type+'|'+x.source_id,x.entry_no]));
- rows=filteredRows;
- rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))||Number(bySource.get(a.t+'|'+a.id)||0)-Number(bySource.get(b.t+'|'+b.id)||0));
- $('docs').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(labels[x.t]||x.t)+'</td><td>'+esc(x.no||x.id.slice(0,8))+'</td><td>'+esc(x.date||'')+'</td><td>'+esc(x.party||'-')+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td class="num">'+esc(bySource.get(x.t+'|'+x.id)||'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">لا توجد مستندات مترحلة في الفترة المحددة.</td></tr>';
+ displayRows.sort((a,b)=>String(b.date).localeCompare(String(a.date))||Number(bySource.get(a.t+'|'+a.id)||0)-Number(bySource.get(b.t+'|'+b.id)||0));
+ $('docs').innerHTML=displayRows.length?displayRows.map(x=>'<tr><td>'+esc(labels[x.t]||x.t)+'</td><td>'+esc(x.no||x.id.slice(0,8))+'</td><td>'+esc(x.date||'')+'</td><td>'+esc(x.party||'-')+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td class="num">'+esc(bySource.get(x.t+'|'+x.id)||'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">لا توجد مستندات مترحلة في الفترة المحددة.</td></tr>';
  }catch(e){err(e.message||e)}}
 sb.auth.getSession().then(r=>r.data.session?start():location.href='accounting.html');
 </script></body></html>
