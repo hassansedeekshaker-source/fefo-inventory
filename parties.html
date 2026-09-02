@@ -19,7 +19,9 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 .badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eef2f7;font-size:12px}.quick{display:flex;gap:0;flex-wrap:wrap;margin:0 0 16px;border:1px solid #dce2ec;border-radius:9px;overflow:visible;width:max-content;max-width:100%}.quick button,.quick a{background:#fff;color:#172033;border:0;border-left:1px solid #dce2ec;border-radius:0;padding:11px 18px;text-decoration:none;cursor:pointer;font-size:14px;white-space:nowrap}.quick .active{background:#18243a;color:#fff}.quick .count{display:block;font-size:11px;color:#667085;margin-top:2px;text-align:center}.moreWrap{position:relative}.moreMenu{display:none;position:absolute;top:100%;right:0;background:#fff;border:1px solid #dce2ec;border-radius:8px;box-shadow:0 6px 20px #0002;min-width:190px;z-index:10;padding:6px}.moreWrap.open .moreMenu{display:block}.moreMenu a{display:block;border:0!important;padding:10px 12px;text-align:right}.detail{display:none}.detail.show{display:block}.detailGrid{display:grid;grid-template-columns:260px 1fr;gap:18px}.profile{line-height:1.9}.statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.stat{border:1px solid #e1e6ef;border-radius:10px;padding:12px;text-align:center}.stat b{display:block;font-size:20px;margin-top:5px}@media(max-width:800px){.detailGrid{grid-template-columns:1fr}.statGrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){th,td{padding:7px;font-size:13px}.field{min-width:100%}}
 </style>
-</head>
+<style>
+.partySmart{margin:0 0 12px}.smartRow{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;border:1px solid #dfe4ec;border-radius:10px;overflow:visible;background:#fff}.smart{min-width:120px;padding:11px 18px;text-decoration:none;color:#172033;border-left:1px solid #dfe4ec;display:flex;gap:10px;justify-content:center;align-items:center;background:#fff}.smart b{font-size:12px}.smart.active{background:#18243a;color:#fff}.moreWrap{position:relative}.moreBtn{border:0;border-radius:0;height:100%;cursor:pointer}.moreMenu{display:none;position:absolute;right:0;top:100%;min-width:190px;background:#fff;border:1px solid #dfe4ec;border-radius:0 0 10px 10px;box-shadow:0 8px 20px #0002;z-index:20}.moreWrap.open .moreMenu{display:block}.moreMenu a{display:flex;justify-content:space-between;padding:12px 15px;text-decoration:none;color:#172033;border-bottom:1px solid #edf0f5}.detailTop{display:flex;justify-content:space-between;gap:15px;align-items:center}.detailNav{display:flex;gap:8px}.partyBody{display:grid;grid-template-columns:280px 1fr;gap:20px;margin-top:20px}.profileBox{border:1px solid #e1e6ef;border-radius:12px;padding:18px;background:#fafbfc}.avatar{font-size:48px}.statsArea{padding:5px}.hint{margin-top:18px;padding:13px;background:#eef2f7;border-radius:10px;color:#475467;font-size:13px}.muted{color:#667085;font-size:13px}@media(max-width:800px){.partyBody{grid-template-columns:1fr}.smart{min-width:105px;padding:10px 12px}}
+</style></head>
 <body>
 <header><b>👥 العملاء والموردون</b><div><a class="btn primary" href="accounting.html">🏠 الرئيسية</a> <button onclick="logout()">تسجيل الخروج</button> <span id="status">جاري الاتصال...</span></div></header>
 
@@ -98,18 +100,27 @@ function renderSuppliers(){
 }
 function toggleMore(el){el.parentElement.classList.toggle('open')}
 function selectParty(type,id){
- const x=type==='customer'?customers.find(a=>a.id===id):suppliers.find(a=>a.id===id);if(!x)return;
- const balance=type==='customer'?customerBalance(id):supplierBalance(id);
- const net=type==='customer'?sales.filter(a=>a.customer_id===id).reduce((s,a)=>s+Number(a.total||0),0)-salesReturns.filter(a=>a.customer_id===id).reduce((s,a)=>s+Number(a.total||0),0):purchases.filter(a=>a.supplier_id===id).reduce((s,a)=>s+Number(a.total||0),0)-purchaseReturns.filter(a=>a.supplier_id===id).reduce((s,a)=>s+Number(a.total||0),0);
- const code=(type==='customer'?'CUS-':'SUP-')+String(id).padStart(6,'0'),label=type==='customer'?'عميل':'مورد';
- const qp=type==='customer'?'customer_id='+encodeURIComponent(id):'supplier_id='+encodeURIComponent(id);
- const basePage='posted.html?'+qp+'&';
- const mainLinks=type==='customer'?[['كشف حساب','accounts.html?'+qp],['مبيعات',basePage+'type=sale'],['مرتجعات مبيعات',basePage+'type=sale_return'],['تحصيلات',basePage+'type=receipt']]:[['كشف حساب','accounts.html?'+qp],['مشتريات',basePage+'type=purchase'],['مردودات مشتريات',basePage+'type=purchase_return'],['سداد',basePage+'type=payment']];
- const menu=type==='customer'?[['خصومات مبيعات',basePage+'type=sale_return'],['ترحيل المبيعات',basePage+'type=sale'],['فواتير محفوظة',basePage+'type=sale']]:[['خصومات مشتريات',basePage+'type=purchase_return'],['ترحيل المشتريات',basePage+'type=purchase'],['فواتير محفوظة',basePage+'type=purchase']]; $('quickActions').innerHTML='<div class="quick">'+mainLinks.map((a,i)=>'<a class="'+(i===0?'active':'')+'" href="'+a[1]+'">'+a[0]+'<span class="count">0</span></a>').join('')+'<div class="moreWrap"><button onclick="toggleMore(this)">المزيد ▾</button><div class="moreMenu">'+menu.map(a=>'<a href="'+a[1]+'">'+a[0]+'</a>').join('')+'</div></div></div>';
- $('detail').innerHTML='<section class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">📄 تفاصيل الحساب</h2><button onclick="$(\'detail\').classList.remove(\'show\');$(\'quickActions\').innerHTML=\'\'">✖ إغلاق</button></div><div class="detailGrid"><div class="profile"><b>'+esc(x.name)+'</b><br>الكود: '+code+'<br>النوع: '+label+'<br>الهاتف: '+esc(x.phone||'-')+'<br>العنوان: '+esc(x.address||'-')+'<br>ملاحظات: '+esc(x.notes||'-')+'</div><div><div class="statGrid"><div class="stat">الرصيد الافتتاحي<b>'+Number(x.opening_balance||0).toFixed(2)+'</b></div><div class="stat">صافي الحركة<b>'+net.toFixed(2)+'</b></div><div class="stat">الرصيد الحالي<b>'+balance.toFixed(2)+'</b></div><div class="stat">الحالة<b>نشط</b></div></div><div class="small">اختر العملية من الأزرار بالأعلى للدخول إليها مباشرة.</div></div></div></section>';
- $('detail').classList.add('show');window.scrollTo({top:$('detail').offsetTop-20,behavior:'smooth'});
-}
-async function saveCustomer(){
+ const x=type==='customer'?customers.find(a=>a.id===id):suppliers.find(a=>a.id===id); if(!x)return;
+ const isC=type==='customer', label=isC?'عميل':'مورد', code=(isC?'CUS-':'SUP-')+String(id).padStart(6,'0');
+ const salesN=isC?sales.filter(a=>a.customer_id===id).length:0, saleRetN=isC?salesReturns.filter(a=>a.customer_id===id).length:0;
+ const purN=!isC?purchases.filter(a=>a.supplier_id===id).length:0, purRetN=!isC?purchaseReturns.filter(a=>a.supplier_id===id).length:0;
+ const receiptsN=isC?0:0, paymentsN=isC?0:0;
+ const balance=isC?customerBalance(id):supplierBalance(id);
+ const net=isC
+  ? sales.filter(a=>a.customer_id===id).reduce((z,a)=>z+Number(a.total||0),0)-salesReturns.filter(a=>a.customer_id===id).reduce((z,a)=>z+Number(a.total||0),0)
+  : purchases.filter(a=>a.supplier_id===id).reduce((z,a)=>z+Number(a.total||0),0)-purchaseReturns.filter(a=>a.supplier_id===id).reduce((z,a)=>z+Number(a.total||0),0);
+ const qp=isC?'customer_id='+encodeURIComponent(id):'supplier_id='+encodeURIComponent(id);
+ const base='posted.html?'+qp+'&';
+ const buttons=isC
+  ? [['📒 كشف حساب','accounts.html?'+qp, ''],['💰 مبيعات',base+'type=sale',salesN],['💎 تحصيلات',base+'type=receipt',receiptsN],['🧾 سداد',base+'type=payment',paymentsN]]
+  : [['📒 كشف حساب','accounts.html?'+qp, ''],['🛒 مشتريات',base+'type=purchase',purN],['💎 سداد',base+'type=payment',paymentsN],['🧾 تحصيلات',base+'type=receipt',receiptsN]];
+ const more=isC
+  ? [['خصومات مبيعات',base+'type=sale_return',saleRetN],['ترحيل المبيعات',base+'type=sale',salesN],['فواتير محفوظة',base+'type=sale',0]]
+  : [['خصومات مشتريات',base+'type=purchase_return',purRetN],['ترحيل المشتريات',base+'type=purchase',purN],['فواتير محفوظة',base+'type=purchase',0]];
+ $('quickActions').innerHTML='<div class="partySmart"><div class="smartRow">'+buttons.map((a,i)=>'<a class="smart '+(i===0?'active':'')+'" href="'+a[1]+'"><span>'+a[0]+'</span><b>'+a[2]+'</b></a>').join('')+'<div class="moreWrap"><button class="smart moreBtn" onclick="toggleMore(this)">المزيد ▾</button><div class="moreMenu">'+more.map(a=>'<a href="'+a[1]+'">'+a[0]+' <b>'+a[2]+'</b></a>').join('')+'</div></div></div></div>';
+ $('detail').innerHTML='<section class="card partyDetail"><div class="detailTop"><div><div class="muted">'+label+' · '+code+'</div><h1 style="margin:4px 0 0">📄 '+esc(x.name)+'</h1></div><div class="detailNav"><a class="btn" href="parties.html">↩ العودة للقائمة</a><a class="btn" href="accounting.html">🏠 الرئيسية</a></div></div><div class="partyBody"><div class="profileBox"><div class="avatar">👤</div><h3>'+esc(x.name)+'</h3><div>النوع: '+label+'</div><div>الكود: '+code+'</div><div>الهاتف: '+esc(x.phone||'-')+'</div><div>العنوان: '+esc(x.address||'-')+'</div><div>ملاحظات: '+esc(x.notes||'-')+'</div></div><div class="statsArea"><div class="statGrid"><div class="stat">الرصيد الافتتاحي<b>'+Number(x.opening_balance||0).toFixed(2)+'</b></div><div class="stat">صافي الحركة<b>'+net.toFixed(2)+'</b></div><div class="stat">الرصيد الحالي<b>'+balance.toFixed(2)+'</b></div><div class="stat">الحالة<b>نشط</b></div></div><div class="hint">الأزرار بالأعلى تفتح عمليات '+(isC?'العميل':'المورد')+' المختار فقط، ولا تنقلك إلى عمليات باقي '+(isC?'العملاء':'الموردين')+'.</div></div></div></section>';
+ $('detail').classList.add('show'); window.scrollTo({top:$('detail').offsetTop-20,behavior:'smooth'});
+}async function saveCustomer(){
  const name=$('cName').value.trim();if(!name){$('cMsg').innerHTML='<div class="msg bad">اكتب اسم العميل.</div>';return}
  const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,opening_balance:Number($('cOpening').value||0),withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0)};
  let r=editingCustomer?await sb.from('customers').update(payload).eq('id',editingCustomer):await sb.from('customers').insert(payload);
