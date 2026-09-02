@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بطاقة الصنف | نظام إدارة المخزون والمحاسبة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#18243a;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+main{max-width:1400px;margin:18px auto;padding:0 15px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+button,a{border:0;border-radius:9px;padding:10px 15px;text-decoration:none;cursor:pointer;font-size:14px}
+a{background:#fff;color:#18243a;border:1px solid #dce2ec}button{background:#e9edf5;color:#172033}button.primary,a.primary{background:#18243a;color:#fff}
+.nav{display:flex;gap:0;flex-wrap:wrap;border:1px solid #d8dee8;border-radius:9px;overflow:hidden;background:#fff;margin-bottom:16px}
+.nav button{border-left:1px solid #d8dee8;border-radius:0;background:#fff;min-width:125px}.nav button.active{background:#18243a;color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{background:#fff;border-radius:12px;padding:16px;border:1px solid #e4e8ef}.kpi .n{font-size:24px;font-weight:bold;margin-top:6px}
+.small{font-size:12px;color:#667085}.title-row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.panel{display:none}.panel.active{display:block}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eef2f7}.msg{padding:12px;border-radius:9px;background:#eef4ff}.bad{color:#b42318}.ok{color:#087443}
+.dropdown{position:relative}.dropdown-menu{display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #dce2ec;border-radius:9px;box-shadow:0 5px 18px #0002;min-width:190px;z-index:20}.dropdown.open .dropdown-menu{display:block}.dropdown-menu button{display:block;width:100%;text-align:right;background:#fff}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.kpis{grid-template-columns:1fr}.nav button{min-width:110px}}
+</style>
+</head>
+<body>
+<header><b>📦 نظام إدارة المخزون والمحاسبة</b><span id="status">جاري الاتصال...</span></header>
+<main id="auth" class="card" style="max-width:520px;margin-top:70px">
+<h2>تسجيل الدخول</h2><div><label>البريد الإلكتروني</label><input id="email" type="email" style="width:100%;padding:11px;border:1px solid #d6dce8;border-radius:9px;margin:6px 0 10px"></div>
+<div><label>كلمة المرور</label><input id="password" type="password" style="width:100%;padding:11px;border:1px solid #d6dce8;border-radius:9px;margin:6px 0 10px"></div>
+<button class="primary" onclick="login()">دخول</button><div id="authMsg"></div>
+</main>
+<main id="app" style="display:none">
+<div class="bar">
+<button onclick="goBack()">↩ رجوع للشاشة السابقة</button>
+<a class="primary" href="index.html?module=items">📦 الأصناف</a>
+<a href="accounting.html">🏠 الرئيسية</a>
+<button onclick="logout()">تسجيل الخروج</button>
+</div>
+<section class="card">
+<div class="title-row"><div><div class="small">بطاقة الصنف</div><h1 id="itemName" style="margin:5px 0">...</h1><div id="itemMeta" class="small"></div></div><span id="itemStatus" class="badge">—</span></div>
+</section>
+<section class="nav" id="topNav">
+<button data-view="summary" class="active">📊 الأرصدة <span id="nBalance">0</span></button>
+<button data-view="moves">🔄 الحركات <span id="nMoves">0</span></button>
+<button data-view="sales">💰 المبيعات <span id="nSales">0</span></button>
+<button data-view="sales_returns">↩ مرتجعات المبيعات <span id="nSalesReturns">0</span></button>
+<button data-view="purchases">🛒 المشتريات <span id="nPurchases">0</span></button>
+<button data-view="purchase_returns">↪ مرتجعات المشتريات <span id="nPurchaseReturns">0</span></button>
+<div class="dropdown" id="more"><button type="button" onclick="document.getElementById('more').classList.toggle('open')">المزيد ▾</button><div class="dropdown-menu"><button data-view="lots">التشغيلات</button><button data-view="cost">متوسط التكلفة</button></div></div>
+</section>
+<section id="summary" class="panel active card"><div class="kpis">
+<div class="kpi">الرصيد الحالي<div class="n" id="sumQty">0.00</div></div>
+<div class="kpi">قيمة المخزون<div class="n" id="sumVal">0.00</div></div>
+<div class="kpi">متوسط التكلفة<div class="n" id="sumAvg">0.0000</div></div>
+<div class="kpi">عدد التشغيلات<div class="n" id="sumLots">0</div></div>
+</div><div style="margin-top:18px"><h2>أرصدة الصنف حسب الموقع</h2><div id="summaryTable"></div></div></section>
+<section id="moves" class="panel card"><div class="title-row"><h2>حركات المخزون — للصنف المحدد فقط</h2><button onclick="renderMoves()">تحديث</button></div><div id="movesTable"></div></section>
+<section id="sales" class="panel card"><h2>المبيعات — للصنف المحدد فقط</h2><div id="salesTable"></div></section>
+<section id="sales_returns" class="panel card"><h2>مرتجعات المبيعات — للصنف المحدد فقط</h2><div id="salesReturnsTable"></div></section>
+<section id="purchases" class="panel card"><h2>المشتريات — للصنف المحدد فقط</h2><div id="purchasesTable"></div></section>
+<section id="purchase_returns" class="panel card"><h2>مرتجعات المشتريات — للصنف المحدد فقط</h2><div id="purchaseReturnsTable"></div></section>
+<section id="lots" class="panel card"><h2>التشغيلات — للصنف المحدد فقط</h2><div id="lotsTable"></div></section>
+<section id="cost" class="panel card"><h2>متوسط التكلفة — للصنف المحدد فقط</h2><div id="costTable"></div></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let user,item,lots=[],moves=[],costs=[],sales=[],saleLines=[],salesReturns=[],salesReturnLines=[],purchases=[],purchaseLines=[],purchaseReturns=[],purchaseReturnLines=[],sites=[];
+const itemId=new URLSearchParams(location.search).get('id');
+function ar(e){return e?.message||String(e||'حدث خطأ')}
+function money(v,d=2){return Number(v||0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d})}
+async function q(query){const r=await query;if(r.error)throw r.error;return r.data||[]}
+window.login=async()=>{const r=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(r.error)return $('authMsg').innerHTML='<div class="msg bad">'+esc(ar(r.error))+'</div>';await start(r.data.user)}
+window.logout=async()=>{await sb.auth.signOut();location.reload()}
+window.goBack=()=>{if(history.length>1)history.back();else location.href='index.html?module=items'}
+async function start(u){user=u;$('auth').style.display='none';$('app').style.display='block';$('status').textContent='جاري تحميل بطاقة الصنف...';await loadItem();$('status').textContent='متصل ✓'}
+async function loadItem(){
+if(!itemId)throw new Error('لم يتم تحديد الصنف.');
+[item]=await q(sb.from('inv_items').select('*,inv_units(name_ar)').eq('id',itemId).limit(1));
+if(!item)throw new Error('الصنف غير موجود.');
+[sites,lots,moves,costs]=await Promise.all([
+q(sb.from('inv_sites').select('*').eq('active',true).order('name_ar')),
+q(sb.from('inv_lots').select('*,inv_sites(name_ar)').eq('item_id',itemId).order('expiry_date',{ascending:true})),
+q(sb.from('inv_movements').select('*,inv_sites(name_ar)').eq('item_id',itemId).order('created_at',{ascending:false})),
+q(sb.from('inventory_costs').select('*').eq('item_id',itemId))
+]);
+saleLines=await q(sb.from('sale_lines').select('*').eq('item_id',itemId));
+purchaseLines=await q(sb.from('purchase_lines').select('*').eq('item_id',itemId));
+salesReturnLines=await q(sb.from('sales_return_lines').select('*').eq('item_id',itemId));
+purchaseReturnLines=await q(sb.from('purchase_return_lines').select('*').eq('item_id',itemId));
+const saleIds=[...new Set(saleLines.map(x=>x.sale_id).filter(Boolean))],purchaseIds=[...new Set(purchaseLines.map(x=>x.purchase_id).filter(Boolean))],srIds=[...new Set(salesReturnLines.map(x=>x.return_id).filter(Boolean))],prIds=[...new Set(purchaseReturnLines.map(x=>x.return_id).filter(Boolean))];
+[sales,purchases,salesReturns,purchaseReturns]=await Promise.all([
+saleIds.length?q(sb.from('sales').select('*,customers(name)').in('id',saleIds).eq('status','posted')):[],
+purchaseIds.length?q(sb.from('purchases').select('*,suppliers(name)').in('id',purchaseIds).eq('status','posted')):[],
+srIds.length?q(sb.from('sales_returns').select('*,customers(name)').in('id',srIds).eq('status','posted')):[],
+prIds.length?q(sb.from('purchase_returns').select('*,suppliers(name)').in('id',prIds).eq('status','posted')):[]
+]);
+renderAll();
+}
+function renderAll(){
+$('itemName').textContent=item.name_ar||'-';$('itemMeta').textContent='الكود: '+(item.sku||'-')+'  |  الوحدة: '+(item.unit_name||item.inv_units?.name_ar||'-')+'  |  سعر البيع: '+money(item.sale_price);
+$('itemStatus').textContent=item.active?'نشط':'غير نشط';
+const qty=costs.reduce((s,x)=>s+Number(x.qty_on_hand||0),0),val=costs.reduce((s,x)=>s+Number(x.inventory_value||0),0),avg=qty?val/qty:0;
+$('sumQty').textContent=money(qty);$('sumVal').textContent=money(val);$('sumAvg').textContent=money(avg,4);$('sumLots').textContent=lots.filter(x=>Number(x.qty_on_hand||0)>0).length;
+$('nBalance').textContent=costs.length;$('nMoves').textContent=moves.length;$('nSales').textContent=sales.length;$('nSalesReturns').textContent=salesReturns.length;$('nPurchases').textContent=purchases.length;$('nPurchaseReturns').textContent=purchaseReturns.length;
+$('summaryTable').innerHTML='<table><thead><tr><th>الموقع</th><th>الرصيد</th><th>قيمة المخزون</th><th>متوسط التكلفة</th></tr></thead><tbody>'+costs.map(c=>{const st=sites.find(s=>s.id===c.site_id);return '<tr><td>'+esc(st?.name_ar||'-')+'</td><td>'+money(c.qty_on_hand)+'</td><td>'+money(c.inventory_value)+'</td><td>'+money(c.weighted_avg_cost,4)+'</td></tr>'}).join('')||'<tr><td colspan="4">لا يوجد رصيد لهذا الصنف.</td></tr>'+'</tbody></table>';
+renderMoves();renderSales();renderSalesReturns();renderPurchases();renderPurchaseReturns();renderLots();renderCost();
+}
+window.renderMoves=()=>{$('movesTable').innerHTML='<table><thead><tr><th>التاريخ</th><th>الموقع</th><th>نوع الحركة</th><th>الكمية</th><th>التكلفة</th><th>المرجع</th><th>البيان</th></tr></thead><tbody>'+moves.map(x=>'<tr><td>'+esc(x.created_at?.slice(0,10))+'</td><td>'+esc(x.inv_sites?.name_ar||'-')+'</td><td>'+esc(x.movement_type||'-')+'</td><td>'+money(x.qty,3)+'</td><td>'+money(x.unit_cost,4)+'</td><td>'+esc(x.reference_type||'-')+'</td><td>'+esc(x.notes||'-')+'</td></tr>').join('')||'<tr><td colspan="7">لا توجد حركات لهذا الصنف.</td></tr>'+'</tbody></table>'};
+function renderSales(){$('salesTable').innerHTML='<table><thead><tr><th>التاريخ</th><th>رقم الفاتورة</th><th>العميل</th><th>الكمية</th><th>سعر البيع</th><th>الخصم</th><th>الضريبة</th><th>الصافي</th></tr></thead><tbody>'+saleLines.map(l=>{const s=sales.find(x=>x.id===l.sale_id);if(!s)return '';return '<tr><td>'+esc(s.sale_date)+'</td><td>'+esc(s.invoice_no||'-')+'</td><td>'+esc(s.customers?.name||'-')+'</td><td>'+money(l.qty,3)+'</td><td>'+money(l.unit_price)+'</td><td>'+money(l.discount_amount)+'</td><td>'+money(l.tax_amount)+'</td><td>'+money(l.line_total??(l.qty*l.unit_price))+'</td></tr>'}).join('')||'<tr><td colspan="8">لا توجد مبيعات لهذا الصنف.</td></tr>'+'</tbody></table>'}
+function renderSalesReturns(){$('salesReturnsTable').innerHTML='<table><thead><tr><th>التاريخ</th><th>رقم المرتجع</th><th>العميل</th><th>الكمية</th><th>سعر البيع</th><th>تكلفة الوحدة</th><th>الإجمالي</th></tr></thead><tbody>'+salesReturnLines.map(l=>{const s=salesReturns.find(x=>x.id===l.return_id);if(!s)return '';return '<tr><td>'+esc(s.return_date)+'</td><td>'+esc(s.return_no||'-')+'</td><td>'+esc(s.customers?.name||'-')+'</td><td>'+money(l.qty,3)+'</td><td>'+money(l.unit_price)+'</td><td>'+money(l.unit_cost,4)+'</td><td>'+money(l.qty*l.unit_price)+'</td></tr>'}).join('')||'<tr><td colspan="7">لا توجد مرتجعات مبيعات لهذا الصنف.</td></tr>'+'</tbody></table>'}
+function renderPurchases(){$('purchasesTable').innerHTML='<table><thead><tr><th>التاريخ</th><th>رقم الفاتورة</th><th>المورد</th><th>الكمية</th><th>تكلفة الوحدة</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead><tbody>'+purchaseLines.map(l=>{const p=purchases.find(x=>x.id===l.purchase_id);if(!p)return '';return '<tr><td>'+esc(p.purchase_date)+'</td><td>'+esc(p.invoice_no||'-')+'</td><td>'+esc(p.suppliers?.name||'-')+'</td><td>'+money(l.qty,3)+'</td><td>'+money(l.unit_cost,4)+'</td><td>'+money(l.discount_amount)+'</td><td>'+money(l.tax_amount)+'</td><td>'+money(l.line_total??(l.qty*l.unit_cost))+'</td></tr>'}).join('')||'<tr><td colspan="8">لا توجد مشتريات لهذا الصنف.</td></tr>'+'</tbody></table>'}
+function renderPurchaseReturns(){$('purchaseReturnsTable').innerHTML='<table><thead><tr><th>التاريخ</th><th>رقم المرتجع</th><th>المورد</th><th>الكمية</th><th>تكلفة الوحدة</th><th>الإجمالي</th></tr></thead><tbody>'+purchaseReturnLines.map(l=>{const p=purchaseReturns.find(x=>x.id===l.return_id);if(!p)return '';return '<tr><td>'+esc(p.return_date)+'</td><td>'+esc(p.return_no||'-')+'</td><td>'+esc(p.suppliers?.name||'-')+'</td><td>'+money(l.qty,3)+'</td><td>'+money(l.unit_cost,4)+'</td><td>'+money(l.qty*l.unit_cost)+'</td></tr>'}).join('')||'<tr><td colspan="6">لا توجد مرتجعات مشتريات لهذا الصنف.</td></tr>'+'</tbody></table>'}
+function renderLots(){$('lotsTable').innerHTML='<table><thead><tr><th>الموقع</th><th>رقم التشغيلة</th><th>الصلاحية</th><th>الرصيد</th><th>تكلفة الوحدة</th></tr></thead><tbody>'+lots.map(x=>'<tr><td>'+esc(x.inv_sites?.name_ar||'-')+'</td><td>'+esc(x.batch_no||'-')+'</td><td>'+esc(x.expiry_date||'-')+'</td><td>'+money(x.qty_on_hand,3)+'</td><td>'+money(x.unit_cost,4)+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد تشغيلات لهذا الصنف.</td></tr>'+'</tbody></table>'}
+function renderCost(){$('costTable').innerHTML='<table><thead><tr><th>الموقع</th><th>الكمية</th><th>قيمة المخزون</th><th>المتوسط المرجح</th><th>آخر تحديث</th></tr></thead><tbody>'+costs.map(x=>{const st=sites.find(s=>s.id===x.site_id);return '<tr><td>'+esc(st?.name_ar||'-')+'</td><td>'+money(x.qty_on_hand,3)+'</td><td>'+money(x.inventory_value)+'</td><td>'+money(x.weighted_avg_cost,4)+'</td><td>'+esc(x.updated_at?.slice(0,10)||'-')+'</td></tr>'}).join('')||'<tr><td colspan="5">لا توجد بيانات تكلفة لهذا الصنف.</td></tr>'+'</tbody></table>'}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.view;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));$(v).classList.add('active');document.querySelectorAll('.nav [data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('more').classList.remove('open');}));
+sb.auth.getSession().then(r=>r.data.session?start(r.data.session.user):$('status').textContent='غير مسجل الدخول').catch(e=>$('status').textContent='خطأ في الاتصال');
+</script>
+</body>
+</html>
