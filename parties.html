@@ -74,7 +74,7 @@ let editingCustomer=null,editingSupplier=null,customers=[],suppliers=[],sales=[]
 
 async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}start()}
 async function logout(){await sb.auth.signOut();location.reload()}
-async function start(){ $('login').style.display='none';$('app').style.display='block';$('status').textContent='جاري الاتصال...'; try{const rr=await sb.auth.refreshSession(); if(rr.error) throw rr.error; $('status').textContent='متصل'; await loadAll()}catch(e){$('app').style.display='none';$('login').style.display='block';$('authMsg').innerHTML='<div class="msg bad">انتهت صلاحية جلسة الدخول أو توقيت الجلسة غير صحيح. اضغط دخول مرة أخرى.</div>';}}
+async function start(){ $('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل'; try{await loadAll()}catch(e){$('app').style.display='none';$('login').style.display='block';$('authMsg').innerHTML='<div class="msg bad">تعذر تحميل البيانات: '+esc(e.message||e)+'</div>';}}
 
 function switchTab(tab){
   $('customers').classList.toggle('active',tab==='customers');$('suppliers').classList.toggle('active',tab==='suppliers');
