@@ -47,4 +47,25 @@ for(const e of entries){const x=by.get(e.id);if(!x)continue;const d=Number(x.deb
 const a=accounts.find(x=>x.id===aid);$('accountName').innerHTML='<b>الحساب: '+esc(a?.code)+' — '+esc(a?.name_ar)+'</b><div class="muted">الفترة: '+esc(from)+' إلى '+esc(to)+'</div>';$('opening').textContent=opening.toFixed(2);$('debit').textContent=totalD.toFixed(2);$('credit').textContent=totalC.toFixed(2);$('closing').textContent=balance.toFixed(2);$('lines').innerHTML=rows.join('')||'<tr><td colspan="7" class="empty">لا توجد حركة خلال الفترة.</td></tr>';$('statement').style.display='block';$('msg2').textContent=''
 }catch(e){$('msg2').textContent='تعذر تحميل كشف الحساب: '+e.message}}
 sb.auth.getSession().then(r=>r.data.session?start():null)
+</script><script>
+(function(){
+  function addBack(){
+    const exists=[...document.querySelectorAll('button,a')].some(el=>el.textContent.includes('رجوع للشاشة السابقة'));
+    if(exists)return;
+    const b=document.createElement('button');
+    b.type='button';
+    b.textContent='↩ رجوع للشاشة السابقة';
+    b.className='btn';
+    b.style.cssText='margin-left:8px;cursor:pointer;';
+    b.onclick=function(){
+      if(window.history.length>1){window.history.back();}
+      else{window.location.href='accounting.html';}
+    };
+    const main=document.querySelector('main')||document.body;
+    const top=main.querySelector('.top');
+    if(top) top.prepend(b);
+    else main.insertBefore(b,main.firstChild);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBack);else addBack();
+})();
 </script></body></html>
