@@ -21,4 +21,21 @@ async function login(){const r=await sb.auth.signInWithPassword({email:$('email'
  $('journal').innerHTML=(r.data||[]).map(x=>'<tr><td>'+esc(x.entry_no)+'</td><td>'+esc(x.entry_date)+'</td><td>'+esc(x.source_type)+'</td><td>'+esc(x.description||'')+'</td></tr>').join('')||'<tr><td colspan="4">لا توجد قيود مترحلة.</td></tr>';
 }catch(e){$('status').textContent='تعذر تحميل القيود';console.error(e)}}
 sb.auth.getSession().then(r=>r.data.session?start(r.data.session.user):$('status').textContent='غير مسجل الدخول');
+</script><script>
+(function(){
+  function addBack(){
+    const exists=[...document.querySelectorAll('button,a')].some(el=>el.textContent.includes('رجوع للشاشة السابقة'));
+    if(exists)return;
+    const b=document.createElement('button');
+    b.type='button';
+    b.textContent='↩ رجوع للشاشة السابقة';
+    b.className='btn';
+    b.style.cssText='margin-left:8px;cursor:pointer;';
+    b.onclick=function(){ if(window.history.length>1){window.history.back();}else{window.location.href='accounting.html';} };
+    const main=document.querySelector('main')||document.body;
+    const top=main.querySelector('.top');
+    if(top) top.prepend(b); else main.insertBefore(b,main.firstChild);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBack);else addBack();
+})();
 </script></body></html>
