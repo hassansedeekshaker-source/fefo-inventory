@@ -11,7 +11,7 @@ main{max-width:1250px;margin:20px auto;padding:0 15px}.card{background:#fff;bord
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{font-size:26px;font-weight:bold;margin-top:8px}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px}
 input,select,textarea{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff}textarea{min-height:75px}
-button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:#e9edf5}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}
+button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:#e9edf5}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}.back{background:#e8edf5;color:#17233b;font-weight:700}
 table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}
 .msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}.bad{color:#b42318}.ok{color:#087443}.small{font-size:12px;color:#667085}
 .login{max-width:500px;margin:70px auto}.hide{display:none}.tag{padding:4px 8px;border-radius:15px;background:#eef2f7;font-size:12px}
@@ -19,7 +19,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 </style>
 </head>
 <body>
-<header><b>🧾 نظام المحاسبة — المصروفات</b><div style="display:flex;align-items:center;gap:10px"><a href="accounting.html" style="text-decoration:none"><button style="background:#fff;color:#18243a;font-weight:bold">🏠 الرجوع للشاشة الرئيسية</button></a><span id="status">جاري الاتصال...</span></div></header>
+<header><b>🧾 نظام المحاسبة — المصروفات</b><div style="display:flex;align-items:center;gap:10px"><button type="button" class="back" onclick="goBack()">↩ رجوع للشاشة السابقة</button><a href="accounting.html" style="text-decoration:none"><button style="background:#fff;color:#18243a;font-weight:bold">🏠 الرئيسية</button></a><span id="status">جاري الاتصال...</span></div></header>
 
 <main id="login" class="login card">
 <h2>تسجيل الدخول</h2>
@@ -39,7 +39,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="card">آخر مصروف<div id="last" class="kpi">0.00</div></div>
 </div>
 
-<section class="card"><h2>💰 المصروفات</h2><p class="small">تم فصل الحفظ عن الترحيل: الحفظ يسجل المصروف كمسودة، والترحيل يتم من شاشة مستقلة ويولد القيد المحاسبي.</p><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"><a href="expenses-save.html" style="text-decoration:none"><button class="success">💾 حفظ المصروف</button></a><a href="expenses-saved.html" style="text-decoration:none"><button>📋 المصروفات المحفوظة</button></a><a href="expenses-posting.html" style="text-decoration:none"><button class="primary">📤 ترحيل المصروفات</button></a></div></section>
+<section class="card"><h2>💰 المصروفات</h2><p class="small">تم فصل الحفظ عن الترحيل: الحفظ يسجل المصروف كمسودة، والترحيل يتم من شاشة مستقلة ويولد القيد المحاسبي.</p><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"><a href="expenses-save.html" style="text-decoration:none"><button class="success">➕ مصروف جديد</button></a><a href="expenses-saved.html" style="text-decoration:none"><button>📋 المصروفات المحفوظة</button></a><a href="expenses-posting.html" style="text-decoration:none"><button class="primary">📤 ترحيل المصروفات</button></a></div></section>
 
 <section class="card">
 <h2>📋 حركة المصروفات</h2>
@@ -62,6 +62,7 @@ const $=id=>document.getElementById(id);
 const today=()=>new Date().toISOString().slice(0,10);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function err(e){return e?.message||String(e)}
+function goBack(){if(window.history.length>1)window.history.back();else window.location.href='accounting.html'}
 function opts(a,label,v='id'){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x[v]+'">'+esc(label(x))+'</option>').join('')}
 async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}start(r.data.user)}
 async function logout(){await sb.auth.signOut();location.reload()}
@@ -97,35 +98,12 @@ async function loadLists(){
   accounts=(ar.status==='fulfilled' && !ar.value.error && ar.value.data?.length)?ar.value.data:fallbackAccounts;
   sites=(sr.status==='fulfilled' && !sr.value.error && sr.value.data?.length)?sr.value.data:fallbackSites;
   suppliers=(pr.status==='fulfilled' && !pr.value.error && pr.value.data?.length)?pr.value.data:fallbackSuppliers;
-  $('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);
-  $('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);
-  $('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
-  fillPayAccounts();
 }
-function fillPayAccounts(){
-  const method=$('method').value;
-  let a=[];
-  if(method==='cash') a=accounts.filter(x=>String(x.code).startsWith('11'));
-  else if(method==='bank') a=accounts.filter(x=>String(x.code).startsWith('12'));
-  $('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);
-  $('payAccount').disabled=method==='accrued';
-}
-function togglePay(){fillPayAccounts()}
-async function saveExpense(){
-try{
-const cat=$('category').value,amt=Number($('amount').value||0),method=$('method').value,pay=$('payAccount').value;
-if(!cat||amt<=0)return $('msg').innerHTML='<div class="msg bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</div>';
-if(method!=='accrued'&&!pay)return $('msg').innerHTML='<div class="msg bad">اختر حساب الخزينة أو البنك.</div>';
-const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,cash_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'draft',created_by:user.id}).select().single();
-if(r.error)throw r.error;
-$('msg').innerHTML='<div class="msg ok">تم حفظ المصروف كمسودة. انتقل إلى شاشة الترحيل لإتمام الترحيل.</div>';clearForm(false);await loadExpenses()
-}catch(e){$('msg').innerHTML='<div class="msg bad">'+esc(err(e))+'</div>'}
-}
-function clearForm(show=true){$('date').value=today();$('category').value='';$('amount').value='';$('desc').value='';$('supplier').value='';if(show)$('msg').innerHTML=''}
+function fillPayAccounts(){return true}
 async function loadExpenses(){
 let q=sb.from('expenses').select('id,expense_no,expense_date,description,amount,payment_method,site_id,journal_entry_id,expense_categories(name_ar,code),inv_sites(name_ar,code)').order('expense_date',{ascending:false}).order('expense_no',{ascending:false});
 if($('from').value)q=q.gte('expense_date',$('from').value);if($('to').value)q=q.lte('expense_date',$('to').value);
-const r=await q;if(r.error){$('msg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}rows=r.data||[];render();
+const r=await q;if(r.error){$('body').innerHTML='<tr><td colspan="8">'+esc(err(r.error))+'</td></tr>';return}rows=r.data||[];render();
 }
 function render(){
 const s=$('search').value.trim().toLowerCase();const data=rows.filter(x=>!s||((x.description||'')+' '+(x.expense_categories?.name_ar||'')).toLowerCase().includes(s));
