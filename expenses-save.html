@@ -11,7 +11,7 @@ main{max-width:1250px;margin:20px auto;padding:0 15px}.card{background:#fff;bord
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{font-size:26px;font-weight:bold;margin-top:8px}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px}
 input,select,textarea{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff}textarea{min-height:75px}
-button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:#e9edf5}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}
+button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:#e9edf5}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}.back{background:#e8edf5;color:#17233b;font-weight:700}
 table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}
 .msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}.bad{color:#b42318}.ok{color:#087443}.small{font-size:12px;color:#667085}
 .login{max-width:500px;margin:70px auto}.hide{display:none}.tag{padding:4px 8px;border-radius:15px;background:#eef2f7;font-size:12px}
@@ -19,7 +19,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 </style>
 </head>
 <body>
-<header><b>🧾 نظام المحاسبة — حفظ المصروفات</b><div style="display:flex;align-items:center;gap:10px"><a href="accounting.html" style="text-decoration:none"><button style="background:#fff;color:#18243a;font-weight:bold">🏠 الرجوع للشاشة الرئيسية</button></a><span id="status">جاري الاتصال...</span></div></header>
+<header><b>🧾 نظام المحاسبة — حفظ المصروفات</b><div style="display:flex;align-items:center;gap:10px"><button type="button" class="back" onclick="goBack()">↩ رجوع للشاشة السابقة</button><a href="accounting.html" style="text-decoration:none"><button style="background:#fff;color:#18243a;font-weight:bold">🏠 الرئيسية</button></a><span id="status">جاري الاتصال...</span></div></header>
 
 <main id="login" class="login card">
 <h2>تسجيل الدخول</h2>
@@ -45,8 +45,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="field"><label>التاريخ</label><input id="date" type="date"></div>
 <div class="field"><label>نوع المصروف</label><select id="category"></select></div>
 <div class="field"><label>المبلغ</label><input id="amount" type="number" min="0" step=".01"></div>
-<div class="field"><label>طريقة الدفع</label><select id="method" onchange="togglePay()">
-<option value="cash" selected>خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
+<div class="field"><label>طريقة الدفع</label><select id="method" onchange="togglePay()"><option value="cash" selected>خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
 <div class="field"><label>حساب الدفع</label><select id="payAccount"></select></div>
 <div class="field"><label>الموقع / الفرع</label><select id="site"></select></div>
 <div class="field"><label>المورد / الجهة (اختياري)</label><select id="supplier"></select></div>
@@ -55,88 +54,28 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="row" style="margin-top:12px"><button class="success" onclick="saveExpense()">💾 حفظ المصروف</button><a href="expenses-saved.html" style="text-decoration:none"><button type="button" class="primary">📋 المصروفات المحفوظة</button></a><a href="expenses-posting.html" style="text-decoration:none"><button type="button">📤 الذهاب إلى شاشة الترحيل</button></a><a href="expenses.html" style="text-decoration:none"><button type="button">↩️ المصروفات</button></a></div>
 <div id="msg"></div>
 </section>
-
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
 let user=null,cats=[],accounts=[],sites=[],suppliers=[],rows=[];
-const $=id=>document.getElementById(id);
-const today=()=>new Date().toISOString().slice(0,10);
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const $=id=>document.getElementById(id), today=()=>new Date().toISOString().slice(0,10), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function err(e){return e?.message||String(e)}
+function goBack(){if(window.history.length>1)window.history.back();else window.location.href='accounting.html'}
 function opts(a,label,v='id'){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x[v]+'">'+esc(label(x))+'</option>').join('')}
 async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}start(r.data.user)}
 async function logout(){await sb.auth.signOut();location.reload()}
 async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('date').value=today();await loadLists()}
-const fallbackCats=[
-{id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},
-{id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},
-{id:'9b1b6b51-692e-475d-93e6-d51e671ed62e',code:'EXP-003',name_ar:'مياه'},
-{id:'c684bad5-5026-4496-98ab-033fcca6e046',code:'EXP-004',name_ar:'غاز'},
-{id:'d0028501-866e-41bc-8a9f-118da38c2ac2',code:'EXP-005',name_ar:'رواتب وأجور'},
-{id:'82fedea0-f355-44f5-9dff-d1d519bb8c48',code:'EXP-006',name_ar:'نقل ومواصلات'},
-{id:'7532f050-314f-4d96-aa0b-fd4a02dce6e7',code:'EXP-007',name_ar:'صيانة'},
-{id:'97a6e558-a66f-4fec-b1ee-f5502267d936',code:'EXP-008',name_ar:'اتصالات وإنترنت'},
-{id:'5b749134-b263-440d-8917-777e9a752011',code:'EXP-009',name_ar:'تسويق وإعلان'},
-{id:'42ec684c-ee5b-4578-8f86-5b80fbe64da1',code:'EXP-010',name_ar:'مصروفات بنكية'},
-{id:'2c4526d4-99f7-4b34-a98b-6c6049b56eee',code:'EXP-011',name_ar:'مصروفات إدارية وعمومية'},
-{id:'2aaad96e-6b87-40a7-81ca-5dbeff9485b0',code:'EXP-012',name_ar:'مصروفات أخرى'}];
-const fallbackAccounts=[
-{id:'6fd5c3ae-3c20-48cb-b52d-ee4eb9c19aaa',code:'1110',name_ar:'الخزينة الرئيسية'},
-{id:'62651bb2-cf90-46ff-bb02-6da5d59a8bf1',code:'1210',name_ar:'البنك الرئيسي'}];
+const fallbackCats=[{id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},{id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},{id:'9b1b6b51-692e-475d-93e6-d51e671ed62e',code:'EXP-003',name_ar:'مياه'},{id:'c684bad5-5026-4496-98ab-033fcca6e046',code:'EXP-004',name_ar:'غاز'},{id:'d0028501-866e-41bc-8a9f-118da38c2ac2',code:'EXP-005',name_ar:'رواتب وأجور'},{id:'82fedea0-f355-44f5-9dff-d1d519bb8c48',code:'EXP-006',name_ar:'نقل ومواصلات'},{id:'7532f050-314f-4d96-aa0b-fd4a02dce6e7',code:'EXP-007',name_ar:'صيانة'},{id:'97a6e558-a66f-4fec-b1ee-f5502267d936',code:'EXP-008',name_ar:'اتصالات وإنترنت'},{id:'5b749134-b263-440d-8917-777e9a752011',code:'EXP-009',name_ar:'تسويق وإعلان'},{id:'42ec684c-ee5b-4578-8f86-5b80fbe64da1',code:'EXP-010',name_ar:'مصروفات بنكية'},{id:'2c4526d4-99f7-4b34-a98b-6c6049b56eee',code:'EXP-011',name_ar:'مصروفات إدارية وعمومية'},{id:'2aaad96e-6b87-40a7-81ca-5dbeff9485b0',code:'EXP-012',name_ar:'مصروفات أخرى'}];
+const fallbackAccounts=[{id:'6fd5c3ae-3c20-48cb-b52d-ee4eb9c19aaa',code:'1110',name_ar:'الخزينة الرئيسية'},{id:'62651bb2-cf90-46ff-bb02-6da5d59a8bf1',code:'1210',name_ar:'البنك الرئيسي'}];
 const fallbackSites=[{id:'e7dc2552-dd41-4206-b200-90a44d8bd5ba',code:'MAIN',name_ar:'المخزن الرئيسي'}];
 const fallbackSuppliers=[{id:1,name:'حسن'}];
-
-async function loadLists(){
-  const results=await Promise.allSettled([
-    sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code'),
-    sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code'),
-    sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code'),
-    sb.from('suppliers').select('id,name').order('name')
-  ]);
-  const [cr,ar,sr,pr]=results;
-  cats=(cr.status==='fulfilled' && !cr.value.error && cr.value.data?.length)?cr.value.data:fallbackCats;
-  accounts=(ar.status==='fulfilled' && !ar.value.error && ar.value.data?.length)?ar.value.data:fallbackAccounts;
-  sites=(sr.status==='fulfilled' && !sr.value.error && sr.value.data?.length)?sr.value.data:fallbackSites;
-  suppliers=(pr.status==='fulfilled' && !pr.value.error && pr.value.data?.length)?pr.value.data:fallbackSuppliers;
-  $('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);
-  $('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);
-  $('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
-  fillPayAccounts();
-}
-function fillPayAccounts(){
-  const method=$('method').value;
-  let a=[];
-  if(method==='cash') a=accounts.filter(x=>String(x.code).startsWith('11'));
-  else if(method==='bank') a=accounts.filter(x=>String(x.code).startsWith('12'));
-  $('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);
-  $('payAccount').disabled=method==='accrued';
-}
+async function loadLists(){const results=await Promise.allSettled([sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code'),sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code'),sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code'),sb.from('suppliers').select('id,name').order('name')]);const [cr,ar,sr,pr]=results;cats=(cr.status==='fulfilled'&&!cr.value.error&&cr.value.data?.length)?cr.value.data:fallbackCats;accounts=(ar.status==='fulfilled'&&!ar.value.error&&ar.value.data?.length)?ar.value.data:fallbackAccounts;sites=(sr.status==='fulfilled'&&!sr.value.error&&sr.value.data?.length)?sr.value.data:fallbackSites;suppliers=(pr.status==='fulfilled'&&!pr.value.error&&pr.value.data?.length)?pr.value.data:fallbackSuppliers;$('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);$('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);$('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');fillPayAccounts()}
+function fillPayAccounts(){const method=$('method').value;let a=[];if(method==='cash')a=accounts.filter(x=>String(x.code).startsWith('11'));else if(method==='bank')a=accounts.filter(x=>String(x.code).startsWith('12'));$('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);$('payAccount').disabled=method==='accrued'}
 function togglePay(){fillPayAccounts()}
-async function saveExpense(){
-try{
-const cat=$('category').value,amt=Number($('amount').value||0),method=$('method').value,pay=$('payAccount').value;
-if(!cat||amt<=0)return $('msg').innerHTML='<div class="msg bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</div>';
-if(method!=='accrued'&&!pay)return $('msg').innerHTML='<div class="msg bad">اختر حساب الخزينة أو البنك.</div>';
-const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'draft',created_by:user.id}).select().single();
-if(r.error)throw r.error;
-$('msg').innerHTML='<div class="msg ok">تم حفظ المصروف بنجاح كمسودة. لم يتم ترحيله بعد ✓</div>';clearForm(false);
-}catch(e){$('msg').innerHTML='<div class="msg bad">'+esc(err(e))+'</div>'}
-}
+async function saveExpense(){try{const cat=$('category').value,amt=Number($('amount').value||0),method=$('method').value,pay=$('payAccount').value;if(!cat||amt<=0)return $('msg').innerHTML='<div class="msg bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</div>';if(method!=='accrued'&&!pay)return $('msg').innerHTML='<div class="msg bad">اختر حساب الخزينة أو البنك.</div>';const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'draft',created_by:user.id}).select().single();if(r.error)throw r.error;$('msg').innerHTML='<div class="msg ok">تم حفظ المصروف بنجاح كمسودة. لم يتم ترحيله بعد ✓</div>';clearForm(false)}catch(e){$('msg').innerHTML='<div class="msg bad">'+esc(err(e))+'</div>'}}
 function clearForm(show=true){$('date').value=today();$('category').value='';$('amount').value='';$('desc').value='';$('supplier').value='';if(show)$('msg').innerHTML=''}
-async function loadExpenses(){
-let q=sb.from('expenses').select('id,expense_no,expense_date,description,amount,payment_method,site_id,journal_entry_id,expense_categories(name_ar,code),inv_sites(name_ar,code)').order('expense_date',{ascending:false}).order('expense_no',{ascending:false});
-if($('from').value)q=q.gte('expense_date',$('from').value);if($('to').value)q=q.lte('expense_date',$('to').value);
-const r=await q;if(r.error){$('msg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}rows=r.data||[];render();
-}
-function render(){
-const s=$('search').value.trim().toLowerCase();const data=rows.filter(x=>!s||((x.description||'')+' '+(x.expense_categories?.name_ar||'')).toLowerCase().includes(s));
-$('body').innerHTML=data.map(x=>'<tr><td>'+x.expense_no+'</td><td>'+x.expense_date+'</td><td>'+esc((x.expense_categories?.code||'')+' — '+(x.expense_categories?.name_ar||''))+'</td><td>'+esc(x.description||'-')+'</td><td>'+Number(x.amount).toFixed(2)+'</td><td><span class="tag">'+({cash:'خزينة',bank:'بنك',accrued:'مستحق'}[x.payment_method]||x.payment_method)+'</span></td><td>'+esc(x.inv_sites?.name_ar||'-')+'</td><td>'+(x.journal_entry_id?'✓ مرحل':'-')+'</td></tr>').join('');
-const total=data.reduce((a,x)=>a+Number(x.amount||0),0);$('total').textContent=total.toFixed(2);$('count').textContent=data.length;$('last').textContent=data.length?Number(data[0].amount).toFixed(2):'0.00';
-const ym=today().slice(0,7);$('month').textContent=data.filter(x=>String(x.expense_date).startsWith(ym)).reduce((a,x)=>a+Number(x.amount||0),0).toFixed(2);
-}
 sb.auth.getSession().then(r=>{if(r.data.session)start(r.data.session.user);else $('status').textContent='غير مسجل الدخول'}).catch(e=>$('status').textContent='خطأ في الاتصال');
 </script>
 </body>
