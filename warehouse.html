@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المخزن | نظام إدارة المخزون والمحاسبة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#18243a;color:#fff;padding:15px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+main{max-width:1400px;margin:18px auto;padding:0 14px}.topbar{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 12px #0001;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;font-size:14px;background:#e9edf5;color:#172033}.primary{background:#18243a;color:#fff}.title{font-size:20px;font-weight:bold}
+.frame{background:#fff;border-radius:14px;box-shadow:0 2px 12px #0001;overflow:hidden;min-height:650px}iframe{width:100%;height:760px;border:0;display:block;background:#f4f6fa}
+.notice{padding:30px;text-align:center;color:#667085}
+</style>
+</head>
+<body>
+<header><b>📦 نظام إدارة المخزون والمحاسبة</b><span>قسم المخزن</span></header>
+<main>
+<div class="topbar"><button class="primary" onclick="location.href='accounting.html'">🏠 الرجوع للشاشة الرئيسية</button><span class="title">🏬 شاشة المخزن</span></div>
+<div class="frame">
+<div id="loading" class="notice">جاري تحميل شاشة المخزن...</div>
+<iframe id="warehouseFrame" src="index.html?module=warehouse" title="شاشة المخزن"></iframe>
+</div>
+</main>
+<script>
+const frame=document.getElementById('warehouseFrame');
+frame.addEventListener('load',()=>{
+  document.getElementById('loading').style.display='none';
+  try{
+    const d=frame.contentDocument;
+    const style=d.createElement('style');
+    style.textContent=`
+      header{display:none!important}
+      #moduleBar{display:none!important}
+      #app>.card:first-of-type{display:none!important}
+      #app>.grid{display:none!important}
+      .nav{display:none!important}
+      #dash,#purchases,#sales,#items,#opening,#lots,#moves,#accounts,#journal,#reports,#sites,#parties{display:none!important}
+      #warehouse{display:block!important;margin-top:18px}
+      #warehouse h2{margin-top:0}
+      main#app{margin-top:0!important}
+    `;
+    d.head.appendChild(style);
+  }catch(e){console.error(e)}
+});
+</script>
+</body>
+</html>
