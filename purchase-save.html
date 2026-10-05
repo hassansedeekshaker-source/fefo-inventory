@@ -21,7 +21,7 @@
 <label>المخزن<select id="site"><option value="">-- اختر المخزن --</option></select></label>
 </div>
 <div class="table-wrap"><table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الشراء</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th></tr></thead><tbody id="lines"></tbody></table></div>
-<button class="add" id="add">＋ إضافة صنف</button>
+<button class="add" id="add" type="button" onclick="addPurchaseLine()">＋ إضافة صنف</button>
 <div class="summary"><div class="sum"><b>قيمة الخصم</b><strong id="discountTotal">0.00</strong></div><div class="sum"><b>قيمة المشتريات</b><strong id="subtotal">0.00</strong></div><div class="sum"><b>قيمة الضريبة</b><strong id="taxTotal">0.00</strong></div><div class="sum"><b>إجمالي الفاتورة</b><strong id="grandTotal">0.00</strong></div></div>
 <div class="actions"><button class="save" id="save">💾 حفظ المسودة</button><button onclick="window.print()">🖨 طباعة</button></div><div id="msg" class="msg loading">جارٍ تشغيل شاشة المشتريات...</div>
 </div></div>
@@ -44,6 +44,9 @@ const $=id=>document.getElementById(id);
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function msg(t,bad=false){showMsg(t,bad)}
 function options(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
+function addPurchaseLine(){
+ const fn=window.__purchaseLineFactory;if(fn)fn();
+}
 function line(){
  const tr=document.createElement('tr');
  tr.innerHTML='<td><select class="item">'+options(items,x=>x.name_ar+' — '+(x.sku||''))+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0"></td><td class="discVal">0.00</td><td class="value">0.00</td><td><input class="tax" type="number" min="0" step=".01" value="0"></td><td class="taxVal">0.00</td><td class="total">0.00</td><td><button class="del">حذف</button></td>';
@@ -68,7 +71,7 @@ async function init(){
   $('supplier').insertAdjacentHTML('beforeend',suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join(''));
   $('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join(''));
   $('purchase_date').value=new Date().toISOString().slice(0,10);line();calc();
-  msg('الشاشة جاهزة. اختر المورد والمخزن ثم أضف الصنف.');
+  msg(items.length?'الشاشة جاهزة. اختر المورد والمخزن ثم أضف الصنف.':'الشاشة جاهزة، لكن لا توجد أصناف مسجلة حاليًا في قاعدة البيانات.');
  }catch(e){msg(e.message||String(e),true)}
 }
 async function save(){
@@ -84,5 +87,7 @@ async function save(){
   msg('تم حفظ فاتورة الشراء كمسودة ✓ رقم '+(h.data.invoice_no||h.data.id));$('invoice_no').value='';$('lines').innerHTML='';line();calc();
  }catch(e){msg(e.message||String(e),true)}
 }
-document.getElementById('add').onclick=line;document.getElementById('save').onclick=save;
+window.__purchaseLineFactory=line;
+window.addPurchaseLine=addPurchaseLine;
+document.getElementById('save').onclick=save;
 </script>
