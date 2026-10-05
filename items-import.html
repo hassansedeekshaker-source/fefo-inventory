@@ -22,11 +22,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 function msg(t,bad=false){$('msg').className='msg '+(bad?'bad':'ok');$('msg').textContent=t}
 function norm(v){return String(v??'').trim()} function normCode(v){return norm(v).replace(/\s+/g,'').toUpperCase()} const CODE_PREFIX='EG-762506075-'; let nextCodeNo=0; function codeNumber(code){const s=normCode(code);if(!s.startsWith(CODE_PREFIX))return 0;const n=Number(s.slice(CODE_PREFIX.length));return Number.isFinite(n)?n:0} function generateCode(used){let n=Math.max(nextCodeNo,900999999); do{n++;}while(used.has(CODE_PREFIX+n)); nextCodeNo=n; return CODE_PREFIX+n}
 function numTax(v){let n=Number(v);if(!Number.isFinite(n))return null;if(n>1)n=n/100;return n}
-function unitName(v){let s=norm(v).toUpperCase();return ({KG:'كيلو',EA:'عدد',PCS:'عدد',UNIT:'عدد',كجم:'كيلو',كيلو:'كيلو',عدد:'عدد'}[s]||norm(v))}
+function unitCode(v){let s=norm(v).toUpperCase();return ({KG:'KG',EA:'EA',PCS:'EA',UNIT:'EA',كجم:'KG',كيلو:'KG',عدد:'EA'}[s]||norm(v).toUpperCase())}
 async function start(){
  const ss=await sb.auth.getSession();if(!ss.data.session){location.href='accounting.html';return}user=ss.data.session.user;
  const [I,U]=await Promise.all([sb.from('inv_items').select('id,sku,name_ar,unit_id,tax_rate,unit_name').eq('active',true),sb.from('inv_units').select('id,code,name_ar').eq('active',true)]);
- if(I.error||U.error)throw(I.error||U.error);(I.data||[]).forEach(x=>{existing.set(normCode(x.sku),x); nextCodeNo=Math.max(nextCodeNo,codeNumber(x.sku));});(U.data||[]).forEach(x=>units.set(x.name_ar.toUpperCase(),x));
+ if(I.error||U.error)throw(I.error||U.error);(I.data||[]).forEach(x=>{existing.set(normCode(x.sku),x); nextCodeNo=Math.max(nextCodeNo,codeNumber(x.sku));});(U.data||[]).forEach(x=>units.set((x.code||x.name_ar).toUpperCase(),x));
 }
 function reset(){rows=[];ready=false;$('file').value='';$('filename').textContent='لم يتم اختيار ملف';$('all').textContent=$('new').textContent=$('upd').textContent=$('dup').textContent=$('err').textContent='0';$('body').innerHTML='<tr><td colspan="6" class="center">اختر ملف Excel للبدء.</td></tr>';$('previewText').textContent='لا يوجد ملف';$('importBtn').classList.add('disabled');$('msg').textContent=''}
 $('clearBtn').onclick=reset;
@@ -50,7 +50,7 @@ $('file').onchange=async e=>{
     else { seen.set(originalCode,r+1); if(existing.has(originalCode)){status='سيتم تحديثه';cls='';} }
     used.add(finalCode);
    } else cls='bad';
-   out.push({row:r+1,sku:originalCode,finalCode,name,unit:unitName(rawUnit),tax,status,err,cls});
+   out.push({row:r+1,sku:originalCode,finalCode,name,unit:unitCode(rawUnit),tax,status,err,cls});
   }
   rows=out;$('all').textContent=rows.length;$('new').textContent=rows.filter(x=>!x.err&&x.status==='جديد').length;$('upd').textContent=rows.filter(x=>!x.err&&x.status==='سيتم تحديثه').length;$('dup').textContent=rows.filter(x=>x.status==='تم توليد كود جديد').length;$('err').textContent=rows.filter(x=>x.err).length;
   $('previewText').textContent='تم فحص '+rows.length+' صف';$('body').innerHTML=rows.slice(0,500).map(x=>'<tr><td>'+x.row+'</td><td>'+esc(x.sku)+'</td><td><b>'+esc(x.finalCode||x.sku)+'</b></td><td>'+esc(x.name)+'</td><td>'+esc(x.unit)+'</td><td>'+((x.tax??0)*100).toFixed(2)+'%</td><td class="'+x.cls+'">'+esc(x.err||x.status)+'</td></tr>').join('')||'<tr><td colspan="7">لا توجد بيانات.</td></tr>';
@@ -65,7 +65,7 @@ $('importBtn').onclick=async()=>{
   let added=0,updated=0;
   for(const x of rows){
    let u=units.get(x.unit.toUpperCase());
-   if(!u){const ur=await sb.from('inv_units').insert({code:'U-'+Date.now().toString(36).toUpperCase(),name_ar:x.unit,active:true}).select('id,code,name_ar').single();if(ur.error)throw ur.error;u=ur.data;units.set(x.unit.toUpperCase(),u)}
+   if(!u){const ur=await sb.from('inv_units').insert({code:x.unit,name_ar:x.unit,active:true}).select('id,code,name_ar').single();if(ur.error)throw ur.error;u=ur.data;units.set(x.unit.toUpperCase(),u)}
    const payload={sku:x.finalCode,name_ar:x.name,unit_id:u.id,unit_name:x.unit,tax_rate:x.tax,purchase_price:existing.get(x.sku)?.purchase_price||0,sale_price:existing.get(x.sku)?.sale_price||0,active:true};
    if(existing.has(x.finalCode)){const r=await sb.from('inv_items').update(payload).eq('sku',x.finalCode);if(r.error)throw r.error;updated++}else{const r=await sb.from('inv_items').insert(payload);if(r.error)throw r.error;added++}
   }
