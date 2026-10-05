@@ -1,20 +1,58 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>حفظ مرتجعات المبيعات</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
-*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f4f6fa;margin:0;color:#17233b}#app{width:100%;margin:0}.card{min-height:calc(100vh - 10px)}.card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 3px 16px #0001}.top{display:flex;gap:10px;margin-bottom:14px;align-items:center;justify-content:flex-start}.top a,.btn,button{border:0;border-radius:9px;padding:10px 16px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer;white-space:nowrap}.top a:first-child,.ok{background:#087f4f;color:#fff}.head{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}label{display:flex;flex-direction:column;gap:6px;font-weight:600}input,select{width:100%;min-width:0;padding:10px 11px;border:1px solid #ccd5e3;border-radius:8px;background:#fff;font-size:14px}table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0;font-size:13px;table-layout:fixed}th,td{padding:8px 6px;border-bottom:1px solid #e5e9f0;text-align:center;vertical-align:middle;overflow:hidden}th{background:#eef2f7;font-weight:700;line-height:1.35}td select,td input{font-size:13px;padding:8px 6px}#invoiceSummary{display:grid!important;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px!important}#invoiceSummary .card{padding:15px 18px;text-align:center;border:1px solid #e6eaf0;box-shadow:0 2px 10px #0000000d}#invoiceSummary b{display:block;font-size:14px;margin-bottom:6px}#invoiceValue,#invoiceTax,#invoiceTotal{font-size:22px;font-weight:700}.msg{padding:12px;margin-top:14px;border-radius:8px}.msg.ok{background:#e5f7ee;color:#087f4f}.msg.bad{background:#fdecec;color:#b42318}@media(max-width:1100px){#app{width:98%}.card{padding:16px}table{font-size:12px}th,td{padding:6px 4px}td input,td select{font-size:12px;padding:7px 4px}}@media(max-width:800px){.head{grid-template-columns:1fr 1fr}#invoiceSummary{grid-template-columns:1fr}.top{flex-wrap:wrap}}
-</style><script>(function(){const p=new URLSearchParams(location.search);const id=p.get('customer_id');if(id&&!p.has('edit')&&!p.has('saved')){location.replace('posted.html?customer_id='+encodeURIComponent(id)+'&type=sale_return');}})();</script></head><body data-workflow="sale-return-save"><main id="app"></main><script src="workflow.js?v=20261005-return1"></script><script>
-(function(){
-  function addBack(){
-    const exists=[...document.querySelectorAll('button,a')].some(el=>el.textContent.includes('رجوع للشاشة السابقة'));
-    if(exists)return;
-    const b=document.createElement('button');
-    b.type='button';
-    b.textContent='↩ رجوع للشاشة السابقة';
-    b.className='btn';
-    b.style.cssText='margin-left:8px;cursor:pointer;';
-    b.onclick=function(){ if(window.history.length>1){window.history.back();}else{window.location.href='accounting.html';} };
-    const main=document.querySelector('main')||document.body;
-    const top=main.querySelector('.top');
-    if(top) top.prepend(b); else main.insertBefore(b,main.firstChild);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBack);else addBack();
-})();
-</script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مرتجع مبيعات</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
+.wrap{width:100%;margin:0}.card{width:100%;min-height:calc(100vh - 10px);background:#fff;border:1px solid #dfe5ed;border-radius:8px;padding:14px}
+.top{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.btn{padding:9px 14px;border:1px solid #d7dee8;border-radius:7px;background:#fff;color:#172033;text-decoration:none;cursor:pointer}
+.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.title h1{margin:0;font-size:30px;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-weight:700}input,select,textarea{width:100%;padding:9px;border:1px solid #ccd5e3;border-radius:7px;background:#fff;font-size:14px}textarea{min-height:38px;resize:vertical}.readonly{background:#f4f6fa}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1250px}th,td{border:1px solid #dfe5ed;padding:7px;text-align:center;white-space:nowrap}th{background:#eef2f7}td input,td select{min-width:75px;padding:7px}.add{margin:10px 0;padding:9px 14px;border:1px dashed #9aa7b8;border-radius:7px;background:#fff;cursor:pointer}
+.totals{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.total{border:1px solid #e0e5ec;border-radius:8px;padding:12px;text-align:center;background:#fafbfd}.total b{display:block;margin-bottom:6px}.num{font-size:19px;font-weight:700}.net{background:#eef7f2}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions button{padding:10px 16px;border:0;border-radius:7px;cursor:pointer}.save{background:#087f4f;color:#fff}.post{background:#18243a;color:#fff}.msg{margin-top:12px;padding:10px;border-radius:7px}.okmsg{background:#e5f7ee;color:#087f4f}.badmsg{background:#fdecec;color:#b42318}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.totals{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="top"><a class="btn" href="accounting.html">🏠 الرئيسية</a><a class="btn" href="sales.html">↩ المبيعات</a><a class="btn" href="sale-return-save.html?saved=1">📋 المرتجعات المحفوظة</a><a class="btn" href="sale-return-post.html">📤 الترحيل</a></div>
+<div class="card"><div class="title"><h1>مرتجع مبيعات</h1><span>مرتجع عميل</span></div>
+<div class="grid"><div class="field"><label>رقم المرتجع</label><input id="docno" placeholder="يُنشأ تلقائيًا"></div><div class="field"><label>التاريخ</label><input id="date" type="date"></div><div class="field"><label>المخزن</label><select id="site"></select></div><div class="field"><label>العميل</label><select id="customer"></select></div></div>
+<div class="table-wrap"><table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر البيع</th><th>الرصيد</th><th>التكلفة</th><th>إجمالي التكلفة</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th></tr></thead><tbody id="lines"></tbody></table></div>
+<button class="add" onclick="addLine()">＋ إضافة بند</button>
+<div class="totals"><div class="total"><b>تكلفة المرتجع</b><div class="num" id="costTotal">0.00</div></div><div class="total"><b>قيمة الخصم</b><div class="num" id="discountTotal">0.00</div></div><div class="total"><b>قيمة المرتجع</b><div class="num" id="valueTotal">0.00</div></div><div class="total"><b>قيمة الضريبة</b><div class="num" id="taxTotal">0.00</div></div><div class="total net"><b>إجمالي المرتجع</b><div class="num" id="grandTotal">0.00</div></div></div>
+<div class="actions"><button class="save" onclick="saveReturn()">💾 حفظ مسودة</button><button class="post" onclick="location.href='sale-return-post.html'">📤 الترحيل</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='sale-return-save.html'">📄 مرتجع جديد</button></div><div id="msg"></div>
+</div></div>
+<script>
+const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(URL,KEY);
+let user,items=[],units=[],sites=[],customers=[];
+const $=id=>document.getElementById(id), today=()=>new Date().toISOString().slice(0,10);
+function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+String(label(x)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))+'</option>').join('')}
+async function init(){
+ try{
+  const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
+  const [a,b,c,d,e]=await Promise.all([
+   sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,sale_price,tax_rate').eq('active',true).order('name_ar'),
+   sb.from('inv_units').select('id,name_ar').order('name_ar'),
+   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
+   sb.from('customers').select('id,name,withholding_enabled,withholding_rate').order('name'),
+   sb.from('inventory_costs').select('item_id,site_id,qty_on_hand,weighted_avg_cost')
+  ]);
+  if(a.error)throw a.error;if(b.error)throw b.error;if(c.error)throw c.error;if(d.error)throw d.error;
+  items=a.data||[];units=b.data||[];sites=c.data||[];customers=d.data||[];window.costRows=e.data||[];
+  $('date').value=today();$('site').innerHTML=opt(sites,x=>x.name_ar);$('customer').innerHTML=opt(customers,x=>x.name);
+  const p=new URLSearchParams(location.search);if(p.get('customer_id'))$('customer').value=p.get('customer_id');if(p.get('site_id'))$('site').value=p.get('site_id');
+  addLine();
+ }catch(e){$('msg').className='msg badmsg';$('msg').textContent='تعذر تحميل الشاشة: '+(e.message||e)}
+}
+function addLine(){const tr=document.createElement('tr');tr.innerHTML='<td><select class="item" onchange="itemChange(this)">'+opt(items,x=>x.name_ar)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calc()"></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calc()"></td><td><input class="stock readonly" readonly value="0.00"></td><td><input class="cost readonly" readonly value="0.00"></td><td class="linecost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0" oninput="calc()"></td><td class="discvalue">0.00</td><td class="value">0.00</td><td><input class="tax readonly" readonly value="0.00"></td><td class="taxvalue">0.00</td><td class="linetotal">0.00</td><td><button onclick="this.closest('tr').remove();calc()">🗑</button></td>';$('lines').appendChild(tr);itemChange(tr.querySelector('.item'))}
+async function itemChange(el){const tr=el.closest('tr'),x=items.find(i=>String(i.id)===String(el.value));if(!x)return;tr.querySelector('.unit').textContent=(units.find(u=>String(u.id)===String(x.unit_id))||{}).name_ar||'-';tr.querySelector('.price').value=Number(x.sale_price||0).toFixed(2);tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);tr.querySelector('.cost').value=Number(x.purchase_price||0).toFixed(2);tr.querySelector('.stock').value='0.00';const site=$('site').value;const r=(window.costRows||[]).find(z=>String(z.item_id)===String(x.id)&&String(z.site_id)===String(site));if(r){tr.querySelector('.stock').value=Number(r.qty_on_hand||0).toFixed(3);tr.querySelector('.cost').value=Number(r.weighted_avg_cost||x.purchase_price||0).toFixed(2)}calc()}
+$('site').addEventListener('change',()=>document.querySelectorAll('.item').forEach(itemChange));
+function calc(){let c=0,d=0,v=0,t=0,g=0;document.querySelectorAll('#lines tr').forEach(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,dr=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,gross=q*p,dd=gross*dr/100,net=gross-dd,tx=net*rate/100;c+=q*co;d+=dd;v+=net;t+=tx;g+=net+tx;tr.querySelector('.linecost').textContent=(q*co).toFixed(2);tr.querySelector('.discvalue').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=net.toFixed(2);tr.querySelector('.taxvalue').textContent=tx.toFixed(2);tr.querySelector('.linetotal').textContent=(net+tx).toFixed(2)});$('costTotal').textContent=c.toFixed(2);$('discountTotal').textContent=d.toFixed(2);$('valueTotal').textContent=v.toFixed(2);$('taxTotal').textContent=t.toFixed(2);$('grandTotal').textContent=g.toFixed(2)}
+async function saveReturn(){try{const customer=$('customer').value,site=$('site').value;if(!customer||!site)return show('اختار العميل والمخزن','badmsg');const rows=[...document.querySelectorAll('#lines tr')];if(!rows.length)return show('أضف صنفًا واحدًا على الأقل','badmsg');const rs=rows.map(tr=>{const x=items.find(i=>String(i.id)===String(tr.querySelector('.item').value));const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,g=q*p,dd=g*d/100,n=g-dd;return{item_id:x.id,qty:q,unit_price:p,unit_cost:co,discount_rate:d,discount_amount:dd,tax_rate:rate,tax_amount:n*rate/100}});if(rs.some(x=>!x.item_id||x.qty<=0))return show('راجع الأصناف والكميات','badmsg');const subtotal=rs.reduce((s,x)=>s+x.qty*x.unit_price-x.discount_amount,0),discount_total=rs.reduce((s,x)=>s+x.discount_amount,0),tax=rs.reduce((s,x)=>s+x.tax_amount,0),total=subtotal+tax,cust=customers.find(x=>String(x.id)===String(customer)),wr=cust?.withholding_enabled?Number(cust.withholding_rate||0):0,withholding=total*wr/100;const h=await sb.from('sales_returns').insert({customer_id:+customer,site_id:site,return_date:$('date').value,subtotal,discount_total,tax,total,withholding_tax:withholding,status:'draft',created_by:user.id}).select().single();if(h.error)throw h.error;const l=await sb.from('sales_return_lines').insert(rs.map(x=>({...x,return_id:h.data.id})));if(l.error)throw l.error;$('docno').value=h.data.return_no||h.data.id.slice(0,8);show('تم حفظ مرتجع المبيعات كمسودة ✓','okmsg')}catch(e){show(e.message||e,'badmsg')}}
+function show(s,c){$('msg').className='msg '+c;$('msg').textContent=s}
+init();
+</script>
+</body></html>
