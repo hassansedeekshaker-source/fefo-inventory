@@ -26,79 +26,51 @@
 <div class="actions"><button class="save" onclick="saveReturn()">💾 حفظ مسودة</button><button class="post" onclick="location.href='sale-return-post.html'">📤 الترحيل</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='sale-return-save.html'">📄 مرتجع جديد</button></div><div id="msg"></div>
 </div></div>
 <script>
-const API='https://fyqyodnboryzaejlhdlk.supabase.co/rest/v1';
-const KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
-let user=null,items=[],units=[],sites=[],customers=[],costRows=[];
-const $=id=>document.getElementById(id);
-const today=()=>new Date().toISOString().slice(0,10);
-function show(s,c){$('msg').className='msg '+(c||'');$('msg').textContent=s}
-function token(){
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(k&&k.startsWith('sb-fyqyodnboryzaejlhdlk-auth-token')){
-      try{const x=JSON.parse(localStorage.getItem(k));return x.access_token||x.currentSession?.access_token||''}catch(e){}
-    }
-  }
-  return '';
-}
-async function api(table,query=''){
- const t=token();
- const r=await fetch(API+'/'+table+(query?'?'+query:''),{headers:{apikey:KEY,Authorization:t?'Bearer '+t:'Bearer '+KEY}});
- if(!r.ok) throw new Error(table+' : '+r.status+' '+await r.text());
- return r.json();
-}
-function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+String(label(x)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))+'</option>').join('')}
+var API='https://fyqyodnboryzaejlhdlk.supabase.co/rest/v1';
+var KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+var user=null,items=[],units=[],sites=[],customers=[],costRows=[];
+function $(id){return document.getElementById(id)}
+function today(){return new Date().toISOString().slice(0,10)}
+function show(s,c){$('msg').className='msg '+(c||'');$('msg').innerHTML=s}
+function token(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('sb-fyqyodnboryzaejlhdlk-auth-token')===0){var x=JSON.parse(localStorage.getItem(k));return x.access_token||(x.currentSession&&x.currentSession.access_token)||''}}}catch(e){}return ''}
+function opt(a,label){var h='<option value="">-- اختر --</option>';for(var i=0;i<a.length;i++){h+='<option value="'+a[i].id+'">'+String(label(a[i])).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})+'</option>'}return h}
 function addLine(){
- const tr=document.createElement('tr');
- tr.innerHTML='<td><select class="item" onchange="itemChange(this)">'+opt(items,x=>x.name_ar)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calc()"></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calc()"></td><td><input class="stock readonly" readonly value="0.00"></td><td><input class="cost readonly" readonly value="0.00"></td><td class="linecost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0" oninput="calc()"></td><td class="discvalue">0.00</td><td class="value">0.00</td><td><input class="tax readonly" readonly value="0.00"></td><td class="taxvalue">0.00</td><td class="linetotal">0.00</td><td><button onclick="this.closest('tr').remove();calc()">🗑</button></td>';
+ var tr=document.createElement('tr');
+ tr.innerHTML='<td><select class="item" onchange="itemChange(this)">'+opt(items,function(x){return x.name_ar})+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calc()"></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calc()"></td><td><input class="stock readonly" readonly value="0.00"></td><td><input class="cost readonly" readonly value="0.00"></td><td class="linecost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0" oninput="calc()"></td><td class="discvalue">0.00</td><td class="value">0.00</td><td><input class="tax readonly" readonly value="0.00"></td><td class="taxvalue">0.00</td><td class="linetotal">0.00</td><td><button type="button" onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';
  $('lines').appendChild(tr);calc();
 }
-async function itemChange(el){
- const tr=el.closest('tr'),x=items.find(i=>String(i.id)===String(el.value));if(!x)return;
- tr.querySelector('.unit').textContent=(units.find(u=>String(u.id)===String(x.unit_id))||{}).name_ar||'-';
+function itemChange(el){
+ var tr=el.closest('tr'),x=null,i;
+ for(i=0;i<items.length;i++){if(String(items[i].id)===String(el.value)){x=items[i];break}}
+ if(!x)return;
+ var u='-',r=null;
+ for(i=0;i<units.length;i++){if(String(units[i].id)===String(x.unit_id)){u=units[i].name_ar;break}}
+ tr.querySelector('.unit').textContent=u;
  tr.querySelector('.price').value=Number(x.sale_price||0).toFixed(2);
  tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);
  tr.querySelector('.cost').value=Number(x.purchase_price||0).toFixed(2);
- const r=costRows.find(z=>String(z.item_id)===String(x.id)&&String(z.site_id)===String($('site').value));
+ for(i=0;i<costRows.length;i++){if(String(costRows[i].item_id)===String(x.id)&&String(costRows[i].site_id)===String($('site').value)){r=costRows[i];break}}
  tr.querySelector('.stock').value=r?Number(r.qty_on_hand||0).toFixed(3):'0.00';
  if(r)tr.querySelector('.cost').value=Number(r.weighted_avg_cost||x.purchase_price||0).toFixed(2);
  calc();
 }
 function calc(){
- let c=0,d=0,v=0,t=0,g=0;
- document.querySelectorAll('#lines tr').forEach(tr=>{
-  const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,dr=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0;
-  const gross=q*p,dd=gross*dr/100,net=gross-dd,tx=net*rate/100;
-  c+=q*co;d+=dd;v+=net;t+=tx;g+=net+tx;
-  tr.querySelector('.linecost').textContent=(q*co).toFixed(2);tr.querySelector('.discvalue').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=net.toFixed(2);tr.querySelector('.taxvalue').textContent=tx.toFixed(2);tr.querySelector('.linetotal').textContent=(net+tx).toFixed(2);
- });
+ var c=0,d=0,v=0,t=0,g=0,trs=document.querySelectorAll('#lines tr'),i,tr,q,p,dr,rate,co,gross,dd,net,tx;
+ for(i=0;i<trs.length;i++){tr=trs[i];q=+tr.querySelector('.qty').value||0;p=+tr.querySelector('.price').value||0;dr=+tr.querySelector('.disc').value||0;rate=+tr.querySelector('.tax').value||0;co=+tr.querySelector('.cost').value||0;gross=q*p;dd=gross*dr/100;net=gross-dd;tx=net*rate/100;c+=q*co;d+=dd;v+=net;t+=tx;g+=net+tx;tr.querySelector('.linecost').textContent=(q*co).toFixed(2);tr.querySelector('.discvalue').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=net.toFixed(2);tr.querySelector('.taxvalue').textContent=tx.toFixed(2);tr.querySelector('.linetotal').textContent=(net+tx).toFixed(2)}
  $('costTotal').textContent=c.toFixed(2);$('discountTotal').textContent=d.toFixed(2);$('valueTotal').textContent=v.toFixed(2);$('taxTotal').textContent=t.toFixed(2);$('grandTotal').textContent=g.toFixed(2);
 }
-async function init(){
+function getData(table,query,cb){
+ var x=new XMLHttpRequest();x.open('GET',API+'/'+table+'?'+query,true);x.setRequestHeader('apikey',KEY);var t=token();x.setRequestHeader('Authorization',t?'Bearer '+t:'Bearer '+KEY);x.onreadystatechange=function(){if(x.readyState!==4)return;if(x.status>=200&&x.status<300){try{cb(null,JSON.parse(x.responseText))}catch(e){cb(e,null)}}else cb(new Error(table+' '+x.status+' '+x.responseText),null)};x.send();
+}
+function init(){
  $('date').value=today();addLine();
- try{
-  const a=await api('inv_items','select=id,name_ar,unit_id,purchase_price,sale_price,tax_rate&active=eq.true&order=name_ar');
-  const b=await api('inv_units','select=id,name_ar&order=name_ar');
-  const s=await api('inv_sites','select=id,name_ar&active=eq.true&order=name_ar');
-  const d=await api('customers','select=id,name,withholding_enabled,withholding_rate&order=name');
-  const e=await api('inventory_costs','select=item_id,site_id,qty_on_hand,weighted_avg_cost');
-  items=a||[];units=b||[];sites=s||[];customers=d||[];costRows=e||[];
-  $('site').innerHTML=opt(sites,x=>x.name_ar);$('customer').innerHTML=opt(customers,x=>x.name);
-  $('site').addEventListener('change',()=>document.querySelectorAll('.item').forEach(itemChange));
-  show('تم تحميل البيانات بنجاح ✓','okmsg');
- }catch(e){show('الشاشة تعمل لكن تعذر تحميل البيانات: '+e.message,'badmsg')}
+ getData('inv_items','select=id,name_ar,unit_id,purchase_price,sale_price,tax_rate&active=eq.true&order=name_ar',function(e,a){if(e)return show('خطأ الأصناف: '+e.message,'badmsg');items=a||[];$('lines').innerHTML='';addLine();
+ getData('inv_units','select=id,name_ar&order=name_ar',function(e,b){if(!e)units=b||[];
+ getData('inv_sites','select=id,name_ar&active=eq.true&order=name_ar',function(e,s){if(!e){sites=s||[];$('site').innerHTML=opt(sites,function(x){return x.name_ar})}
+ getData('customers','select=id,name,withholding_enabled,withholding_rate&order=name',function(e,d){if(!e){customers=d||[];$('customer').innerHTML=opt(customers,function(x){return x.name})}
+ getData('inventory_costs','select=item_id,site_id,qty_on_hand,weighted_avg_cost',function(e,z){if(!e)costRows=z||[];show(e?'تم فتح الشاشة لكن تعذر تحميل بعض البيانات':'تم تحميل الشاشة والبيانات ✓',e?'badmsg':'okmsg')})
+ })})})});
 }
-async function saveReturn(){
- try{
-  const customer=$('customer').value,site=$('site').value;if(!customer||!site)return show('اختار العميل والمخزن','badmsg');
-  const rows=[...document.querySelectorAll('#lines tr')];if(!rows.length)return show('أضف صنفًا واحدًا على الأقل','badmsg');
-  const rs=rows.map(tr=>{const x=items.find(i=>String(i.id)===String(tr.querySelector('.item').value));const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,g=q*p,dd=g*d/100,n=g-dd;return{item_id:x.id,qty:q,unit_price:p,unit_cost:co,discount_rate:d,discount_amount:dd,tax_rate:rate,tax_amount:n*rate/100}}); 
-  const subtotal=rs.reduce((s,x)=>s+x.qty*x.unit_price-x.discount_amount,0),discount_total=rs.reduce((s,x)=>s+x.discount_amount,0),tax=rs.reduce((s,x)=>s+x.tax_amount,0),total=subtotal+tax,cust=customers.find(x=>String(x.id)===String(customer)),wr=cust?.withholding_enabled?Number(cust.withholding_rate||0):0,withholding=total*wr/100;
-  const t=token();const h=await fetch(API+'/sales_returns',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({customer_id:+customer,site_id:site,return_date:$('date').value,subtotal,discount_total,tax,total,withholding_tax:withholding,status:'draft',created_by:user?.id||null})});if(!h.ok)throw new Error(await h.text());const hd=(await h.json())[0];
-  const l=await fetch(API+'/sales_return_lines',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(rs.map(x=>({...x,return_id:hd.id})))});if(!l.ok)throw new Error(await l.text());
-  $('docno').value=hd.return_no||hd.id.slice(0,8);show('تم حفظ مرتجع المبيعات كمسودة ✓','okmsg');
- }catch(e){show(e.message||e,'badmsg')}
-}
-init();
+window.addEventListener('load',init);
 </script>
 </body></html>
