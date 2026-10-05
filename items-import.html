@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>استيراد الأصناف من Excel</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#172033;font-family:Tahoma,Arial,sans-serif}.wrap{max-width:1500px;margin:20px auto;padding:0 15px}.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:15px}.top,.actions,.stats{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:8px;padding:10px 15px;cursor:pointer;text-decoration:none;background:#e8edf5;color:#172033}.green{background:#087f4f;color:#fff}.blue{background:#1668d9;color:#fff}.red{background:#b42318;color:#fff}.title{display:flex;justify-content:space-between;align-items:center}.title h1{margin:0}.hint{color:#667085;font-size:13px;line-height:1.8}.upload{border:2px dashed #b8c3d2;border-radius:10px;padding:28px;text-align:center}.upload input{display:none}.pick{display:inline-block;background:#18243a;color:#fff;padding:12px 22px;border-radius:8px;cursor:pointer}.stats{margin-top:15px}.stat{min-width:170px;border:1px solid #dce3ed;border-radius:9px;padding:12px;text-align:center}.stat b{display:block;font-size:22px}.tablewrap{overflow:auto;max-height:500px;margin-top:15px}table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:9px;border-bottom:1px solid #e5e9f0;text-align:right}th{background:#eef2f7;position:sticky;top:0}td.center{text-align:center}.ok{color:#087f4f}.bad{color:#b42318}.warn{color:#9a6700}.msg{margin-top:12px;padding:11px;border-radius:8px;background:#eef4ff}.check{font-weight:700}.disabled{opacity:.5;pointer-events:none}
+</style></head>
+<body>
+<div class="wrap">
+<div class="top"><a class="btn" href="accounting.html">🏠 الرئيسية</a><a class="btn" href="items.html">📦 الأصناف</a><a class="btn green" href="items-import.html">📥 استيراد الأصناف</a></div>
+<div class="card"><div class="title"><h1>📥 استيراد الأصناف من Excel</h1><span id="status">جاهز</span></div>
+<p class="hint">ارفع ملف قائمة الأصناف كما هو. الأعمدة المطلوبة: <b>كود الصنف</b>، <b>اسم الصنف</b>، <b>الوحدة</b>، <b>الضريبة</b>.<br>لن يتم تعديل قاعدة البيانات بمجرد اختيار الملف. سيتم أولًا فحص الملف وعرض النتيجة، ثم أنت تضغط «استيراد إلى النظام».</p></div>
+<div class="card"><div class="upload"><label class="pick" for="file">📂 اختيار ملف Excel</label><input id="file" type="file" accept=".xlsx,.xls,.csv"><div id="filename" class="hint" style="margin-top:10px">لم يتم اختيار ملف</div></div>
+<div class="stats"><div class="stat">إجمالي الصفوف<b id="all">0</b></div><div class="stat">جديدة<b id="new">0</b></div><div class="stat">موجودة للتحديث<b id="upd">0</b></div><div class="stat">تكرار داخل الملف<b id="dup">0</b></div><div class="stat">أخطاء<b id="err">0</b></div></div></div>
+<div class="card"><div class="title"><h2>معاينة قبل الاستيراد</h2><span id="previewText">لا يوجد ملف</span></div><div class="tablewrap"><table><thead><tr><th>#</th><th>الكود</th><th>اسم الصنف</th><th>الوحدة</th><th>الضريبة</th><th>حالة الصف</th></tr></thead><tbody id="body"><tr><td colspan="6" class="center">اختر ملف Excel للبدء.</td></tr></tbody></table></div><div id="msg"></div><div class="actions" style="margin-top:15px"><button id="importBtn" class="btn green disabled" type="button">⬆️ استيراد إلى النظام</button><button id="clearBtn" class="btn" type="button">مسح المعاينة</button></div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(URL,KEY);
+const $=id=>document.getElementById(id);let rows=[],existing=new Map(),units=new Map(),ready=false,user=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function msg(t,bad=false){$('msg').className='msg '+(bad?'bad':'ok');$('msg').textContent=t}
+function norm(v){return String(v??'').trim()}
+function numTax(v){let n=Number(v);if(!Number.isFinite(n))return null;if(n>1)n=n/100;return n}
+function unitName(v){let s=norm(v).toUpperCase();return ({KG:'كيلو',EA:'عدد',PCS:'عدد',UNIT:'عدد',كجم:'كيلو',كيلو:'كيلو',عدد:'عدد'}[s]||norm(v))}
+async function start(){
+ const ss=await sb.auth.getSession();if(!ss.data.session){location.href='accounting.html';return}user=ss.data.session.user;
+ const [I,U]=await Promise.all([sb.from('inv_items').select('id,sku,name_ar,unit_id,tax_rate,unit_name').eq('active',true),sb.from('inv_units').select('id,code,name_ar').eq('active',true)]);
+ if(I.error||U.error)throw(I.error||U.error);(I.data||[]).forEach(x=>existing.set(x.sku,x));(U.data||[]).forEach(x=>units.set(x.name_ar.toUpperCase(),x));
+}
+function reset(){rows=[];ready=false;$('file').value='';$('filename').textContent='لم يتم اختيار ملف';$('all').textContent=$('new').textContent=$('upd').textContent=$('dup').textContent=$('err').textContent='0';$('body').innerHTML='<tr><td colspan="6" class="center">اختر ملف Excel للبدء.</td></tr>';$('previewText').textContent='لا يوجد ملف';$('importBtn').classList.add('disabled');$('msg').textContent=''}
+$('clearBtn').onclick=reset;
+$('file').onchange=async e=>{
+ try{
+  const f=e.target.files[0];if(!f)return; $('filename').textContent=f.name+' — جارٍ الفحص...';
+  const data=await f.arrayBuffer(),wb=XLSX.read(data,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  if(arr.length<2)throw Error('الملف لا يحتوي على بيانات.');
+  const headers=arr[0].map(norm),findH=(names)=>{for(const n of names){const i=headers.findIndex(h=>h===n);if(i>=0)return i}return -1};
+  const ci=findH(['كود الصنف','كود','SKU','sku']),ni=findH(['اسم الصنف','الصنف','اسم']),ui=findH(['الوحدة','وحدة']),ti=findH(['الضريبة','نسبة الضريبة','Tax','tax_rate']);
+  if(ci<0||ni<0||ui<0||ti<0)throw Error('الأعمدة المطلوبة غير مكتملة. المطلوب: كود الصنف، اسم الصنف، الوحدة، الضريبة.');
+  const seen=new Set(),out=[];
+  for(let r=1;r<arr.length;r++){
+   const a=arr[r],sku=norm(a[ci]),name=norm(a[ni]),rawUnit=norm(a[ui]),tax=numTax(a[ti]);
+   if(!sku&&!name&&!rawUnit&&!norm(a[ti]))continue;
+   let status='جديد',cls='ok',err='';
+   if(!sku)err='الكود ناقص';else if(!name)err='اسم الصنف ناقص';else if(!rawUnit)err='الوحدة ناقصة';else if(tax===null||tax<0||tax>1)err='الضريبة غير صحيحة';
+   const dup=sku&&seen.has(sku);if(dup&&!err){err='تكرار داخل الملف';status='تكرار';cls='warn'}
+   if(sku)seen.add(sku);if(!err&&existing.has(sku)){status='سيتم تحديثه';cls='';}
+   if(err)cls='bad';out.push({row:r+1,sku,name,unit:unitName(rawUnit),tax,status,err,cls});
+  }
+  rows=out;$('all').textContent=rows.length;$('new').textContent=rows.filter(x=>!x.err&&!existing.has(x.sku)&&x.status==='جديد').length;$('upd').textContent=rows.filter(x=>!x.err&&existing.has(x.sku)&&x.status!=='تكرار').length;$('dup').textContent=rows.filter(x=>x.status==='تكرار').length;$('err').textContent=rows.filter(x=>x.err).length;
+  $('previewText').textContent='تم فحص '+rows.length+' صف';$('body').innerHTML=rows.slice(0,500).map(x=>'<tr><td>'+x.row+'</td><td>'+esc(x.sku)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.unit)+'</td><td>'+((x.tax??0)*100).toFixed(2)+'%</td><td class="'+x.cls+'">'+esc(x.err||x.status)+'</td></tr>').join('')||'<tr><td colspan="6">لا توجد بيانات.</td></tr>';
+  ready=rows.length>0&&rows.every(x=>!x.err&&x.status!=='تكرار');$('importBtn').classList.toggle('disabled',!ready);msg(ready?'الفحص ناجح. لم يتم إدخال أي بيانات بعد. يمكنك الآن الاستيراد.':'يوجد صفوف تحتاج مراجعة. لن يتم السماح بالاستيراد حتى تصبح كل الصفوف صحيحة.',!ready);
+ }catch(e){reset();msg(e.message||String(e),true)}
+};
+$('importBtn').onclick=async()=>{
+ if(!ready)return;
+ if(!confirm('سيتم إضافة الأصناف الجديدة وتحديث الأصناف الموجودة بنفس الكود. هل تريد المتابعة؟'))return;
+ try{
+  $('importBtn').classList.add('disabled');$('status').textContent='جارٍ الاستيراد...';
+  let added=0,updated=0;
+  for(const x of rows){
+   let u=units.get(x.unit.toUpperCase());
+   if(!u){const ur=await sb.from('inv_units').insert({code:'U-'+Date.now().toString(36).toUpperCase(),name_ar:x.unit,active:true}).select('id,code,name_ar').single();if(ur.error)throw ur.error;u=ur.data;units.set(x.unit.toUpperCase(),u)}
+   const payload={sku:x.sku,name_ar:x.name,unit_id:u.id,unit_name:x.unit,tax_rate:x.tax,purchase_price:existing.get(x.sku)?.purchase_price||0,sale_price:existing.get(x.sku)?.sale_price||0,active:true};
+   if(existing.has(x.sku)){const r=await sb.from('inv_items').update(payload).eq('sku',x.sku);if(r.error)throw r.error;updated++}else{const r=await sb.from('inv_items').insert(payload);if(r.error)throw r.error;added++}
+  }
+  $('status').textContent='تم الاستيراد ✓';msg('تم الاستيراد بنجاح: '+added+' صنف جديد، '+updated+' صنف تم تحديثه.');$('importBtn').classList.add('disabled');
+  await start();
+ }catch(e){$('status').textContent='خطأ';msg(e.message||String(e),true);$('importBtn').classList.remove('disabled')}
+};
+start().catch(e=>msg(e.message||String(e),true));
+</script>
+</body></html>
