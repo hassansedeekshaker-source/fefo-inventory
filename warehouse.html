@@ -1,1 +1,145 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>المخزن | نظام إدارة المخزون والمحاسبة</title><style>*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}header{background:#18243a;color:#fff;padding:15px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}main{max-width:1400px;margin:18px auto;padding:0 14px}.topbar{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 2px 12px #0001;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;font-size:14px;background:#e9edf5;color:#172033}.primary{background:#18243a;color:#fff}.title{font-size:20px;font-weight:bold}.frame{background:#fff;border-radius:14px;box-shadow:0 2px 12px #0001;overflow:hidden;min-height:650px}iframe{width:100%;height:760px;border:0;display:block;background:#f4f6fa}.notice{padding:30px;text-align:center;color:#667085}</style></head><body><header><b>📦 نظام إدارة المخزون والمحاسبة</b><span>قسم المخزن</span></header><main><div class="topbar"><button class="primary" onclick="goBack()">↩ رجوع للشاشة السابقة</button><span class="title">🏬 شاشة المخزن</span></div><div class="frame"><div id="loading" class="notice">جاري تحميل شاشة المخزن...</div><iframe id="warehouseFrame" src="index.html?module=warehouse" title="شاشة المخزن"></iframe></div></main><script>function goBack(){if(history.length>1)history.back();else location.href='accounting.html'}const frame=document.getElementById('warehouseFrame');frame.addEventListener('load',()=>{document.getElementById('loading').style.display='none';try{const d=frame.contentDocument,s=d.createElement('style');s.textContent='header{display:none!important}#moduleBar{display:none!important}#app>.card:first-of-type{display:none!important}#app>.grid{display:none!important}.nav{display:none!important}#dash,#purchases,#sales,#items,#opening,#lots,#moves,#accounts,#journal,#reports,#sites,#parties{display:none!important}#warehouse{display:block!important;margin-top:18px}#warehouse h2{margin-top:0}main#app{margin-top:0!important}';d.head.appendChild(s)}catch(e){console.error(e)}});</script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المخزن | نظام إدارة المخزون والمحاسبة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#18243a;color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+main{max-width:1450px;margin:18px auto;padding:0 14px}.bar,.panel{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 2px 12px #0001;margin-bottom:14px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.title{font-size:21px;font-weight:bold}
+button,a{border:0;border-radius:9px;padding:10px 15px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block}
+.primary{background:#18243a;color:#fff}.light{background:#eef2f7;color:#172033}
+.controls{display:grid;grid-template-columns:220px 1fr 160px;gap:10px;align-items:end}
+label{font-size:12px;color:#667085;display:block;margin-bottom:5px}
+select,input{width:100%;padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.stat{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px #0001}.stat b{display:block;font-size:22px;margin-top:5px}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:950px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right;white-space:nowrap}th{background:#eef2f7;position:sticky;top:0;z-index:1}
+.zero{color:#667085}.positive{font-weight:bold}.negative{font-weight:bold}.muted{color:#667085}.status{font-size:12px}.ok{color:#087443}.warn{color:#a15c00}
+.empty{text-align:center;padding:35px;color:#667085}.small{font-size:12px;color:#667085}
+@media(max-width:850px){.controls{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:500px){.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><b>📦 نظام إدارة المخزون والمحاسبة</b><span>قسم المخزن</span></header>
+<main>
+<div class="bar">
+  <button class="primary" onclick="goBack()">↩ رجوع</button>
+  <div class="title">🏬 مخزون الأصناف</div>
+  <a class="light" href="items.html">📦 الأصناف</a>
+</div>
+
+<div class="panel">
+  <div class="controls">
+    <div><label>المخزن / الموقع</label><select id="site"></select></div>
+    <div><label>بحث بالكود أو اسم الصنف</label><input id="search" placeholder="اكتب كود الصنف أو الاسم..."></div>
+    <div><label>عرض</label><select id="filter"><option value="all">كل الأصناف</option><option value="stock">ذات رصيد فقط</option><option value="zero">رصيد صفر</option><option value="negative">رصيد سالب</option></select></div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="muted">عدد الأصناف</span><b id="itemsCount">0</b></div>
+  <div class="stat"><span class="muted">أصناف لها رصيد</span><b id="stockCount">0</b></div>
+  <div class="stat"><span class="muted">إجمالي الكميات</span><b id="qtyTotal">0</b></div>
+  <div class="stat"><span class="muted">قيمة المخزون</span><b id="valueTotal">0.00</b></div>
+</div>
+
+<div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <div><b id="siteTitle">المخزن</b><div class="small">الأصناف هنا هي نفس الأصناف الموجودة في دليل الأصناف — لا يتم إنشاء أصناف مكررة للمخزن.</div></div>
+    <button class="light" onclick="loadAll()">↻ تحديث</button>
+  </div>
+  <div id="msg" class="small"></div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>الكود</th><th>الصنف</th><th>الوحدة</th><th>الرصيد</th><th>محجوز</th><th>المتاح</th><th>متوسط التكلفة</th><th>قيمة المخزون</th><th>الحد الأدنى</th><th>الحالة</th>
+    </tr></thead><tbody id="body"><tr><td colspan="10" class="empty">جاري التحميل...</td></tr></tbody></table>
+  </div>
+</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+const $=id=>document.getElementById(id);
+let sites=[],items=[],lots=[],moves=[];
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function num(v){return Number(v||0)}
+function fmt(v){return num(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function goBack(){if(history.length>1)history.back();else location.href='accounting.html'}
+
+async function loadAll(){
+  $('msg').textContent='جاري تحميل المخزون...';
+  const [sr,ir,lr,mr]=await Promise.all([
+    sb.from('inv_sites').select('id,code,name_ar,active').eq('active',true).order('name_ar'),
+    sb.from('inv_items').select('id,sku,name_ar,unit_name,min_stock,active,purchase_price').order('sku'),
+    sb.from('inv_lots').select('item_id,site_id,qty_on_hand,qty_reserved,unit_cost').limit(10000),
+    sb.from('inv_movements').select('item_id,site_id,movement_type,qty,unit_cost').limit(10000)
+  ]);
+  for(const r of [sr,ir,lr,mr]) if(r.error) throw r.error;
+  sites=sr.data||[];items=ir.data||[];lots=lr.data||[];moves=mr.data||[];
+  const current=$('site').value;
+  $('site').innerHTML=sites.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name_ar)+' — '+esc(s.code)+'</option>').join('');
+  if(current && sites.some(s=>s.id===current)) $('site').value=current;
+  $('siteTitle').textContent=(sites.find(s=>s.id===$('site').value)||{}).name_ar||'المخزن';
+  render();
+  $('msg').textContent='تم التحميل بنجاح';
+}
+
+function movementFallback(itemId,siteId){
+  let q=0,v=0;
+  for(const m of moves){
+    if(m.item_id!==itemId||m.site_id!==siteId) continue;
+    const n=num(m.qty),cost=num(m.unit_cost);
+    if(m.movement_type==='receipt'||m.movement_type==='sale_return'||m.movement_type==='opening') {q+=n;v+=n*cost}
+    else if(m.movement_type==='issue'||m.movement_type==='supplier_return') {q-=n;v-=n*cost}
+  }
+  return {q,v};
+}
+
+function render(){
+  const siteId=$('site').value, term=$('search').value.trim().toLowerCase(), filter=$('filter').value;
+  $('siteTitle').textContent=(sites.find(s=>s.id===siteId)||{}).name_ar||'المخزن';
+  let rows=[],qtyTotal=0,valueTotal=0,stockCount=0;
+  for(const it of items){
+    if(!it.active) continue;
+    const ls=lots.filter(x=>x.item_id===it.id&&x.site_id===siteId);
+    let qty=ls.reduce((a,x)=>a+num(x.qty_on_hand),0);
+    let reserved=ls.reduce((a,x)=>a+num(x.qty_reserved),0);
+    let value=ls.reduce((a,x)=>a+num(x.qty_on_hand)*num(x.unit_cost),0);
+    let cost=qty?value/qty:num(it.purchase_price);
+    if(!ls.length){
+      const f=movementFallback(it.id,siteId);
+      qty=f.q; value=f.v; cost=qty?value/qty:num(it.purchase_price);
+    }
+    const available=qty-reserved;
+    const match=!term || String(it.sku||'').toLowerCase().includes(term) || String(it.name_ar||'').toLowerCase().includes(term);
+    if(!match) continue;
+    if(filter==='stock' && qty<=0) continue;
+    if(filter==='zero' && qty!==0) continue;
+    if(filter==='negative' && qty>=0) continue;
+    const min=num(it.min_stock);
+    let status='بدون رصيد', cls='muted';
+    if(qty<0){status='رصيد سالب';cls='negative'}
+    else if(qty>0 && qty<min){status='أقل من الحد الأدنى';cls='warn'}
+    else if(qty>0){status='متوفر';cls='ok'}
+    rows.push({it,qty,reserved,available,cost,value,min,status,cls});
+    qtyTotal+=qty;valueTotal+=value;if(qty>0)stockCount++;
+  }
+  $('itemsCount').textContent=rows.length.toLocaleString('en-US');
+  $('stockCount').textContent=stockCount.toLocaleString('en-US');
+  $('qtyTotal').textContent=fmt(qtyTotal);
+  $('valueTotal').textContent=fmt(valueTotal);
+  $('body').innerHTML=rows.length?rows.map(r=>'<tr>'+
+    '<td>'+esc(r.it.sku)+'</td><td>'+esc(r.it.name_ar)+'</td><td>'+esc(r.it.unit_name||'')+'</td>'+
+    '<td class="'+(r.qty===0?'zero':'positive')+'">'+fmt(r.qty)+'</td><td>'+fmt(r.reserved)+'</td><td>'+fmt(r.available)+'</td>'+
+    '<td>'+fmt(r.cost)+'</td><td>'+fmt(r.value)+'</td><td>'+fmt(r.min)+'</td>'+
+    '<td class="status '+r.cls+'">'+r.status+'</td></tr>').join(''):'<tr><td colspan="10" class="empty">لا توجد أصناف مطابقة للبحث.</td></tr>';
+}
+
+$('site').addEventListener('change',render);$('search').addEventListener('input',render);$('filter').addEventListener('change',render);
+loadAll().catch(e=>{$('msg').textContent='تعذر تحميل المخزون: '+(e.message||e);$('body').innerHTML='<tr><td colspan="10" class="empty">حدث خطأ أثناء تحميل البيانات.</td></tr>'});
+</script>
+</body></html>
