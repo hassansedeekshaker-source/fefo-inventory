@@ -16,7 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(URL,KEY);
+const SUPA_URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(SUPA_URL,KEY);
 const $=id=>document.getElementById(id);let rows=[],existing=new Map(),units=new Map(),ready=false,user=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function msg(t,bad=false){$('msg').className='msg '+(bad?'bad':'ok');$('msg').textContent=t}
