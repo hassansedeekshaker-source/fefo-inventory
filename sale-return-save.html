@@ -26,69 +26,79 @@
 <div class="actions"><button class="save" onclick="saveReturn()">💾 حفظ مسودة</button><button class="post" onclick="location.href='sale-return-post.html'">📤 الترحيل</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='sale-return-save.html'">📄 مرتجع جديد</button></div><div id="msg"></div>
 </div></div>
 <script>
-window.addEventListener('error',function(e){var m=document.getElementById('msg');if(m){m.className='msg badmsg';m.textContent='خطأ تشغيل الشاشة: '+(e.message||'تعذر تشغيل البرنامج');}});
-const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
-let sb=null;
-if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(URL,KEY); else {
-  window.addEventListener('load',function(){var m=document.getElementById('msg');if(m){m.className='msg badmsg';m.textContent='تعذر تحميل مكتبة التشغيل. أعد تحميل الصفحة مرة واحدة.';}});
+const API='https://fyqyodnboryzaejlhdlk.supabase.co/rest/v1';
+const KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+let user=null,items=[],units=[],sites=[],customers=[],costRows=[];
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toISOString().slice(0,10);
+function show(s,c){$('msg').className='msg '+(c||'');$('msg').textContent=s}
+function token(){
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('sb-fyqyodnboryzaejlhdlk-auth-token')){
+      try{const x=JSON.parse(localStorage.getItem(k));return x.access_token||x.currentSession?.access_token||''}catch(e){}
+    }
+  }
+  return '';
 }
-let user,items=[],units=[],sites=[],customers=[];
-const $=id=>document.getElementById(id), today=()=>new Date().toISOString().slice(0,10);
+async function api(table,query=''){
+ const t=token();
+ const r=await fetch(API+'/'+table+(query?'?'+query:''),{headers:{apikey:KEY,Authorization:t?'Bearer '+t:'Bearer '+KEY}});
+ if(!r.ok) throw new Error(table+' : '+r.status+' '+await r.text());
+ return r.json();
+}
 function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+String(label(x)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))+'</option>').join('')}
-async function init(){
- $('date').value=today();
- if(!sb){show('تعذر تشغيل الاتصال بالنظام','badmsg');return}
- $('msg').textContent='جاري تحميل بيانات المرتجع...';
- $('msg').className='msg';
- addLine();
- try{
-  const s=await sb.auth.getSession();
-  if(!s.data.session){location.href='accounting.html';return}
-  user=s.data.session.user;
-
-  const results=await Promise.allSettled([
-   sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,sale_price,tax_rate').eq('active',true).order('name_ar'),
-   sb.from('inv_units').select('id,name_ar').order('name_ar'),
-   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
-   sb.from('customers').select('id,name,withholding_enabled,withholding_rate').order('name'),
-   sb.from('inventory_costs').select('item_id,site_id,qty_on_hand,weighted_avg_cost')
-  ]);
-
-  const a=results[0].status==='fulfilled'?results[0].value:null;
-  const b=results[1].status==='fulfilled'?results[1].value:null;
-  const c=results[2].status==='fulfilled'?results[2].value:null;
-  const d=results[3].status==='fulfilled'?results[3].value:null;
-  const e=results[4].status==='fulfilled'?results[4].value:null;
-
-  if(a?.data) items=a.data;
-  if(b?.data) units=b.data;
-  if(c?.data) sites=c.data;
-  if(d?.data) customers=d.data;
-  window.costRows=e?.data||[];
-
-  $('site').innerHTML=opt(sites,x=>x.name_ar);
-  $('customer').innerHTML=opt(customers,x=>x.name);
-
-  const p=new URLSearchParams(location.search);
-  if(p.get('customer_id')) $('customer').value=p.get('customer_id');
-  if(p.get('site_id')) $('site').value=p.get('site_id');
-
-  const errs=results.filter(r=>r.status==='fulfilled' && r.value?.error).map(r=>r.value.error.message);
-  if(errs.length) show('تم فتح الشاشة، لكن يوجد خطأ في تحميل بعض البيانات: '+errs.join(' | '),'badmsg');
-  else if(!items.length) show('الشاشة تعمل، لكن لا توجد أصناف مُفعّلة حاليًا.','badmsg');
- }catch(e){
-  show('تعذر تحميل البيانات: '+(e.message||e),'badmsg');
- }
+function addLine(){
+ const tr=document.createElement('tr');
+ tr.innerHTML='<td><select class="item" onchange="itemChange(this)">'+opt(items,x=>x.name_ar)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calc()"></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calc()"></td><td><input class="stock readonly" readonly value="0.00"></td><td><input class="cost readonly" readonly value="0.00"></td><td class="linecost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0" oninput="calc()"></td><td class="discvalue">0.00</td><td class="value">0.00</td><td><input class="tax readonly" readonly value="0.00"></td><td class="taxvalue">0.00</td><td class="linetotal">0.00</td><td><button onclick="this.closest('tr').remove();calc()">🗑</button></td>';
+ $('lines').appendChild(tr);calc();
 }
-function addLine(){const tr=document.createElement('tr');tr.innerHTML='<td><select class="item" onchange="itemChange(this)">'+opt(items,x=>x.name_ar)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calc()"></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calc()"></td><td><input class="stock readonly" readonly value="0.00"></td><td><input class="cost readonly" readonly value="0.00"></td><td class="linecost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0" oninput="calc()"></td><td class="discvalue">0.00</td><td class="value">0.00</td><td><input class="tax readonly" readonly value="0.00"></td><td class="taxvalue">0.00</td><td class="linetotal">0.00</td><td><button onclick="this.closest('tr').remove();calc()">🗑</button></td>';$('lines').appendChild(tr);itemChange(tr.querySelector('.item'))}
-async function itemChange(el){const tr=el.closest('tr'),x=items.find(i=>String(i.id)===String(el.value));if(!x)return;tr.querySelector('.unit').textContent=(units.find(u=>String(u.id)===String(x.unit_id))||{}).name_ar||'-';tr.querySelector('.price').value=Number(x.sale_price||0).toFixed(2);tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);tr.querySelector('.cost').value=Number(x.purchase_price||0).toFixed(2);tr.querySelector('.stock').value='0.00';const site=$('site').value;const r=(window.costRows||[]).find(z=>String(z.item_id)===String(x.id)&&String(z.site_id)===String(site));if(r){tr.querySelector('.stock').value=Number(r.qty_on_hand||0).toFixed(3);tr.querySelector('.cost').value=Number(r.weighted_avg_cost||x.purchase_price||0).toFixed(2)}calc()}
-document.addEventListener('DOMContentLoaded',()=>{ 
+async function itemChange(el){
+ const tr=el.closest('tr'),x=items.find(i=>String(i.id)===String(el.value));if(!x)return;
+ tr.querySelector('.unit').textContent=(units.find(u=>String(u.id)===String(x.unit_id))||{}).name_ar||'-';
+ tr.querySelector('.price').value=Number(x.sale_price||0).toFixed(2);
+ tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);
+ tr.querySelector('.cost').value=Number(x.purchase_price||0).toFixed(2);
+ const r=costRows.find(z=>String(z.item_id)===String(x.id)&&String(z.site_id)===String($('site').value));
+ tr.querySelector('.stock').value=r?Number(r.qty_on_hand||0).toFixed(3):'0.00';
+ if(r)tr.querySelector('.cost').value=Number(r.weighted_avg_cost||x.purchase_price||0).toFixed(2);
+ calc();
+}
+function calc(){
+ let c=0,d=0,v=0,t=0,g=0;
+ document.querySelectorAll('#lines tr').forEach(tr=>{
+  const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,dr=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0;
+  const gross=q*p,dd=gross*dr/100,net=gross-dd,tx=net*rate/100;
+  c+=q*co;d+=dd;v+=net;t+=tx;g+=net+tx;
+  tr.querySelector('.linecost').textContent=(q*co).toFixed(2);tr.querySelector('.discvalue').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=net.toFixed(2);tr.querySelector('.taxvalue').textContent=tx.toFixed(2);tr.querySelector('.linetotal').textContent=(net+tx).toFixed(2);
+ });
+ $('costTotal').textContent=c.toFixed(2);$('discountTotal').textContent=d.toFixed(2);$('valueTotal').textContent=v.toFixed(2);$('taxTotal').textContent=t.toFixed(2);$('grandTotal').textContent=g.toFixed(2);
+}
+async function init(){
+ $('date').value=today();addLine();
+ try{
+  const a=await api('inv_items','select=id,name_ar,unit_id,purchase_price,sale_price,tax_rate&active=eq.true&order=name_ar');
+  const b=await api('inv_units','select=id,name_ar&order=name_ar');
+  const s=await api('inv_sites','select=id,name_ar&active=eq.true&order=name_ar');
+  const d=await api('customers','select=id,name,withholding_enabled,withholding_rate&order=name');
+  const e=await api('inventory_costs','select=item_id,site_id,qty_on_hand,weighted_avg_cost');
+  items=a||[];units=b||[];sites=s||[];customers=d||[];costRows=e||[];
+  $('site').innerHTML=opt(sites,x=>x.name_ar);$('customer').innerHTML=opt(customers,x=>x.name);
   $('site').addEventListener('change',()=>document.querySelectorAll('.item').forEach(itemChange));
-  $('customer').addEventListener('change',calc);
-});
-function calc(){let c=0,d=0,v=0,t=0,g=0;document.querySelectorAll('#lines tr').forEach(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,dr=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,gross=q*p,dd=gross*dr/100,net=gross-dd,tx=net*rate/100;c+=q*co;d+=dd;v+=net;t+=tx;g+=net+tx;tr.querySelector('.linecost').textContent=(q*co).toFixed(2);tr.querySelector('.discvalue').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=net.toFixed(2);tr.querySelector('.taxvalue').textContent=tx.toFixed(2);tr.querySelector('.linetotal').textContent=(net+tx).toFixed(2)});$('costTotal').textContent=c.toFixed(2);$('discountTotal').textContent=d.toFixed(2);$('valueTotal').textContent=v.toFixed(2);$('taxTotal').textContent=t.toFixed(2);$('grandTotal').textContent=g.toFixed(2)}
-async function saveReturn(){try{const customer=$('customer').value,site=$('site').value;if(!customer||!site)return show('اختار العميل والمخزن','badmsg');const rows=[...document.querySelectorAll('#lines tr')];if(!rows.length)return show('أضف صنفًا واحدًا على الأقل','badmsg');const rs=rows.map(tr=>{const x=items.find(i=>String(i.id)===String(tr.querySelector('.item').value));const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,g=q*p,dd=g*d/100,n=g-dd;return{item_id:x.id,qty:q,unit_price:p,unit_cost:co,discount_rate:d,discount_amount:dd,tax_rate:rate,tax_amount:n*rate/100}});if(rs.some(x=>!x.item_id||x.qty<=0))return show('راجع الأصناف والكميات','badmsg');const subtotal=rs.reduce((s,x)=>s+x.qty*x.unit_price-x.discount_amount,0),discount_total=rs.reduce((s,x)=>s+x.discount_amount,0),tax=rs.reduce((s,x)=>s+x.tax_amount,0),total=subtotal+tax,cust=customers.find(x=>String(x.id)===String(customer)),wr=cust?.withholding_enabled?Number(cust.withholding_rate||0):0,withholding=total*wr/100;const h=await sb.from('sales_returns').insert({customer_id:+customer,site_id:site,return_date:$('date').value,subtotal,discount_total,tax,total,withholding_tax:withholding,status:'draft',created_by:user.id}).select().single();if(h.error)throw h.error;const l=await sb.from('sales_return_lines').insert(rs.map(x=>({...x,return_id:h.data.id})));if(l.error)throw l.error;$('docno').value=h.data.return_no||h.data.id.slice(0,8);show('تم حفظ مرتجع المبيعات كمسودة ✓','okmsg')}catch(e){show(e.message||e,'badmsg')}}
-function show(s,c){$('msg').className='msg '+c;$('msg').textContent=s}
-document.addEventListener('DOMContentLoaded',init);
+  show('تم تحميل البيانات بنجاح ✓','okmsg');
+ }catch(e){show('الشاشة تعمل لكن تعذر تحميل البيانات: '+e.message,'badmsg')}
+}
+async function saveReturn(){
+ try{
+  const customer=$('customer').value,site=$('site').value;if(!customer||!site)return show('اختار العميل والمخزن','badmsg');
+  const rows=[...document.querySelectorAll('#lines tr')];if(!rows.length)return show('أضف صنفًا واحدًا على الأقل','badmsg');
+  const rs=rows.map(tr=>{const x=items.find(i=>String(i.id)===String(tr.querySelector('.item').value));const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,g=q*p,dd=g*d/100,n=g-dd;return{item_id:x.id,qty:q,unit_price:p,unit_cost:co,discount_rate:d,discount_amount:dd,tax_rate:rate,tax_amount:n*rate/100}}); 
+  const subtotal=rs.reduce((s,x)=>s+x.qty*x.unit_price-x.discount_amount,0),discount_total=rs.reduce((s,x)=>s+x.discount_amount,0),tax=rs.reduce((s,x)=>s+x.tax_amount,0),total=subtotal+tax,cust=customers.find(x=>String(x.id)===String(customer)),wr=cust?.withholding_enabled?Number(cust.withholding_rate||0):0,withholding=total*wr/100;
+  const t=token();const h=await fetch(API+'/sales_returns',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({customer_id:+customer,site_id:site,return_date:$('date').value,subtotal,discount_total,tax,total,withholding_tax:withholding,status:'draft',created_by:user?.id||null})});if(!h.ok)throw new Error(await h.text());const hd=(await h.json())[0];
+  const l=await fetch(API+'/sales_return_lines',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(rs.map(x=>({...x,return_id:hd.id})))});if(!l.ok)throw new Error(await l.text());
+  $('docno').value=hd.return_no||hd.id.slice(0,8);show('تم حفظ مرتجع المبيعات كمسودة ✓','okmsg');
+ }catch(e){show(e.message||e,'badmsg')}
+}
+init();
 </script>
 </body></html>
