@@ -39,26 +39,17 @@ $('file').onchange=async e=>{
   const ci=findH(['كود الصنف','كود','SKU','sku']),ni=findH(['اسم الصنف','الصنف','اسم']),ui=findH(['الوحدة','وحدة']),ti=findH(['الضريبة','نسبة الضريبة','Tax','tax_rate']);
   if(ci<0||ni<0||ui<0||ti<0)throw Error('الأعمدة المطلوبة غير مكتملة. المطلوب: كود الصنف، اسم الصنف، الوحدة، الضريبة.');
   const seen=new Map(),used=new Set(existing.keys()),out=[];
-  nextCodeNo=Math.max(nextCodeNo,...Array.from(used).map(codeNumber));
+  let maxNo=Math.max(0,...Array.from(used).map(codeNumber));
   for(let r=1;r<arr.length;r++){
    const a=arr[r],originalCode=normCode(a[ci]),name=norm(a[ni]),rawUnit=norm(a[ui]),tax=numTax(a[ti]);
    if(!originalCode&&!name&&!rawUnit&&!norm(a[ti]))continue;
    let finalCode=originalCode,status='جديد',cls='ok',err='';
-   if(!originalCode)err='الكود ناقص';
-   else if(!name)err='اسم الصنف ناقص';
-   else if(!rawUnit)err='الوحدة ناقصة';
-   else if(tax===null||tax<0||tax>1)err='الضريبة غير صحيحة';
+   if(!originalCode)err='الكود ناقص'; else if(!name)err='اسم الصنف ناقص'; else if(!rawUnit)err='الوحدة ناقصة'; else if(tax===null||tax<0||tax>1)err='الضريبة غير صحيحة';
    if(!err){
-     if(seen.has(originalCode)){
-       finalCode=generateCode(used);
-       status='تم توليد كود جديد';
-       cls='warn';
-     }else{
-       seen.set(originalCode,r+1);
-       if(existing.has(originalCode)){status='سيتم تحديثه';cls='';}
-     }
-     used.add(finalCode);
-   }else cls='bad';
+    if(seen.has(originalCode)){ maxNo++; finalCode=CODE_PREFIX+maxNo; while(used.has(finalCode)){maxNo++;finalCode=CODE_PREFIX+maxNo;} status='تم توليد كود جديد';cls='warn'; }
+    else { seen.set(originalCode,r+1); if(existing.has(originalCode)){status='سيتم تحديثه';cls='';} }
+    used.add(finalCode);
+   } else cls='bad';
    out.push({row:r+1,sku:originalCode,finalCode,name,unit:unitName(rawUnit),tax,status,err,cls});
   }
   rows=out;$('all').textContent=rows.length;$('new').textContent=rows.filter(x=>!x.err&&x.status==='جديد').length;$('upd').textContent=rows.filter(x=>!x.err&&x.status==='سيتم تحديثه').length;$('dup').textContent=rows.filter(x=>x.status==='تم توليد كود جديد').length;$('err').textContent=rows.filter(x=>x.err).length;
