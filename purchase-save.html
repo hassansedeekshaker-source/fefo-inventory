@@ -5,27 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>فاتورة شراء</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#17233b;font-family:Tahoma,Arial,sans-serif}
-.page{width:100%;min-height:100vh;padding:12px}.card{width:100%;background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 12px #0001}
-.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.top a,.btn{display:inline-block;border:0;border-radius:8px;padding:10px 15px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}.top .green,.save{background:#087f4f;color:#fff}
-.title{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e7ef;padding-bottom:12px}.title h1{margin:0;font-size:25px}
-.head{display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:12px;margin:16px 0;padding:14px;background:#fafbfd;border:1px solid #dce3ed;border-radius:8px}
-label{display:flex;flex-direction:column;gap:6px;font-weight:700}input,select{width:100%;height:40px;border:1px solid #cbd5e1;border-radius:7px;padding:7px 9px;background:#fff;font-size:14px}
-.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1050px}th{background:#edf2f8;padding:10px;white-space:nowrap}td{padding:7px;border-bottom:1px solid #e5e9f0;text-align:center}td input,td select{height:36px;padding:5px;font-size:13px}
-.add{margin-top:12px;border:0;border-radius:8px;padding:10px 16px;background:#eef3fa;cursor:pointer;font-weight:700}.del{border:0;border-radius:7px;padding:8px 12px;cursor:pointer;background:#f1f3f6}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}.sum{border:1px solid #dce3ed;border-radius:8px;padding:13px;text-align:center}.sum b{display:block;color:#5b687b;margin-bottom:6px}.sum strong{font-size:21px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.actions button{border:0;border-radius:8px;padding:10px 16px;cursor:pointer}.msg{padding:11px;border-radius:8px;margin-top:12px}.ok{background:#e5f7ee;color:#087f4f}.bad{background:#fdecec;color:#b42318}
-@media(max-width:900px){.head{grid-template-columns:1fr 1fr}.summary{grid-template-columns:1fr 1fr}}@media(max-width:600px){.head,.summary{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#17233b;font-family:Tahoma,Arial,sans-serif}.page{width:100%;min-height:100vh;padding:12px}.card{width:100%;background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.top a,.btn{display:inline-block;border:0;border-radius:8px;padding:10px 15px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}.top .green,.save{background:#087f4f;color:#fff}.title{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e7ef;padding-bottom:12px}.title h1{margin:0;font-size:25px}.head{display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:12px;margin:16px 0;padding:14px;background:#fafbfd;border:1px solid #dce3ed;border-radius:8px}label{display:flex;flex-direction:column;gap:6px;font-weight:700}input,select{width:100%;height:40px;border:1px solid #cbd5e1;border-radius:7px;padding:7px 9px;background:#fff;font-size:14px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1050px}th{background:#edf2f8;padding:10px;white-space:nowrap}td{padding:7px;border-bottom:1px solid #e5e9f0;text-align:center}td input,td select{height:36px;padding:5px;font-size:13px}.add{margin-top:12px;border:0;border-radius:8px;padding:10px 16px;background:#eef3fa;cursor:pointer;font-weight:700}.del{border:0;border-radius:7px;padding:8px 12px;cursor:pointer;background:#f1f3f6}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}.sum{border:1px solid #dce3ed;border-radius:8px;padding:13px;text-align:center}.sum b{display:block;color:#5b687b;margin-bottom:6px}.sum strong{font-size:21px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.actions button{border:0;border-radius:8px;padding:10px 16px;cursor:pointer}.msg{padding:11px;border-radius:8px;margin-top:12px}.ok{background:#e5f7ee;color:#087f4f}.bad{background:#fdecec;color:#b42318}.loading{background:#eef3fa;color:#344054}@media(max-width:900px){.head{grid-template-columns:1fr 1fr}.summary{grid-template-columns:1fr 1fr}}@media(max-width:600px){.head,.summary{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="page">
-<div class="top">
-<a href="accounting.html">🏠 الرئيسية</a>
-<a class="green" href="purchase-save.html">➕ فاتورة شراء جديدة</a>
-<a href="purchase-saved.html">📋 المشتريات المحفوظة</a>
-<a href="purchase-post.html">📤 ترحيل المشتريات</a>
-<a href="purchases.html">↩ المشتريات</a>
+<div class="page"><div class="top">
+<a href="accounting.html">🏠 الرئيسية</a><a class="green" href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-saved.html">📋 المشتريات المحفوظة</a><a href="purchase-post.html">📤 ترحيل المشتريات</a><a href="purchases.html">↩ المشتريات</a>
 </div>
 <div class="card">
 <div class="title"><h1>فاتورة شراء</h1><span>حفظ كمسودة ثم الترحيل</span></div>
@@ -35,32 +20,29 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:700}input,select{wi
 <label>المورد<select id="supplier"><option value="">-- اختر المورد --</option></select></label>
 <label>المخزن<select id="site"><option value="">-- اختر المخزن --</option></select></label>
 </div>
-<div class="table-wrap">
-<table><thead><tr>
-<th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الشراء</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th>
-</tr></thead><tbody id="lines"></tbody></table>
-</div>
+<div class="table-wrap"><table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الشراء</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th></tr></thead><tbody id="lines"></tbody></table></div>
 <button class="add" id="add">＋ إضافة صنف</button>
-<div class="summary">
-<div class="sum"><b>قيمة الخصم</b><strong id="discountTotal">0.00</strong></div>
-<div class="sum"><b>قيمة المشتريات</b><strong id="subtotal">0.00</strong></div>
-<div class="sum"><b>قيمة الضريبة</b><strong id="taxTotal">0.00</strong></div>
-<div class="sum"><b>إجمالي الفاتورة</b><strong id="grandTotal">0.00</strong></div>
-</div>
-<div class="actions">
-<button class="save" id="save">💾 حفظ المسودة</button>
-<button onclick="window.print()">🖨 طباعة</button>
-</div>
-<div id="msg"></div>
-</div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div class="summary"><div class="sum"><b>قيمة الخصم</b><strong id="discountTotal">0.00</strong></div><div class="sum"><b>قيمة المشتريات</b><strong id="subtotal">0.00</strong></div><div class="sum"><b>قيمة الضريبة</b><strong id="taxTotal">0.00</strong></div><div class="sum"><b>إجمالي الفاتورة</b><strong id="grandTotal">0.00</strong></div></div>
+<div class="actions"><button class="save" id="save">💾 حفظ المسودة</button><button onclick="window.print()">🖨 طباعة</button></div><div id="msg" class="msg loading">جارٍ تشغيل شاشة المشتريات...</div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="loadFallback()"></script>
 <script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+const SUPA_URL='https://fyqyodnboryzaejlhdlk.supabase.co';
+const SUPA_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+let started=false;
+function loadFallback(){
+  if(document.getElementById('supa-fallback'))return;
+  const s=document.createElement('script');s.id='supa-fallback';s.src='https://unpkg.com/@supabase/supabase-js@2';s.onload=start;s.onerror=()=>showMsg('تعذر تحميل مكتبة الاتصال بقاعدة البيانات. افتح الصفحة مع اتصال إنترنت ثم Ctrl+F5.',true);document.head.appendChild(s);
+}
+function showMsg(t,bad){const e=document.getElementById('msg');e.className='msg '+(bad?'bad':'ok');e.textContent=t}
+function start(){if(started)return;started=true;if(typeof window.supabase==='undefined'){showMsg('مكتبة الاتصال لم تعمل.',true);return}init()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{if(typeof window.supabase!=='undefined')start();else loadFallback()},300));else setTimeout(()=>{if(typeof window.supabase!=='undefined')start();else loadFallback()},300);
+</script>
+<script>
+let sb,items=[],units=[],suppliers=[],sites=[],user=null;
 const $=id=>document.getElementById(id);
-let items=[],units=[],suppliers=[],sites=[],user=null;
-function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])}
-function msg(t,bad=false){$('msg').innerHTML='<div class="msg '+(bad?'bad':'ok')+'">'+esc(t)+'</div>'}
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function msg(t,bad=false){showMsg(t,bad)}
 function options(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 function line(){
  const tr=document.createElement('tr');
@@ -68,21 +50,12 @@ function line(){
  $('lines').appendChild(tr);
  const item=tr.querySelector('.item');
  item.onchange=()=>{const x=items.find(z=>z.id===item.value);tr.querySelector('.unit').textContent=units.find(u=>u.id===x?.unit_id)?.name_ar||units.find(u=>u.id===x?.unit_id)?.name||'-';tr.querySelector('.price').value=Number(x?.purchase_price||0).toFixed(2);tr.querySelector('.tax').value=Number(x?.tax_rate||0).toFixed(2);calc()};
- tr.querySelectorAll('input').forEach(x=>x.oninput=calc);
- tr.querySelector('.del').onclick=()=>{tr.remove();calc()};
+ tr.querySelectorAll('input').forEach(x=>x.oninput=calc);tr.querySelector('.del').onclick=()=>{tr.remove();calc()};
 }
-function calc(){
- let d=0,v=0,t=0,total=0;
- document.querySelectorAll('#lines tr').forEach(tr=>{
-  const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,r=+tr.querySelector('.disc').value||0,tx=+tr.querySelector('.tax').value||0;
-  const gross=q*p,dd=gross*r/100,n=gross-dd,tax=n*tx/100;
-  d+=dd;v+=n;t+=tax;total+=n+tax;
-  tr.querySelector('.discVal').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=n.toFixed(2);tr.querySelector('.taxVal').textContent=tax.toFixed(2);tr.querySelector('.total').textContent=(n+tax).toFixed(2);
- });
- $('discountTotal').textContent=d.toFixed(2);$('subtotal').textContent=v.toFixed(2);$('taxTotal').textContent=t.toFixed(2);$('grandTotal').textContent=total.toFixed(2);
-}
+function calc(){let d=0,v=0,t=0,total=0;document.querySelectorAll('#lines tr').forEach(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,r=+tr.querySelector('.disc').value||0,tx=+tr.querySelector('.tax').value||0,gross=q*p,dd=gross*r/100,n=gross-dd,tax=n*tx/100;d+=dd;v+=n;t+=tax;total+=n+tax;tr.querySelector('.discVal').textContent=dd.toFixed(2);tr.querySelector('.value').textContent=n.toFixed(2);tr.querySelector('.taxVal').textContent=tax.toFixed(2);tr.querySelector('.total').textContent=(n+tax).toFixed(2)});$('discountTotal').textContent=d.toFixed(2);$('subtotal').textContent=v.toFixed(2);$('taxTotal').textContent=t.toFixed(2);$('grandTotal').textContent=total.toFixed(2)}
 async function init(){
  try{
+  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
   const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
   const [I,U,S,ST]=await Promise.all([
    sb.from('inv_items').select('id,name_ar,sku,unit_id,purchase_price,tax_rate').eq('active',true).order('name_ar'),
@@ -94,29 +67,22 @@ async function init(){
   items=I.data||[];units=U.data||[];suppliers=S.data||[];sites=ST.data||[];
   $('supplier').insertAdjacentHTML('beforeend',suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join(''));
   $('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join(''));
-  $('purchase_date').value=new Date().toISOString().slice(0,10);
-  line();
- }catch(e){msg(e.message||e,true)}
+  $('purchase_date').value=new Date().toISOString().slice(0,10);line();calc();
+  msg('الشاشة جاهزة. اختر المورد والمخزن ثم أضف الصنف.');
+ }catch(e){msg(e.message||String(e),true)}
 }
 async function save(){
  try{
   const supplier=$('supplier').value,site=$('site').value;
   if(!supplier||!site)return msg('اختر المورد والمخزن أولًا',true);
-  const rs=[...document.querySelectorAll('#lines tr')].map(tr=>{
-   const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0;
-   const gross=q*p,discount=gross*d/100,subtotal=gross-discount,tax=subtotal*rate/100;
-   return {item_id:tr.querySelector('.item').value,qty:q,unit_cost:p,discount_rate:d,discount_amount:discount,tax_rate:rate,tax_amount:tax,line_total:subtotal+tax};
-  });
+  const rs=[...document.querySelectorAll('#lines tr')].map(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,gross=q*p,discount=gross*d/100,subtotal=gross-discount,tax=subtotal*rate/100;return {item_id:tr.querySelector('.item').value,qty:q,unit_cost:p,discount_rate:d,discount_amount:discount,tax_rate:rate,tax_amount:tax,line_total:subtotal+tax}});
   if(!rs.length||rs.some(x=>!x.item_id||x.qty<=0||x.unit_cost<0))return msg('راجع الأصناف والكميات والأسعار',true);
-  const subtotal=rs.reduce((a,x)=>a+x.qty*x.unit_cost-x.discount_amount,0),discount_total=rs.reduce((a,x)=>a+x.discount_amount,0),tax=rs.reduce((a,x)=>a+x.tax_amount,0),total=subtotal+tax;
+  const subtotal=rs.reduce((a,x)=>a+x.qty*x.unit_cost-x.discount_amount,0),tax=rs.reduce((a,x)=>a+x.tax_amount,0),total=subtotal+tax;
   const h=await sb.from('purchases').insert({invoice_no:$('invoice_no').value.trim()||null,supplier_id:supplier,site_id:site,purchase_date:$('purchase_date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:0}).select().single();
   if(h.error)throw h.error;
-  const l=await sb.from('purchase_lines').insert(rs.map(x=>({...x,purchase_id:h.data.id})));
-  if(l.error)throw l.error;
-  msg('تم حفظ فاتورة الشراء كمسودة ✓ رقم '+(h.data.invoice_no||h.data.id));
-  $('invoice_no').value='';$('lines').innerHTML='';line();calc();
- }catch(e){msg(e.message||e,true)}
+  const l=await sb.from('purchase_lines').insert(rs.map(x=>({...x,purchase_id:h.data.id})));if(l.error)throw l.error;
+  msg('تم حفظ فاتورة الشراء كمسودة ✓ رقم '+(h.data.invoice_no||h.data.id));$('invoice_no').value='';$('lines').innerHTML='';line();calc();
+ }catch(e){msg(e.message||String(e),true)}
 }
-$('add').onclick=line;$('save').onclick=save;init();
+document.getElementById('add').onclick=line;document.getElementById('save').onclick=save;
 </script>
-</body></html>
