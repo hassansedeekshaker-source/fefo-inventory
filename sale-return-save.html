@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>مرتجع مبيعات</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.57.0/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
 .wrap{width:100%;margin:0}.card{width:100%;min-height:calc(100vh - 10px);background:#fff;border:1px solid #dfe5ed;border-radius:8px;padding:14px}
@@ -26,12 +26,18 @@
 <div class="actions"><button class="save" onclick="saveReturn()">💾 حفظ مسودة</button><button class="post" onclick="location.href='sale-return-post.html'">📤 الترحيل</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='sale-return-save.html'">📄 مرتجع جديد</button></div><div id="msg"></div>
 </div></div>
 <script>
-const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(URL,KEY);
+window.addEventListener('error',function(e){var m=document.getElementById('msg');if(m){m.className='msg badmsg';m.textContent='خطأ تشغيل الشاشة: '+(e.message||'تعذر تشغيل البرنامج');}});
+const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+let sb=null;
+if(window.supabase&&window.supabase.createClient) sb=window.supabase.createClient(URL,KEY); else {
+  window.addEventListener('load',function(){var m=document.getElementById('msg');if(m){m.className='msg badmsg';m.textContent='تعذر تحميل مكتبة التشغيل. أعد تحميل الصفحة مرة واحدة.';}});
+}
 let user,items=[],units=[],sites=[],customers=[];
 const $=id=>document.getElementById(id), today=()=>new Date().toISOString().slice(0,10);
 function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+String(label(x)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))+'</option>').join('')}
 async function init(){
  $('date').value=today();
+ if(!sb){show('تعذر تشغيل الاتصال بالنظام','badmsg');return}
  $('msg').textContent='جاري تحميل بيانات المرتجع...';
  $('msg').className='msg';
  addLine();
