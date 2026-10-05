@@ -92,7 +92,7 @@ async function itemChanged(tr){
  const x=items.find(i=>i.id===tr.querySelector('.item').value);if(!x)return;
  tr.querySelector('.unit').textContent=(units.find(u=>u.id===x.unit_id)?.name_ar||'-');
  tr.querySelector('.price').value=Number(x.sale_price||0).toFixed(2);
- tr.querySelector('.tax').value='14.00';
+ tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);
  tr.querySelector('.cost').value='0.00';
  tr.querySelector('.stock').value='0.000';
  await loadStock(tr);
@@ -109,8 +109,7 @@ function getWithholdingRate(){
 function calc(){
  let cost=0,discount=0,value=0,tax=0,total=0;
  document.querySelectorAll('#lines tr').forEach(tr=>{
-  const q=Math.max(0,+tr.querySelector('.qty').value||0),p=Math.max(0,+tr.querySelector('.price').value||0),c=Math.max(0,+tr.querySelector('.cost').value||0),d=Math.min(100,Math.max(0,+tr.querySelector('.disc').value||0)),r=14;
-  tr.querySelector('.tax').value='14.00';
+  const q=Math.max(0,+tr.querySelector('.qty').value||0),p=Math.max(0,+tr.querySelector('.price').value||0),c=Math.max(0,+tr.querySelector('.cost').value||0),d=Math.min(100,Math.max(0,+tr.querySelector('.disc').value||0)),r=Math.max(0,+tr.querySelector('.tax').value||0);
   const gross=q*p,dd=gross*d/100,n=gross-dd,tx=n*r/100;
   cost+=q*c;discount+=dd;value+=n;tax+=tx;total+=n+tx;
   tr.querySelector('.lineCost').textContent=(q*c).toFixed(2);tr.querySelector('.discValue').textContent=dd.toFixed(2);tr.querySelector('.lineValue').textContent=n.toFixed(2);tr.querySelector('.taxValue').textContent=tx.toFixed(2);tr.querySelector('.lineTotal').textContent=(n+tx).toFixed(2);
