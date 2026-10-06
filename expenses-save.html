@@ -1,82 +1,21 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>المصروفات | نظام المحاسبة</title>
-<style>
-*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f5f7fb;color:#172033}
-header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
-main{max-width:1250px;margin:20px auto;padding:0 15px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{font-size:26px;font-weight:bold;margin-top:8px}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px}
-input,select,textarea{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;background:#fff}textarea{min-height:75px}
-button{border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:#e9edf5}button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}.back{background:#e8edf5;color:#17233b;font-weight:700}
-table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}
-.msg{padding:10px;border-radius:9px;margin-top:12px;background:#eef4ff}.bad{color:#b42318}.ok{color:#087443}.small{font-size:12px;color:#667085}
-.login{max-width:500px;margin:70px auto}.hide{display:none}.tag{padding:4px 8px;border-radius:15px;background:#eef2f7;font-size:12px}
-@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<header><b>🧾 نظام المحاسبة — حفظ المصروفات</b><div style="display:flex;align-items:center;gap:10px"><button type="button" class="back" onclick="goBack()">↩ رجوع للشاشة السابقة</button><a href="accounting.html" style="text-decoration:none"><button style="background:#fff;color:#18243a;font-weight:bold">🏠 الرئيسية</button></a><span id="status">جاري الاتصال...</span></div></header>
-
-<main id="login" class="login card">
-<h2>تسجيل الدخول</h2>
-<p class="small">استخدم نفس حساب المدير الموجود في نظام المحاسبة.</p>
-<div class="field"><label>البريد الإلكتروني</label><input id="email" type="email"></div>
-<div class="field" style="margin-top:10px"><label>كلمة المرور</label><input id="password" type="password"></div>
-<button class="primary" style="margin-top:14px" onclick="login()">دخول</button>
-<div id="authMsg"></div>
-</main>
-
-<main id="app" class="hide">
-<div class="row" style="justify-content:space-between;margin-bottom:12px"><div><b id="who"></b></div><button onclick="logout()">تسجيل الخروج</button></div>
-<div class="grid">
-<div class="card">إجمالي المصروفات<div id="total" class="kpi">0.00</div></div>
-<div class="card">مصروفات الشهر<div id="month" class="kpi">0.00</div></div>
-<div class="card">عدد المستندات<div id="count" class="kpi">0</div></div>
-<div class="card">آخر مصروف<div id="last" class="kpi">0.00</div></div>
-</div>
-
-<section class="card">
-<h2>💾 حفظ مصروف</h2><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px"><a href="expenses-saved.html" style="text-decoration:none"><button type="button" class="primary">📋 المصروفات المحفوظة</button></a><a href="expenses.html" style="text-decoration:none"><button type="button">🧾 كل المصروفات</button></a></div>
-<div class="row">
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>حفظ المصروف</title><style>*{box-sizing:border-box}body{font-family:Tahoma,Arial;background:#f4f6fa;margin:0;color:#172033}header{background:#18243a;color:#fff;padding:17px 24px;display:flex;justify-content:space-between}main{max-width:1050px;margin:22px auto;padding:0 15px}.card{background:#fff;border-radius:15px;padding:20px;box-shadow:0 2px 14px #0001;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:13px;font-weight:bold;color:#475467}input,select,textarea{padding:11px;border:1px solid #d5dbe6;border-radius:9px;font-family:inherit;font-size:14px;background:#fff}textarea{min-height:85px}.readonly{background:#f3f5f8;color:#475467}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}button,a{border:0;border-radius:9px;padding:11px 16px;cursor:pointer;text-decoration:none;background:#18243a;color:#fff;font-family:inherit}button.success{background:#087443}.msg{margin-top:14px;padding:12px;border-radius:9px;background:#f5f7fa}.bad{color:#b42318}.ok{color:#087443}.small{font-size:12px;color:#667085}.login{max-width:480px;margin:70px auto}@media(max-width:750px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.grid{grid-template-columns:1fr}}</style></head><body><header><b>🧾 حفظ المصروفات</b><span id="status">جاري الاتصال...</span></header><main id="login" class="card login"><h2>تسجيل الدخول</h2><input id="email" type="email" placeholder="البريد الإلكتروني"><input id="password" type="password" placeholder="كلمة المرور" style="margin-top:8px"><button onclick="login()" style="margin-top:10px">دخول</button><div id="auth"></div></main><main id="app" style="display:none"><div class="card"><h2>💰 مصروف جديد</h2><p class="small">اختيار نوع المصروف يحدد حساب المصروف المحاسبي تلقائيًا. واختيار طريقة الدفع يحدد الخزينة أو البنك الذي سيُخصم منه عند الترحيل.</p><div class="grid">
 <div class="field"><label>التاريخ</label><input id="date" type="date"></div>
-<div class="field"><label>نوع المصروف</label><select id="category"></select></div>
-<div class="field"><label>المبلغ</label><input id="amount" type="number" min="0" step=".01"></div>
-<div class="field"><label>طريقة الدفع</label><select id="method" onchange="togglePay()"><option value="cash" selected>خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
-<div class="field"><label>حساب الدفع</label><select id="payAccount"></select></div>
+<div class="field"><label>نوع المصروف</label><select id="category" onchange="showExpenseAccount()"></select></div>
+<div class="field"><label>حساب المصروف المحاسبي</label><input id="expenseAccount" class="readonly" readonly></div>
+<div class="field"><label>المبلغ</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
+<div class="field"><label>طريقة الدفع</label><select id="method" onchange="fillPaymentAccounts()"><option value="cash">خزينة</option><option value="bank">بنك</option><option value="accrued">مصروف مستحق</option></select></div>
+<div class="field"><label>الخزينة / البنك</label><select id="payAccount"></select></div>
 <div class="field"><label>الموقع / الفرع</label><select id="site"></select></div>
 <div class="field"><label>المورد / الجهة (اختياري)</label><select id="supplier"></select></div>
-</div>
-<div class="field" style="margin-top:12px"><label>البيان</label><textarea id="desc" placeholder="مثال: فاتورة كهرباء شهر أغسطس"></textarea></div>
-<div class="row" style="margin-top:12px"><button class="success" onclick="saveExpense()">💾 حفظ المصروف</button><a href="expenses-saved.html" style="text-decoration:none"><button type="button" class="primary">📋 المصروفات المحفوظة</button></a><a href="expenses-posting.html" style="text-decoration:none"><button type="button">📤 الذهاب إلى شاشة الترحيل</button></a><a href="expenses.html" style="text-decoration:none"><button type="button">↩️ المصروفات</button></a></div>
-<div id="msg"></div>
-</section>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
-let user=null,cats=[],accounts=[],sites=[],suppliers=[],rows=[];
-const $=id=>document.getElementById(id), today=()=>new Date().toISOString().slice(0,10), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function err(e){return e?.message||String(e)}
-function goBack(){if(window.history.length>1)window.history.back();else window.location.href='accounting.html'}
-function opts(a,label,v='id'){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x[v]+'">'+esc(label(x))+'</option>').join('')}
-async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error){$('authMsg').innerHTML='<div class="msg bad">'+esc(err(r.error))+'</div>';return}start(r.data.user)}
-async function logout(){await sb.auth.signOut();location.reload()}
-async function start(u){user=u;$('login').classList.add('hide');$('app').classList.remove('hide');$('who').textContent=u.email;$('status').textContent='متصل';$('date').value=today();await loadLists()}
-const fallbackCats=[{id:'5e6dad57-091a-4591-bfe7-40eb7f26e33c',code:'EXP-001',name_ar:'إيجارات'},{id:'cb4dce19-5d2e-48a4-9325-e985fb0ef093',code:'EXP-002',name_ar:'كهرباء'},{id:'9b1b6b51-692e-475d-93e6-d51e671ed62e',code:'EXP-003',name_ar:'مياه'},{id:'c684bad5-5026-4496-98ab-033fcca6e046',code:'EXP-004',name_ar:'غاز'},{id:'d0028501-866e-41bc-8a9f-118da38c2ac2',code:'EXP-005',name_ar:'رواتب وأجور'},{id:'82fedea0-f355-44f5-9dff-d1d519bb8c48',code:'EXP-006',name_ar:'نقل ومواصلات'},{id:'7532f050-314f-4d96-aa0b-fd4a02dce6e7',code:'EXP-007',name_ar:'صيانة'},{id:'97a6e558-a66f-4fec-b1ee-f5502267d936',code:'EXP-008',name_ar:'اتصالات وإنترنت'},{id:'5b749134-b263-440d-8917-777e9a752011',code:'EXP-009',name_ar:'تسويق وإعلان'},{id:'42ec684c-ee5b-4578-8f86-5b80fbe64da1',code:'EXP-010',name_ar:'مصروفات بنكية'},{id:'2c4526d4-99f7-4b34-a98b-6c6049b56eee',code:'EXP-011',name_ar:'مصروفات إدارية وعمومية'},{id:'2aaad96e-6b87-40a7-81ca-5dbeff9485b0',code:'EXP-012',name_ar:'مصروفات أخرى'}];
-const fallbackAccounts=[{id:'6fd5c3ae-3c20-48cb-b52d-ee4eb9c19aaa',code:'1110',name_ar:'الخزينة الرئيسية'},{id:'62651bb2-cf90-46ff-bb02-6da5d59a8bf1',code:'1210',name_ar:'البنك الرئيسي'}];
-const fallbackSites=[{id:'e7dc2552-dd41-4206-b200-90a44d8bd5ba',code:'MAIN',name_ar:'المخزن الرئيسي'}];
-const fallbackSuppliers=[{id:1,name:'حسن'}];
-async function loadLists(){const results=await Promise.allSettled([sb.from('expense_categories').select('id,code,name_ar').eq('active',true).order('code'),sb.from('coa_accounts').select('id,code,name_ar,account_type,is_postable,active').eq('active',true).eq('is_postable',true).order('code'),sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code'),sb.from('suppliers').select('id,name').order('name')]);const [cr,ar,sr,pr]=results;cats=(cr.status==='fulfilled'&&!cr.value.error&&cr.value.data?.length)?cr.value.data:fallbackCats;accounts=(ar.status==='fulfilled'&&!ar.value.error&&ar.value.data?.length)?ar.value.data:fallbackAccounts;sites=(sr.status==='fulfilled'&&!sr.value.error&&sr.value.data?.length)?sr.value.data:fallbackSites;suppliers=(pr.status==='fulfilled'&&!pr.value.error&&pr.value.data?.length)?pr.value.data:fallbackSuppliers;$('category').innerHTML=opts(cats,x=>x.code+' — '+x.name_ar);$('site').innerHTML=opts(sites,x=>x.code+' — '+x.name_ar);$('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');fillPayAccounts()}
-function fillPayAccounts(){const method=$('method').value;let a=[];if(method==='cash')a=accounts.filter(x=>String(x.code).startsWith('11'));else if(method==='bank')a=accounts.filter(x=>String(x.code).startsWith('12'));$('payAccount').innerHTML=opts(a,x=>x.code+' — '+x.name_ar);$('payAccount').disabled=method==='accrued'}
-function togglePay(){fillPayAccounts()}
-async function saveExpense(){try{const cat=$('category').value,amt=Number($('amount').value||0),method=$('method').value,pay=$('payAccount').value;if(!cat||amt<=0)return $('msg').innerHTML='<div class="msg bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</div>';if(method!=='accrued'&&!pay)return $('msg').innerHTML='<div class="msg bad">اختر حساب الخزينة أو البنك.</div>';const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:method,payment_account_id:method==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'draft',created_by:user.id}).select().single();if(r.error)throw r.error;$('msg').innerHTML='<div class="msg ok">تم حفظ المصروف بنجاح كمسودة. لم يتم ترحيله بعد ✓</div>';clearForm(false)}catch(e){$('msg').innerHTML='<div class="msg bad">'+esc(err(e))+'</div>'}}
-function clearForm(show=true){$('date').value=today();$('category').value='';$('amount').value='';$('desc').value='';$('supplier').value='';if(show)$('msg').innerHTML=''}
-sb.auth.getSession().then(r=>{if(r.data.session)start(r.data.session.user);else $('status').textContent='غير مسجل الدخول'}).catch(e=>$('status').textContent='خطأ في الاتصال');
-</script>
-</body>
-</html>
+<div class="field"><label>البيان</label><input id="desc" placeholder="مثال: كهرباء شهر سبتمبر"></div>
+</div><div class="actions"><button class="success" onclick="saveExpense()">💾 حفظ كمسودة</button><a href="expenses.html">📋 المصروفات</a><a href="expenses-posting.html">📤 الترحيل</a><a href="accounting.html">← الرئيسية</a></div><div id="msg" class="msg">المصروف محفوظ كمسودة ولا يؤثر على الرصيد حتى الترحيل.</div></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));let user,cats=[],accounts=[],sites=[],suppliers=[];
+async function login(){const r=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(r.error)return $('auth').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';start(r.data.user)}
+async function start(u){user=u;$('login').style.display='none';$('app').style.display='block';$('status').textContent='متصل';$('date').value='2026-09-01';await load()}
+async function load(){const [c,a,s,p]=await Promise.all([sb.from('expense_categories').select('id,code,name_ar,account_id,coa_accounts(code,name_ar)').eq('active',true).order('code'),sb.from('finance_accounts').select('id,code,name_ar,account_type').eq('active',true).order('code'),sb.from('inv_sites').select('id,code,name_ar').eq('active',true).order('code'),sb.from('suppliers').select('id,code,name_ar').order('code')]);if(c.error||a.error||s.error||p.error)return $('msg').innerHTML='<span class="bad">'+esc((c.error||a.error||s.error||p.error).message)+'</span>';cats=c.data||[];accounts=a.data||[];sites=s.data||[];suppliers=p.data||[];$('category').innerHTML='<option value="">اختر نوع المصروف</option>'+cats.map(x=>'<option value="'+x.id+'">'+esc(x.code+' — '+x.name_ar)+'</option>').join('');$('site').innerHTML='<option value="">بدون تحديد</option>'+sites.map(x=>'<option value="'+x.id+'">'+esc(x.code+' — '+x.name_ar)+'</option>').join('');$('supplier').innerHTML='<option value="">بدون تحديد</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.code+' — '+x.name_ar)+'</option>').join('');fillPaymentAccounts()}
+function showExpenseAccount(){const c=cats.find(x=>x.id===$('category').value);$('expenseAccount').value=c?.coa_accounts?((c.coa_accounts.code||'')+' — '+(c.coa_accounts.name_ar||'')):'يتم تحديده تلقائيًا عند الترحيل'}
+function fillPaymentAccounts(){const m=$('method').value;const a=accounts.filter(x=>m==='cash'?x.account_type==='cash':m==='bank'?x.account_type==='bank':false);$('payAccount').innerHTML=m==='accrued'?'<option value="">لا يوجد دفع الآن — مستحق</option>':'<option value="">اختر '+(m==='cash'?'الخزينة':'البنك')+'</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join('');$('payAccount').disabled=m==='accrued'}
+async function saveExpense(){const cat=$('category').value,amt=Number($('amount').value||0),m=$('method').value,pay=$('payAccount').value;if(!cat||amt<=0)return $('msg').innerHTML='<span class="bad">اختر نوع المصروف وأدخل مبلغًا صحيحًا.</span>';if(m!=='accrued'&&!pay)return $('msg').innerHTML='<span class="bad">اختر الخزينة أو البنك.</span>';const r=await sb.from('expenses').insert({expense_date:$('date').value,category_id:cat,description:$('desc').value.trim()||null,amount:amt,payment_method:m,payment_account_id:m==='accrued'?null:pay,site_id:$('site').value||null,supplier_id:$('supplier').value||null,status:'draft',created_by:user.id}).select('id').single();if(r.error)return $('msg').innerHTML='<span class="bad">خطأ: '+esc(r.error.message)+'</span>';$('msg').innerHTML='<span class="ok">تم حفظ المصروف كمسودة بنجاح ✓ حساب المصروف محدد تلقائيًا.</span>';$('amount').value='';$('desc').value=''}
+sb.auth.getSession().then(r=>r.data.session?start(r.data.session.user):$('status').textContent='غير مسجل الدخول');
+</script></body></html>
