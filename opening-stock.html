@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>أرصدة أول المدة | نظام المحاسبة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#18243a;color:#fff;padding:16px 24px;display:flex;justify-content:space-between}.wrap{max-width:1450px;margin:20px auto;padding:0 15px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{background:#e9edf5;border:0;border-radius:9px;padding:10px 15px;cursor:pointer;text-decoration:none;color:#172033}.primary{background:#18243a;color:#fff}.success{background:#087443;color:#fff}.danger{background:#b42318;color:#fff}
+.small{font-size:12px;color:#667085}.msg{padding:12px;border-radius:9px;background:#eef4ff;margin-top:12px}.ok{color:#087443}.bad{color:#b42318}.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;margin-top:15px;min-width:1000px}th,td{padding:9px;border-bottom:1px solid #edf0f5;text-align:right;white-space:nowrap}th{background:#eef2f7}
+input{padding:9px;border:1px solid #d6dce8;border-radius:8px;width:130px}.readonly{background:#f1f3f6}.num{text-align:left;direction:ltr}
+</style></head>
+<body>
+<header><b>📦 نظام إدارة المخزون والمحاسبة</b><span>أرصدة أول المدة</span></header>
+<main class="wrap">
+<section class="card bar">
+<a class="btn" href="items.html">↩ الأصناف</a><a class="btn primary" href="accounting.html">🏠 الرئيسية</a>
+<button class="btn success" onclick="exportTemplate()">📤 تصدير شيت الأصناف</button>
+<label class="btn">📥 استيراد الشيت <input id="file" type="file" accept=".xlsx,.xls" style="display:none" onchange="importFile(event)"></label>
+</section>
+
+<section class="card">
+<h2 style="margin-top:0">📦 رصيد أول المدة</h2>
+<div class="small">نُدخل فقط الكمية الموجودة فعليًا وتكلفة الوحدة. قيمة المخزون تُحسب تلقائيًا. الاستيراد يحفظ الرصيد كـ <b>مسودة</b> ولا يؤثر على الحسابات أو التقارير حتى الاعتماد.</div>
+<div id="msg"></div>
+<div class="bar" style="margin-top:14px">
+<span id="status">جاري التحميل...</span>
+<button class="btn primary" onclick="saveDraft()">💾 حفظ أرصدة أول المدة كمسودة</button>
+</div>
+</section>
+
+<section class="card">
+<div class="bar" style="justify-content:space-between"><h3 style="margin:0">📋 أصناف النظام</h3><span id="total"></span></div>
+<div class="tablewrap"><table><thead><tr><th>الكود</th><th>الصنف</th><th>الوحدة</th><th>الكمية أول المدة</th><th>تكلفة الوحدة</th><th>قيمة المخزون</th></tr></thead><tbody id="body"></tbody></table></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+let items=[],units=[],site=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function msg(t,ok=false){$('msg').innerHTML='<div class="msg '+(ok?'ok':'bad')+'">'+esc(t)+'</div>'}
+async function load(){
+ const [ir,ur,sr]=await Promise.all([
+  sb.from('inv_items').select('id,sku,name_ar,unit_id,unit_name,active').eq('active',true).order('sku'),
+  sb.from('inv_units').select('id,code,name_ar').order('code'),
+  sb.from('inv_sites').select('id,code,name_ar,active').eq('active',true).order('created_at').limit(1)
+ ]);
+ if(ir.error)throw ir.error;if(ur.error)throw ur.error;if(sr.error)throw sr.error;
+ items=ir.data||[];units=ur.data||[];site=sr.data?.[0]||null;
+ render();$('status').textContent=site?'المخزن: '+(site.name_ar||site.code):'لم يتم العثور على مخزن نشط';
+}
+function unitName(x){const u=units.find(a=>a.id===x.unit_id);return x.unit_name||u?.code||u?.name_ar||''}
+function render(){
+ $('total').textContent='عدد الأصناف: '+items.length;
+ $('body').innerHTML=items.map((x,i)=>'<tr data-id="'+x.id+'"><td><b>'+esc(x.sku)+'</b></td><td>'+esc(x.name_ar)+'</td><td>'+esc(unitName(x))+'</td><td><input class="qty num" data-i="'+i+'" type="number" min="0" step="0.001" value=""></td><td><input class="cost num" data-i="'+i+'" type="number" min="0" step="0.01" value=""></td><td class="value num">0.00</td></tr>').join('');
+ document.querySelectorAll('input.qty,input.cost').forEach(e=>e.addEventListener('input',calc));
+}
+function calc(){
+ document.querySelectorAll('tr[data-id]').forEach(tr=>{
+  const q=Number(tr.querySelector('.qty').value||0),c=Number(tr.querySelector('.cost').value||0);
+  tr.querySelector('.value').textContent=(q*c).toFixed(2);
+ });
+}
+function rows(){
+ return [...document.querySelectorAll('tr[data-id]')].map((tr,i)=>{
+  const q=Number(tr.querySelector('.qty').value||0),c=Number(tr.querySelector('.cost').value||0);
+  return {item_id:tr.dataset.id,sku:items[i].sku,name:items[i].name_ar,qty:q,unit_cost:c,value:q*c};
+ });
+}
+function exportTemplate(){
+ const data=items.map(x=>({ 'كود الصنف':x.sku,'اسم الصنف':x.name_ar,'الوحدة':unitName(x),'رصيد أول المدة':'','تكلفة الوحدة':'','قيمة المخزون':''}));
+ const ws=XLSX.utils.json_to_sheet(data);ws['!cols']=[{wch:22},{wch:38},{wch:12},{wch:18},{wch:18},{wch:18}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'أرصدة أول المدة');
+ XLSX.writeFile(wb,'ارصدة_اول_المدة.xlsx');
+}
+function normalize(v){return String(v??'').trim()}
+async function importFile(ev){
+ try{
+  const f=ev.target.files?.[0];if(!f)return;
+  const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
+  const data=XLSX.utils.sheet_to_json(ws,{defval:''});
+  const map=new Map(items.map(x=>[normalize(x.sku),x]));
+  let bad=0,filled=0;
+  data.forEach(r=>{
+   const sku=normalize(r['كود الصنف']),x=map.get(sku);if(!x)return;
+   const q=Number(r['رصيد أول المدة']||0),c=Number(r['تكلفة الوحدة']||0);
+   if(q<0||c<0){bad++;return}
+   const tr=document.querySelector('tr[data-id="'+x.id+'"]');if(!tr)return;
+   tr.querySelector('.qty').value=q||'';tr.querySelector('.cost').value=c||'';filled++;
+  });
+  calc();msg('تم تحميل الشيت: '+filled+' صنف. راجع البيانات ثم اضغط حفظ كمسودة.'+(bad?' يوجد '+bad+' صف غير صالح تم تجاهله.':''),true);
+ }catch(e){msg(e.message||e)}finally{ev.target.value=''}
+}
+async function saveDraft(){
+ try{
+  if(!site)throw new Error('لا يوجد مخزن نشط.');
+  const data=rows().filter(x=>x.qty>0);
+  if(!data.length)throw new Error('لم يتم إدخال أي رصيد.');
+  const bad=data.find(x=>x.unit_cost<0||x.qty<0);if(bad)throw new Error('يوجد رصيد أو تكلفة سالبة.');
+  const total=data.reduce((s,x)=>s+x.value,0);
+  if(!confirm('سيتم حفظ '+data.length+' صنف كمسودة بإجمالي مخزون '+total.toFixed(2)+' جنيه. استمرار؟'))return;
+  const old=await sb.from('opening_balances').select('id,document_no').eq('posted',false).order('created_at',{ascending:false}).limit(1);
+  if(old.error)throw old.error;
+  let ob=old.data?.[0];
+  if(!ob){
+   const mx=await sb.from('opening_balances').select('document_no').order('document_no',{ascending:false}).limit(1);
+   if(mx.error)throw mx.error;
+   const next=Number(mx.data?.[0]?.document_no||0)+1;
+   const ins=await sb.from('opening_balances').insert({document_no:next,balance_date:'2026-09-01',description:'أرصدة أول المدة - سبتمبر 2026',posted:false}).select('id,document_no').single();
+   if(ins.error)throw ins.error;ob=ins.data;
+  }else{
+   const d=await sb.from('opening_balance_lines').delete().eq('opening_balance_id',ob.id);if(d.error)throw d.error;
+  }
+  const inv=await sb.from('coa_accounts').select('id').eq('code','1310').single();if(inv.error)throw inv.error;
+  const lines=data.map(x=>({opening_balance_id:ob.id,item_id:x.item_id,site_id:site.id,qty:x.qty,unit_cost:x.unit_cost,debit:x.value,credit:0,account_id:inv.data.id,batch_no:'OPEN-2026-09'}));
+  const lr=await sb.from('opening_balance_lines').insert(lines);if(lr.error)throw lr.error;
+  msg('تم حفظ أرصدة أول المدة كمسودة. لم يتم ترحيلها محاسبيًا بعد.',true);
+ }catch(e){msg(e.message||e)}
+}
+load().catch(e=>{msg(e.message||e);$('status').textContent='خطأ في التحميل'});
+</script></body></html>
