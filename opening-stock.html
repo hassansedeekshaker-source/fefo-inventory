@@ -15,7 +15,7 @@ input{padding:9px;border:1px solid #d6dce8;border-radius:8px;width:130px}.readon
 <header><b>📦 نظام إدارة المخزون والمحاسبة</b><span>أرصدة أول المدة</span></header>
 <main class="wrap">
 <section class="card bar">
-<a class="btn" href="items.html">↩ الأصناف</a><a class="btn primary" href="accounting.html">🏠 الرئيسية</a>
+<a class="btn" href="items.html">↩ الأصناف</a><a class="btn primary" href="accounting.html">🏠 الرئيسية</a><button class="btn" onclick="loadDraft()">📋 فتح المسودة المحفوظة</button>
 <button class="btn success" onclick="exportTemplate()">📤 تصدير شيت الأصناف</button>
 <label class="btn">📥 استيراد الشيت <input id="file" type="file" accept=".xlsx,.xls" style="display:none" onchange="importFile(event)"></label>
 </section>
@@ -51,7 +51,7 @@ async function load(){
  ]);
  if(ir.error)throw ir.error;if(ur.error)throw ur.error;if(sr.error)throw sr.error;
  items=ir.data||[];units=ur.data||[];site=sr.data?.[0]||null;
- render();$('status').textContent=site?'المخزن: '+(site.name_ar||site.code):'لم يتم العثور على مخزن نشط';
+ render();await loadDraft();$('status').textContent=site?'المخزن: '+(site.name_ar||site.code):'لم يتم العثور على مخزن نشط';
 }
 function unitName(x){const u=units.find(a=>a.id===x.unit_id);return x.unit_name||u?.code||u?.name_ar||''}
 function render(){
@@ -76,6 +76,24 @@ function exportTemplate(){
  const ws=XLSX.utils.json_to_sheet(data);ws['!cols']=[{wch:22},{wch:38},{wch:12},{wch:18},{wch:18},{wch:18}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'أرصدة أول المدة');
  XLSX.writeFile(wb,'ارصدة_اول_المدة.xlsx');
+}
+async function loadDraft(){
+ try{
+  const h=await sb.from('opening_balances').select('id,document_no,description,posted,created_at').eq('posted',false).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(h.error)throw h.error;
+  if(!h.data){return}
+  const l=await sb.from('opening_balance_lines').select('item_id,qty,unit_cost,value:debit').eq('opening_balance_id',h.data.id);
+  if(l.error)throw l.error;
+  const map=new Map((l.data||[]).map(x=>[x.item_id,x]));
+  document.querySelectorAll('tr[data-id]').forEach(tr=>{
+   const x=map.get(tr.dataset.id);if(!x)return;
+   tr.querySelector('.qty').value=Number(x.qty||0)||'';
+   tr.querySelector('.cost').value=Number(x.unit_cost||0)||'';
+  });
+  calc();
+  const total=(l.data||[]).reduce((s,x)=>s+Number(x.debit||0),0);
+  msg('تم فتح مسودة أرصدة أول المدة رقم '+h.data.document_no+' — '+(l.data||[]).length+' صنف بإجمالي '+total.toFixed(2)+' جنيه. المسودة غير مُرحلة محاسبيًا.',true);
+ }catch(e){msg('تعذر فتح المسودة: '+(e.message||e))}
 }
 function normalize(v){return String(v??'').trim()}
 async function importFile(ev){
