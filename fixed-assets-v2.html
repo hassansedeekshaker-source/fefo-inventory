@@ -17,8 +17,8 @@
 <div class="field"><label>تكلفة الأصل</label><input id="aCost" type="number" min="0" step=".01" oninput="previewAsset()"></div>
 <div class="field"><label>القيمة التخريدية المتوقعة</label><input id="aResidual" type="number" min="0" step=".01" value="0" oninput="previewAsset()"></div>
 <div class="field"><label>مدة الإهلاك بالشهور</label><input id="aLife" type="number" min="1" step="1" placeholder="مثال: 60" oninput="previewAsset()"></div>
-<div class="field"><label>حساب مصروف الإهلاك</label><select id="aExp"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609">1591 - مجمع إهلاك السيارات</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
-<div class="field"><label>حساب مجمع الإهلاك</label><select id="aAccum"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609">1591 - مجمع إهلاك السيارات</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
+<div class="field"><label>حساب مصروف الإهلاك</label><select id="aExp"><option value="">-- اختر الحساب --</option><option value="2713ef82-f132-4d88-8f5a-69e69c2821e3" selected>6115 - مصروف إهلاك السيارات</option></select></div>
+<div class="field"><label>حساب مجمع الإهلاك</label><select id="aAccum"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609" selected>1591 - مجمع إهلاك السيارات</option></select></div>
 <div class="field full"><label>ملاحظات</label><textarea id="aNotes"></textarea></div>
 </div><div id="assetPreview" class="msg" style="margin-top:12px">أدخل التكلفة والمدة لعرض الإهلاك الشهري.</div><div style="margin-top:12px"><button class="success" onclick="saveAsset()">حفظ وإنشاء جدول الإهلاك</button></div><div id="assetMsg"></div></div>
 <div class="card"><h3>الأصول المسجلة</h3><table><thead><tr><th>الأصل</th><th>النوع</th><th>التكلفة</th><th>المدة</th><th>الإهلاك الشهري</th><th>بدء الإهلاك</th></tr></thead><tbody id="assetsBody"></tbody></table></div>
