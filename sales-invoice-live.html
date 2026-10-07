@@ -88,7 +88,13 @@ function setupCustomerPicker(){
    $('customer').value=id;input.value=x.name;box.style.display='none';calc();
   });
  }
- input.addEventListener('input',draw);
+ input.addEventListener('input',()=>{
+  const q=input.value.trim().toLocaleLowerCase();
+  const exact=customers.find(x=>String(x.name||'').trim().toLocaleLowerCase()===q||String(x.code||x.customer_code||'').trim().toLocaleLowerCase()===q);
+  if(exact){$('customer').value=exact.id;loadCustomerBalance();}
+  else {$('customer').value='';$('balance').value='0.00';}
+  draw();
+ });
  input.addEventListener('focus',()=>{if(input.value.trim())draw()});
  input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const first=box.querySelector('[data-customer-id]');if(first){e.preventDefault();first.click()}}});
  document.addEventListener('click',e=>{if(!input.parentElement.contains(e.target))box.style.display='none'});
