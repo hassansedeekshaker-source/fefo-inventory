@@ -50,7 +50,7 @@ h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:s
 <div class="total"><b>خصم من المنبع</b><div class="num" id="withholding">0.00</div></div>
 <div class="total"><b>الربح</b><div class="num" id="profit">0.00</div></div><div class="total"><b>هامش الربح %</b><div class="num" id="margin">0.00%</div></div><div class="total net"><b>صافي الفاتورة</b><div class="num" id="total">0.00</div></div>
 </div>
-<div class="actions"><button class="save" onclick="saveDraft()">💾 حفظ مسودة</button><button class="post" onclick="location.href='sale-post.html'">📤 الترحيل</button><button onclick="window.print()">🖨 طباعة</button><button onclick="location.href='sales-invoice.html?v=11'">📄 فاتورة جديدة</button></div>
+<div class="actions"><button class="save" onclick="saveDraft()">💾 حفظ مسودة</button><button class="post" onclick="validateAndPost()">📤 الترحيل</button><button onclick="window.print()">🖨 طباعة</button><button onclick="location.href='sales-invoice.html?v=11'">📄 فاتورة جديدة</button></div>
 <div id="msg"></div>
 </div></div>
 <script>
@@ -182,6 +182,28 @@ async function loadCustomerBalance(){
 }
 $('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));if(c)$('customerSearch').value=c.name;loadCustomerBalance();});
 $('site').addEventListener('change',refreshAllStocks);
+async function validateAndPost(){
+ const rows=[...document.querySelectorAll('#lines tr')];
+ if(!$('customer').value)return msg('⚠️ لا يمكن ترحيل الفاتورة: يجب اختيار العميل أولاً.','bad');
+ if(!$('site').value)return msg('⚠️ لا يمكن ترحيل الفاتورة: يجب اختيار المخزن أولاً.','bad');
+ if(!rows.length)return msg('⚠️ لا يمكن ترحيل الفاتورة: أضف صنفاً واحداً على الأقل.','bad');
+ const problems=[];
+ for(let i=0;i<rows.length;i++){
+  const tr=rows[i],name=tr.querySelector('.item-search').value.trim(),qty=Number(tr.querySelector('.qty').value||0),price=Number(tr.querySelector('.price').value||0),stock=Number(tr.querySelector('.stock').value||0),itemId=tr.dataset.itemId;
+  if(!itemId)problems.push('البند '+(i+1)+': لم يتم اختيار الصنف.');
+  else if(price<=0)problems.push('البند '+(i+1)+' '+name+': سعر البيع صفر.');
+  if(qty<=0)problems.push('البند '+(i+1)+' '+name+': الكمية غير صحيحة.');
+  else if(stock<=0)problems.push('البند '+(i+1)+' '+name+': لا يوجد رصيد بالمخزن.');
+  else if(qty>stock)problems.push('البند '+(i+1)+' '+name+': الكمية المطلوبة ('+qty+') أكبر من الرصيد المتاح ('+stock.toFixed(3)+').');
+ }
+ if(problems.length){msg('⚠️ لا يمكن ترحيل الفاتورة:\n'+problems.join('\n'),'bad');return;}
+ await refreshAllStocks();
+ for(let i=0;i<rows.length;i++){
+  const tr=rows[i],qty=Number(tr.querySelector('.qty').value||0),price=Number(tr.querySelector('.price').value||0),stock=Number(tr.querySelector('.stock').value||0);
+  if(price<=0||stock<=0||qty>stock){msg('⚠️ تم تحديث الرصيد، لكن لا يمكن الترحيل. راجع الكمية والرصيد.','bad');return;}
+ }
+ location.href='sale-post.html';
+}
 async function saveDraft(){
  try{
   if(!$('customer').value||!$('site').value)return msg('اختر العميل والمخزن أولاً','bad');
