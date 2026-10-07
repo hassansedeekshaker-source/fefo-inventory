@@ -151,7 +151,25 @@ function calc(){
  const wr=getWithholdingRate(), wh=value*wr/100, net=total-wh;
  $('cost').textContent=cost.toFixed(2);$('discount').textContent=discount.toFixed(2);$('value').textContent=value.toFixed(2);$('tax').textContent=tax.toFixed(2);$('withholding').textContent=wh.toFixed(2);$('total').textContent=net.toFixed(2);
 }
-$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));$('balance').value='0.00';if(c)$('customerSearch').value=c.name;});
+async function loadCustomerBalance(){
+ const id=$('customer').value;
+ if(!id){$('balance').value='0.00';return}
+ try{
+  const c=customers.find(x=>String(x.id)===String(id));
+  const [s,r,f]=await Promise.all([
+   sb.from('sales').select('total,withholding_tax').eq('customer_id',id).eq('status','posted'),
+   sb.from('sales_returns').select('total').eq('customer_id',id).eq('status','posted'),
+   sb.from('finance_transactions').select('amount').eq('customer_id',id).eq('transaction_type','receipt')
+  ]);
+  if(s.error)throw s.error;if(r.error)throw r.error;if(f.error)throw f.error;
+  const sales=(s.data||[]).reduce((a,x)=>a+Number(x.total||0)-Number(x.withholding_tax||0),0);
+  const returns=(r.data||[]).reduce((a,x)=>a+Number(x.total||0),0);
+  const receipts=(f.data||[]).reduce((a,x)=>a+Number(x.amount||0),0);
+  const opening=Number(c?.opening_balance||0);
+  $('balance').value=(opening+sales-returns-receipts).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+ }catch(e){$('balance').value='خطأ';console.error('customer balance',e)}
+}
+$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));if(c)$('customerSearch').value=c.name;loadCustomerBalance();});
 $('site').addEventListener('change',refreshAllStocks);
 async function saveDraft(){
  try{
