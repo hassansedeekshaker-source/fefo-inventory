@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المبيعات - P.O.S LIVE v16</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
+.wrap{width:100%;max-width:none;margin:0}.card{width:100%;min-height:calc(100vh - 12px);border-radius:8px}.top{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.top a,.btn{padding:9px 14px;border:1px solid #d7dee8;border-radius:7px;background:#fff;color:#172033;text-decoration:none;cursor:pointer}
+.card{background:#fff;border:1px solid #dfe5ed;border-radius:12px;padding:14px;box-shadow:0 2px 10px #0000000a}
+h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.field label{display:block;font-weight:700;font-size:13px}.field input,.field select,.field textarea{width:100%;margin-top:5px;padding:10px;border:1px solid #d5dce6;border-radius:6px;background:#fff}.notes{grid-column:span 2}
+.table{overflow:auto;border:1px solid #dfe4ea;border-radius:8px;margin-top:14px}table{width:100%;min-width:1250px;border-collapse:collapse;font-size:13px}th{background:#f0f2f5;padding:10px 7px;white-space:nowrap}td{padding:7px;border-bottom:1px solid #edf0f4;text-align:center}td input,td select{width:100%;padding:7px;border:1px solid #d6dde7;border-radius:5px} .item-picker,.customer-picker{position:relative;min-width:220px}.item-search{width:100%;min-width:210px}.item-results{display:none;position:fixed;z-index:99999;background:#fff;border:1px solid #b8c5d6;border-radius:7px;max-height:300px;overflow:auto;box-shadow:0 8px 24px #0003;text-align:right}.item-option{display:block;width:100%;border:0;border-bottom:1px solid #eef1f5;background:#fff;text-align:right;padding:9px;cursor:pointer;color:#172033}.item-option:hover,.item-option:focus{background:#eaf2ff}.item-empty{padding:10px;color:#667085}.ro{background:#f5f6f8!important}.add{padding:11px;text-align:center;background:#f7f9fc;color:#087fae;cursor:pointer}
+.totals{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.total{border:1px solid #dfe5ed;border-radius:8px;padding:10px;text-align:center}.total b{display:block;font-size:13px}.num{font-size:20px;font-weight:700;margin-top:7px}.net{background:#f0f7ff;border-color:#82b5f4}.net .num{font-size:24px;color:#1264b4}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.actions button{padding:10px 15px;border:1px solid #d7dee8;border-radius:7px;cursor:pointer}.save{background:#172a46;color:#fff;border-color:#172a46!important}.post{background:#198754;color:#fff;border-color:#198754!important}
+.msg{margin-top:12px;padding:10px;border-radius:7px}.ok{background:#e8f7ef;color:#087f4f}.bad{background:#fdecec;color:#b42318}
+@media(max-width:950px){.grid{grid-template-columns:1fr 1fr}.totals{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.grid{grid-template-columns:1fr}.notes{grid-column:span 1}.totals{grid-template-columns:1fr 1fr}}
+@media print{.top,.actions,.add{display:none}.card{box-shadow:none;border:0}.wrap{width:100%;margin:0}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><a href="sales.html" class="btn">↩ رجوع للشاشة السابقة</a></div>
+<div class="card">
+<div class="title"><h1>فاتورة مبيعات</h1></div>
+<div class="grid">
+<div class="field"><label>رقم الفاتورة<input id="invoiceNo" value="New"></label></div>
+<div class="field"><label>التاريخ<input id="date" type="date"></label></div>
+<div class="field"><label>المخزن<select id="site"></select></label></div>
+<div class="field"><label>العميل
+<div class="customer-picker">
+<input id="customerSearch" type="text" placeholder="ابحث باسم العميل أو الكود" autocomplete="off">
+<div id="customerResults" class="item-results"></div>
+<select id="customer" style="display:none"></select>
+</div></label></div>
+<div class="field"><label>الرصيد<input id="balance" class="ro" value="0.00" readonly></label></div>
+<div class="field notes"><label>ملاحظات<textarea id="notes" placeholder="اكتب أي ملاحظات..."></textarea></label></div>
+</div>
+<div class="table">
+<table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر البيع</th><th>الرصيد</th><th>التكلفة</th><th>إجمالي التكلفة</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th></tr></thead>
+<tbody id="lines"></tbody></table>
+<div class="add" onclick="addLine()">＋ إضافة بند</div>
+</div>
+<div class="totals">
+<div class="total"><b>تكلفة الفاتورة</b><div class="num" id="cost">0.00</div></div>
+<div class="total"><b>قيمة الخصم</b><div class="num" id="discount">0.00</div></div>
+<div class="total"><b>قيمة الفاتورة</b><div class="num" id="value">0.00</div></div>
+<div class="total"><b>قيمة الضريبة</b><div class="num" id="tax">0.00</div></div>
+<div class="total"><b>خصم من المنبع</b><div class="num" id="withholding">0.00</div></div>
+<div class="total net"><b>صافي الفاتورة</b><div class="num" id="total">0.00</div></div>
+</div>
+<div class="actions"><button class="save" onclick="saveDraft()">💾 حفظ مسودة</button><button class="post" onclick="location.href='sale-post.html'">📤 الترحيل</button><button onclick="window.print()">🖨 طباعة</button><button onclick="location.href='sales-invoice.html?v=11'">📄 فاتورة جديدة</button></div>
+<div id="msg"></div>
+</div></div>
+<script>
+const SB_URL='https://fyqyodnboryzaejlhdlk.supabase.co',SB_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(SB_URL,SB_KEY);
+let user,items=[],units=[],sites=[],customers=[];
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function msg(t,c){$('msg').className='msg '+c;$('msg').textContent=t}
+function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
+async function start(){
+ try{
+  const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
+  const [a,b,c,d]=await Promise.all([
+   sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,sale_price,tax_rate').eq('active',true).order('name_ar'),
+   sb.from('inv_units').select('id,name_ar').order('name_ar'),
+   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
+   sb.from('customers').select('id,name,code,opening_balance,withholding_enabled,withholding_rate').order('name')
+  ]);
+  items=a.data||[];units=b.data||[];sites=c.data||[];customers=d.data||[];
+  $('date').value=new Date().toISOString().slice(0,10);
+  $('site').innerHTML=opt(sites,x=>x.name_ar);$('customer').innerHTML=opt(customers,x=>x.name);
+  setupCustomerPicker();
+  addLine();calc();
+ }catch(e){msg(e.message||String(e),'bad')}
+}
+function setupCustomerPicker(){
+ const input=$('customerSearch'),box=$('customerResults');
+ function draw(){
+  const q=input.value.trim().toLocaleLowerCase();
+  const found=customers.filter(x=>(String(x.name||'').toLocaleLowerCase().includes(q)||String(x.code||x.customer_code||'').toLocaleLowerCase().includes(q))).slice(0,30);
+  if(!q){box.style.display='none';box.innerHTML='';return}
+  box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-customer-id="'+esc(x.id)+'">'+esc(x.name)+(x.code||x.customer_code?' — '+esc(x.code||x.customer_code):'')+'</button>').join(''):'<div class="item-empty">لا يوجد عميل مطابق</div>';
+  const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(260,r.width)+'px';box.style.top=(r.bottom+2)+'px';box.style.display='block';
+  box.querySelectorAll('[data-customer-id]').forEach(b=>b.onclick=()=>{
+   const id=b.dataset.customerId, x=customers.find(z=>String(z.id)===String(id));if(!x)return;
+   $('customer').value=id;input.value=x.name;$('balance').value=Number(x.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});box.style.display='none';loadCustomerBalance();calc();
+  });
+ }
+ input.addEventListener('input',()=>{
+  const q=input.value.trim().toLocaleLowerCase();
+  const exact=customers.find(x=>String(x.name||'').trim().toLocaleLowerCase()===q||String(x.code||x.customer_code||'').trim().toLocaleLowerCase()===q);
+  if(exact){$('customer').value=exact.id;$('balance').value=Number(exact.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});loadCustomerBalance();}
+  else {$('customer').value='';$('balance').value='0.00';}
+  draw();
+ });
+ input.addEventListener('focus',()=>{if(input.value.trim())draw()});
+ input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const first=box.querySelector('[data-customer-id]');if(first){e.preventDefault();first.click()}}});
+ document.addEventListener('click',e=>{if(!input.parentElement.contains(e.target))box.style.display='none'});
+}
+function setupItemPicker(tr,onPick){const input=tr.querySelector('.item-search'),box=tr.querySelector('.item-results');function draw(){const q=input.value.trim().toLocaleLowerCase();tr.dataset.itemId='';tr.querySelector('.unit').textContent='-';tr.querySelector('.stock').value='0.000';tr.querySelector('.cost').value='0.00';if(!q){box.style.display='none';box.innerHTML='';calc();return}const found=items.filter(x=>(String(x.name_ar||'').toLocaleLowerCase().includes(q)||String(x.sku||'').toLocaleLowerCase().includes(q))).slice(0,30);box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-id="'+esc(x.id)+'">'+esc(x.name_ar)+' — '+esc(x.sku||'')+'</button>').join(''):'<div class="item-empty">لا توجد أصناف مطابقة</div>';const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(220,r.width)+'px';box.style.maxHeight='300px';box.style.top=(window.innerHeight-r.bottom>=Math.min(300,found.length*38+8)||window.innerHeight-r.bottom>r.top?' '+(r.bottom)+'px':' '+Math.max(8,r.top-Math.min(300,found.length*38+8))+'px').trim();if(r.top>window.innerHeight/2&&window.innerHeight-r.bottom<150)box.style.top=Math.max(8,r.top-Math.min(300,found.length*38+8))+'px';box.style.display='block';box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const x=items.find(z=>z.id===b.dataset.id);if(!x)return;input.value=x.name_ar+' — '+(x.sku||'');tr.dataset.itemId=x.id;box.style.display='none';onPick()});calc();}input.addEventListener('input',draw);input.addEventListener('focus',()=>{if(input.value.trim()&&!tr.dataset.itemId)draw()});input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const first=box.querySelector('[data-id]');if(first){e.preventDefault();first.click()}}});document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});}
+function addLine(){
+ const tr=document.createElement('tr');
+ tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="stock ro" value="0.00" readonly></td><td><input class="cost ro" value="0.00" readonly></td><td class="lineCost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0"></td><td class="discValue">0.00</td><td class="lineValue">0.00</td><td><input class="tax ro" value="0.00" readonly></td><td class="taxValue">0.00</td><td class="lineTotal">0.00</td><td><button onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';
+ $('lines').appendChild(tr);
+ tr.querySelectorAll('input:not(.item-search)').forEach(x=>x.oninput=calc);
+ setupItemPicker(tr,()=>itemChanged(tr));
+}
+async function loadStock(tr){
+ const itemId=tr.dataset.itemId,siteId=$('site').value;
+ if(!itemId||!siteId)return;
+ try{
+  const r=await sb.from('inventory_costs').select('qty_on_hand,inventory_value,weighted_avg_cost').eq('item_id',itemId).eq('site_id',siteId).maybeSingle();
+  if(r.error)throw r.error;
+  let d=r.data||{}, available=Number(d.qty_on_hand||0), cost=Number(d.weighted_avg_cost||0);
+  if(available<=0 || cost<=0){
+   const lr=await sb.from('inv_lots').select('qty_on_hand,qty_reserved,unit_cost').eq('item_id',itemId).eq('site_id',siteId).gt('qty_on_hand',0);
+   if(!lr.error && (lr.data||[]).length){
+    const lots=lr.data||[];
+    available=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0),0);
+    const value=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0)*Number(x.unit_cost||0),0);
+    if(available>0)cost=value/available;
+   }
+  }
+  tr.querySelector('.stock').value=Math.max(0,available).toFixed(3);
+  tr.querySelector('.cost').value=Math.max(0,cost).toFixed(2);
+  calc();
+ }catch(e){console.error(e)}
+}
+async function itemChanged(tr){
+ const x=items.find(i=>i.id===tr.dataset.itemId);if(!x)return;
+ tr.querySelector('.unit').textContent=(units.find(u=>u.id===x.unit_id)?.name_ar||'-');
+ tr.querySelector('.price').value=Number(x.sale_price||0).toFixed(2);
+ tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);
+ tr.querySelector('.cost').value='0.00';
+ tr.querySelector('.stock').value='0.000';
+ await loadStock(tr);
+}
+async function refreshAllStocks(){
+ const rows=[...document.querySelectorAll('#lines tr')];
+ for(const tr of rows){if(tr.dataset.itemId)await loadStock(tr)}
+}
+function getWithholdingRate(){
+ const id=$('customer').value;
+ const c=customers.find(x=>String(x.id)===String(id));
+ return c&&!c.withholding_enabled?Number(c.withholding_rate||0):0;
+}
+function calc(){
+ let cost=0,discount=0,value=0,tax=0,total=0;
+ document.querySelectorAll('#lines tr').forEach(tr=>{
+  const q=Math.max(0,+tr.querySelector('.qty').value||0),p=Math.max(0,+tr.querySelector('.price').value||0),c=Math.max(0,+tr.querySelector('.cost').value||0),d=Math.min(100,Math.max(0,+tr.querySelector('.disc').value||0)),r=Math.max(0,+tr.querySelector('.tax').value||0);
+  const gross=q*p,dd=gross*d/100,n=gross-dd,tx=n*r/100;
+  cost+=q*c;discount+=dd;value+=n;tax+=tx;total+=n+tx;
+  tr.querySelector('.lineCost').textContent=(q*c).toFixed(2);tr.querySelector('.discValue').textContent=dd.toFixed(2);tr.querySelector('.lineValue').textContent=n.toFixed(2);tr.querySelector('.taxValue').textContent=tx.toFixed(2);tr.querySelector('.lineTotal').textContent=(n+tx).toFixed(2);
+ });
+ const wr=getWithholdingRate(), wh=value*wr/100, net=total-wh;
+ $('cost').textContent=cost.toFixed(2);$('discount').textContent=discount.toFixed(2);$('value').textContent=value.toFixed(2);$('tax').textContent=tax.toFixed(2);$('withholding').textContent=wh.toFixed(2);$('total').textContent=net.toFixed(2);
+}
+async function loadCustomerBalance(){
+ const id=$('customer').value;
+ if(!id){$('balance').value='0.00';return}
+ try{
+  const c=customers.find(x=>String(x.id)===String(id));
+  $('balance').value=Number(c?.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const [s,r,f]=await Promise.all([
+   sb.from('sales').select('total,withholding_tax').eq('customer_id',id).eq('status','posted'),
+   sb.from('sales_returns').select('total').eq('customer_id',id).eq('status','posted'),
+   sb.from('finance_transactions').select('amount').eq('customer_id',id).eq('transaction_type','receipt')
+  ]);
+  if(s.error||r.error||f.error){console.error('balance query',s.error,r.error,f.error);return;}
+  const sales=(s.data||[]).reduce((a,x)=>a+Number(x.total||0)-Number(x.withholding_tax||0),0);
+  const returns=(r.data||[]).reduce((a,x)=>a+Number(x.total||0),0);
+  const receipts=(f.data||[]).reduce((a,x)=>a+Number(x.amount||0),0);
+  const opening=Number(c?.opening_balance||0);
+  $('balance').value=(opening+sales-returns-receipts).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+ }catch(e){$('balance').value='خطأ';console.error('customer balance',e)}
+}
+$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));if(c)$('customerSearch').value=c.name;loadCustomerBalance();});
+$('site').addEventListener('change',refreshAllStocks);
+async function saveDraft(){
+ try{
+  if(!$('customer').value||!$('site').value)return msg('اختر العميل والمخزن أولاً','bad');
+  const rows=[...document.querySelectorAll('#lines tr')];if(!rows.length)return msg('أضف صنفاً واحداً على الأقل','bad');
+  const lines=rows.map(tr=>{const x=items.find(i=>i.id===tr.dataset.itemId),q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,r=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,v=q*p,dd=v*d/100,n=v-dd;return{item_id:x?.id,qty:q,price:p,unit_cost:co,discount_rate:d,discount_amount:dd,tax_rate:r,tax_amount:n*r/100}})
+  if(lines.some(x=>!x.item_id||x.qty<=0))return msg('راجع الأصناف والكميات','bad');
+  const subtotal=lines.reduce((s,x)=>s+x.qty*x.price-x.discount_amount,0),tax=lines.reduce((s,x)=>s+x.tax_amount,0),total=subtotal+tax,withholdingRate=getWithholdingRate(),withholdingTax=subtotal*withholdingRate/100,netTotal=total-withholdingTax;
+  const h=await sb.from('sales').insert({invoice_no:$('invoiceNo').value==='New'?null:$('invoiceNo').value||null,customer_id:+$('customer').value,site_id:$('site').value,sale_date:$('date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:withholdingTax}).select().single();
+  if(h.error)throw h.error;
+  const l=await sb.from('sale_lines').insert(lines.map(x=>({sale_id:h.data.id,item_id:x.item_id,qty:x.qty,unit_price:x.price,unit_cost:x.unit_cost,discount_rate:x.discount_rate,discount_amount:x.discount_amount,tax_rate:x.tax_rate,tax_amount:x.tax_amount})));
+  if(l.error)throw l.error;
+  $('invoiceNo').value=h.data.invoice_no||h.data.id.slice(0,8);msg('تم حفظ الفاتورة كمسودة ✓ — لم يتم خصم المخزون حتى الترحيل','ok');
+ }catch(e){msg(e.message||String(e),'bad')}
+}
+start();
+</script>
+</body></html>
