@@ -17,8 +17,8 @@
 <div class="field"><label>تكلفة الأصل</label><input id="aCost" type="number" min="0" step=".01" oninput="previewAsset()"></div>
 <div class="field"><label>القيمة التخريدية المتوقعة</label><input id="aResidual" type="number" min="0" step=".01" value="0" oninput="previewAsset()"></div>
 <div class="field"><label>مدة الإهلاك بالشهور</label><input id="aLife" type="number" min="1" step="1" placeholder="مثال: 60" oninput="previewAsset()"></div>
-<div class="field"><label>حساب مصروف الإهلاك</label><select id="aExp"><option value="">-- اختر الحساب --</option><option value="">1500 - الأصول الثابتة</option><option value="">1510 - السيارات</option><option value="">1520 - أثاث وتجهيزات</option><option value="">1530 - أجهزة ومعدات</option><option value="">1590 - مجمع الإهلاك</option><option value="">1591 - مجمع إهلاك السيارات</option><option value="">1592 - مجمع إهلاك الأثاث والتجهيزات</option></select></div>
-<div class="field"><label>حساب مجمع الإهلاك</label><select id="aAccum"><option value="">-- اختر الحساب --</option><option value="">1500 - الأصول الثابتة</option><option value="">1510 - السيارات</option><option value="">1520 - أثاث وتجهيزات</option><option value="">1530 - أجهزة ومعدات</option><option value="">1590 - مجمع الإهلاك</option><option value="">1591 - مجمع إهلاك السيارات</option><option value="">1592 - مجمع إهلاك الأثاث والتجهيزات</option></select></div>
+<div class="field"><label>حساب مصروف الإهلاك</label><select id="aExp"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609">1591 - مجمع إهلاك السيارات</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
+<div class="field"><label>حساب مجمع الإهلاك</label><select id="aAccum"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609">1591 - مجمع إهلاك السيارات</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
 <div class="field full"><label>ملاحظات</label><textarea id="aNotes"></textarea></div>
 </div><div id="assetPreview" class="msg" style="margin-top:12px">أدخل التكلفة والمدة لعرض الإهلاك الشهري.</div><div style="margin-top:12px"><button class="success" onclick="saveAsset()">حفظ وإنشاء جدول الإهلاك</button></div><div id="assetMsg"></div></div>
 <div class="card"><h3>الأصول المسجلة</h3><table><thead><tr><th>الأصل</th><th>النوع</th><th>التكلفة</th><th>المدة</th><th>الإهلاك الشهري</th><th>بدء الإهلاك</th></tr></thead><tbody id="assetsBody"></tbody></table></div>
@@ -31,8 +31,8 @@
 <div class="field"><label>قيمة التكلفة</label><input id="cAmount" type="number" min="0" step=".01"></div>
 <div class="field"><label>مدة التوزيع بالشهور</label><input id="cMonths" type="number" min="1" step="1" placeholder="مثال: 12 أو 13"></div>
 <div class="field"><label>بداية التحميل</label><input id="cStart" type="date"></div>
-<div class="field"><label>حساب المصروف</label><select id="cExp"><option value="">-- اختر الحساب --</option><option value="">1500 - الأصول الثابتة</option><option value="">1510 - السيارات</option><option value="">1520 - أثاث وتجهيزات</option><option value="">1530 - أجهزة ومعدات</option><option value="">1590 - مجمع الإهلاك</option><option value="">1591 - مجمع إهلاك السيارات</option><option value="">1592 - مجمع إهلاك الأثاث والتجهيزات</option></select></div>
-<div class="field"><label>حساب التكلفة المؤجلة</label><select id="cDef"><option value="">-- اختر الحساب --</option><option value="">1500 - الأصول الثابتة</option><option value="">1510 - السيارات</option><option value="">1520 - أثاث وتجهيزات</option><option value="">1530 - أجهزة ومعدات</option><option value="">1590 - مجمع الإهلاك</option><option value="">1591 - مجمع إهلاك السيارات</option><option value="">1592 - مجمع إهلاك الأثاث والتجهيزات</option></select></div>
+<div class="field"><label>حساب المصروف</label><select id="cExp"><option value="">-- اختر الحساب --</option><option value="761f491c-6ed6-4a56-aaff-2b6be242f1c5">1500 - الأصول الثابتة</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
+<div class="field"><label>حساب التكلفة المؤجلة</label><select id="cDef"><option value="">-- اختر الحساب --</option><option value="761f491c-6ed6-4a56-aaff-2b6be242f1c5">1500 - الأصول الثابتة</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
 <div class="field full"><label>ملاحظات</label><textarea id="cNotes"></textarea></div>
 </div><div style="margin-top:12px"><button class="success" onclick="saveCost()">حفظ وإنشاء جدول التوزيع</button></div><div id="costMsg"></div></div>
 <div class="card"><h3>التكاليف المسجلة</h3><table><thead><tr><th>الأصل</th><th>البيان</th><th>القيمة</th><th>المدة</th><th>الشهري</th><th>البداية</th></tr></thead><tbody id="costsBody"></tbody></table></div>
@@ -46,7 +46,7 @@
 <div id="globalMsg"></div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <script>
 const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
@@ -62,10 +62,12 @@ async function loadAccountsAndData(session){
  const today=new Date().toISOString().slice(0,10);
  $('aDate').value=$('aStartDate').value=$('cDate').value=$('cStart').value=today;
  let r=await sb.rpc('get_active_coa_accounts');
- if(r.error){initialized=false;['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML='<option value="">تعذر تحميل الحسابات</option>');msg('globalMsg','تعذر تحميل دليل الحسابات: '+r.error.message,true);return}
- accounts=r.data||[];
- const opts='<option value="">-- اختر الحساب --</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code+' - '+a.name_ar)+'</option>').join('');
- ['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML=opts);
+ if(!r.error && Array.isArray(r.data) && r.data.length){
+   accounts=r.data;
+   const opts='<option value="">-- اختر الحساب --</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code+' - '+a.name_ar)+'</option>').join('');
+   ['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML=opts);
+ }
+ $('status').textContent='متصل ✓';
  await Promise.all([loadAssets(),loadCosts()]);
 }
 function init(){
@@ -110,6 +112,7 @@ async function loadSchedule(){
  $('scheduleBody').innerHTML=(r.data||[]).map(x=>'<tr><td>'+esc(x.charge_month)+'</td><td>'+esc(x.asset_name)+'</td><td>'+esc(x.cost_description||'إهلاك الأصل')+'</td><td>'+money(x.charge_amount)+'</td><td>'+(x.posted?'مرحل':'غير مرحل')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد بيانات</td></tr>';
 }
 async function logout(){await sb.auth.signOut();location.href='accounting.html'}
+(()=>{const d=new Date().toISOString().slice(0,10);['aDate','aStartDate','cDate','cStart'].forEach(id=>{const el=$(id);if(el&&!el.value)el.value=d;});})();
 window.addEventListener('error',e=>{const el=document.getElementById('status');if(el)el.textContent='خطأ في تحميل الشاشة';const g=document.getElementById('globalMsg');if(g)g.innerHTML='<div class="msg bad">'+esc(e.message||'حدث خطأ في تشغيل الشاشة')+'</div>'});
 (async()=>{try{if(!window.supabase){throw new Error('مكتبة الاتصال بقاعدة البيانات لم تُحمّل');}await init();}catch(e){$('status').textContent='تعذر الاتصال';msg('globalMsg','تعذر تشغيل شاشة الأصول: '+(e?.message||e),true);}})();
 </script></body></html>
