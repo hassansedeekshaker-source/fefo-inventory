@@ -11,7 +11,7 @@
 .card{background:#fff;border:1px solid #dfe5ed;border-radius:12px;padding:14px;box-shadow:0 2px 10px #0000000a}
 h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.field label{display:block;font-weight:700;font-size:13px}.field input,.field select,.field textarea{width:100%;margin-top:5px;padding:10px;border:1px solid #d5dce6;border-radius:6px;background:#fff}.notes{grid-column:span 2}
-.table{overflow:auto;border:1px solid #dfe4ea;border-radius:8px;margin-top:14px}table{width:100%;min-width:1250px;border-collapse:collapse;font-size:13px}th{background:#f0f2f5;padding:10px 7px;white-space:nowrap}td{padding:7px;border-bottom:1px solid #edf0f4;text-align:center}td input,td select{width:100%;padding:7px;border:1px solid #d6dde7;border-radius:5px} .item-picker{position:relative;min-width:220px}.item-search{width:100%;min-width:210px}.item-results{display:none;position:fixed;z-index:99999;background:#fff;border:1px solid #b8c5d6;border-radius:7px;max-height:300px;overflow:auto;box-shadow:0 8px 24px #0003;text-align:right}.item-option{display:block;width:100%;border:0;border-bottom:1px solid #eef1f5;background:#fff;text-align:right;padding:9px;cursor:pointer;color:#172033}.item-option:hover,.item-option:focus{background:#eaf2ff}.item-empty{padding:10px;color:#667085}.ro{background:#f5f6f8!important}.add{padding:11px;text-align:center;background:#f7f9fc;color:#087fae;cursor:pointer}
+.table{overflow:auto;border:1px solid #dfe4ea;border-radius:8px;margin-top:14px}table{width:100%;min-width:1250px;border-collapse:collapse;font-size:13px}th{background:#f0f2f5;padding:10px 7px;white-space:nowrap}td{padding:7px;border-bottom:1px solid #edf0f4;text-align:center}td input,td select{width:100%;padding:7px;border:1px solid #d6dde7;border-radius:5px} .item-picker,.customer-picker{position:relative;min-width:220px}.item-search{width:100%;min-width:210px}.item-results{display:none;position:fixed;z-index:99999;background:#fff;border:1px solid #b8c5d6;border-radius:7px;max-height:300px;overflow:auto;box-shadow:0 8px 24px #0003;text-align:right}.item-option{display:block;width:100%;border:0;border-bottom:1px solid #eef1f5;background:#fff;text-align:right;padding:9px;cursor:pointer;color:#172033}.item-option:hover,.item-option:focus{background:#eaf2ff}.item-empty{padding:10px;color:#667085}.ro{background:#f5f6f8!important}.add{padding:11px;text-align:center;background:#f7f9fc;color:#087fae;cursor:pointer}
 .totals{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.total{border:1px solid #dfe5ed;border-radius:8px;padding:10px;text-align:center}.total b{display:block;font-size:13px}.num{font-size:20px;font-weight:700;margin-top:7px}.net{background:#f0f7ff;border-color:#82b5f4}.net .num{font-size:24px;color:#1264b4}
 .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.actions button{padding:10px 15px;border:1px solid #d7dee8;border-radius:7px;cursor:pointer}.save{background:#172a46;color:#fff;border-color:#172a46!important}.post{background:#198754;color:#fff;border-color:#198754!important}
 .msg{margin-top:12px;padding:10px;border-radius:7px}.ok{background:#e8f7ef;color:#087f4f}.bad{background:#fdecec;color:#b42318}
@@ -28,7 +28,12 @@ h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:s
 <div class="field"><label>رقم الفاتورة<input id="invoiceNo" value="New"></label></div>
 <div class="field"><label>التاريخ<input id="date" type="date"></label></div>
 <div class="field"><label>المخزن<select id="site"></select></label></div>
-<div class="field"><label>العميل<select id="customer"></select></label></div>
+<div class="field"><label>العميل
+<div class="customer-picker">
+<input id="customerSearch" type="text" placeholder="ابحث باسم العميل أو الكود" autocomplete="off">
+<div id="customerResults" class="item-results"></div>
+<select id="customer" style="display:none"></select>
+</div></label></div>
 <div class="field"><label>الرصيد<input id="balance" class="ro" value="0.00" readonly></label></div>
 <div class="field notes"><label>ملاحظات<textarea id="notes" placeholder="اكتب أي ملاحظات..."></textarea></label></div>
 </div>
@@ -66,8 +71,27 @@ async function start(){
   items=a.data||[];units=b.data||[];sites=c.data||[];customers=d.data||[];
   $('date').value=new Date().toISOString().slice(0,10);
   $('site').innerHTML=opt(sites,x=>x.name_ar);$('customer').innerHTML=opt(customers,x=>x.name);
+  setupCustomerPicker();
   addLine();calc();
  }catch(e){msg(e.message||String(e),'bad')}
+}
+function setupCustomerPicker(){
+ const input=$('customerSearch'),box=$('customerResults');
+ function draw(){
+  const q=input.value.trim().toLocaleLowerCase();
+  const found=customers.filter(x=>(String(x.name||'').toLocaleLowerCase().includes(q)||String(x.code||x.customer_code||'').toLocaleLowerCase().includes(q))).slice(0,30);
+  if(!q){box.style.display='none';box.innerHTML='';return}
+  box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-customer-id="'+esc(x.id)+'">'+esc(x.name)+(x.code||x.customer_code?' — '+esc(x.code||x.customer_code):'')+'</button>').join(''):'<div class="item-empty">لا يوجد عميل مطابق</div>';
+  const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(260,r.width)+'px';box.style.top=(r.bottom+2)+'px';box.style.display='block';
+  box.querySelectorAll('[data-customer-id]').forEach(b=>b.onclick=()=>{
+   const id=b.dataset.customerId, x=customers.find(z=>String(z.id)===String(id));if(!x)return;
+   $('customer').value=id;input.value=x.name;box.style.display='none';calc();
+  });
+ }
+ input.addEventListener('input',draw);
+ input.addEventListener('focus',()=>{if(input.value.trim())draw()});
+ input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const first=box.querySelector('[data-customer-id]');if(first){e.preventDefault();first.click()}}});
+ document.addEventListener('click',e=>{if(!input.parentElement.contains(e.target))box.style.display='none'});
 }
 function setupItemPicker(tr,onPick){const input=tr.querySelector('.item-search'),box=tr.querySelector('.item-results');function draw(){const q=input.value.trim().toLocaleLowerCase();tr.dataset.itemId='';tr.querySelector('.unit').textContent='-';tr.querySelector('.stock').value='0.000';tr.querySelector('.cost').value='0.00';if(!q){box.style.display='none';box.innerHTML='';calc();return}const found=items.filter(x=>(String(x.name_ar||'').toLocaleLowerCase().includes(q)||String(x.sku||'').toLocaleLowerCase().includes(q))).slice(0,30);box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-id="'+esc(x.id)+'">'+esc(x.name_ar)+' — '+esc(x.sku||'')+'</button>').join(''):'<div class="item-empty">لا توجد أصناف مطابقة</div>';const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(220,r.width)+'px';box.style.maxHeight='300px';box.style.top=(window.innerHeight-r.bottom>=Math.min(300,found.length*38+8)||window.innerHeight-r.bottom>r.top?' '+(r.bottom)+'px':' '+Math.max(8,r.top-Math.min(300,found.length*38+8))+'px').trim();if(r.top>window.innerHeight/2&&window.innerHeight-r.bottom<150)box.style.top=Math.max(8,r.top-Math.min(300,found.length*38+8))+'px';box.style.display='block';box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const x=items.find(z=>z.id===b.dataset.id);if(!x)return;input.value=x.name_ar+' — '+(x.sku||'');tr.dataset.itemId=x.id;box.style.display='none';onPick()});calc();}input.addEventListener('input',draw);input.addEventListener('focus',()=>{if(input.value.trim()&&!tr.dataset.itemId)draw()});input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const first=box.querySelector('[data-id]');if(first){e.preventDefault();first.click()}}});document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});}
 function addLine(){
@@ -127,7 +151,7 @@ function calc(){
  const wr=getWithholdingRate(), wh=value*wr/100, net=total-wh;
  $('cost').textContent=cost.toFixed(2);$('discount').textContent=discount.toFixed(2);$('value').textContent=value.toFixed(2);$('tax').textContent=tax.toFixed(2);$('withholding').textContent=wh.toFixed(2);$('total').textContent=net.toFixed(2);
 }
-$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));$('balance').value='0.00';});
+$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));$('balance').value='0.00';if(c)$('customerSearch').value=c.name;});
 $('site').addEventListener('change',refreshAllStocks);
 async function saveDraft(){
  try{
