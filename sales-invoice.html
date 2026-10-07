@@ -80,13 +80,23 @@ function addLine(){
 async function loadStock(tr){
  const itemId=tr.dataset.itemId,siteId=$('site').value;
  if(!itemId||!siteId)return;
- const r=await sb.from('inventory_costs').select('qty_on_hand,inventory_value,weighted_avg_cost').eq('item_id',itemId).eq('site_id',siteId).maybeSingle();
- if(r.error){console.error(r.error);return}
- const d=r.data||{};
- const available=Math.max(0,Number(d.qty_on_hand||0));
- tr.querySelector('.stock').value=available.toFixed(3);
- tr.querySelector('.cost').value=Number(d.weighted_avg_cost||0).toFixed(2);
- calc();
+ try{
+  const r=await sb.from('inventory_costs').select('qty_on_hand,inventory_value,weighted_avg_cost').eq('item_id',itemId).eq('site_id',siteId).maybeSingle();
+  if(r.error)throw r.error;
+  let d=r.data||{}, available=Number(d.qty_on_hand||0), cost=Number(d.weighted_avg_cost||0);
+  if(available<=0 || cost<=0){
+   const lr=await sb.from('inv_lots').select('qty_on_hand,qty_reserved,unit_cost').eq('item_id',itemId).eq('site_id',siteId).gt('qty_on_hand',0);
+   if(!lr.error && (lr.data||[]).length){
+    const lots=lr.data||[];
+    available=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0),0);
+    const value=lots.reduce((s,x)=>s+Number(x.qty_on_hand||0)*Number(x.unit_cost||0),0);
+    if(available>0)cost=value/available;
+   }
+  }
+  tr.querySelector('.stock').value=Math.max(0,available).toFixed(3);
+  tr.querySelector('.cost').value=Math.max(0,cost).toFixed(2);
+  calc();
+ }catch(e){console.error(e)}
 }
 async function itemChanged(tr){
  const x=items.find(i=>i.id===tr.dataset.itemId);if(!x)return;
