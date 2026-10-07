@@ -144,7 +144,7 @@ function buildPdfContent(mode){
 async function downloadPdf(mode){
  if(typeof html2pdf==='undefined'){msg('تعذر تحميل أداة PDF. تأكد من الاتصال بالإنترنت ثم أعد المحاولة.','bad');return;}
  const rows=document.querySelectorAll('#lines tr');if(!rows.length){msg('أضف صنفاً أولاً قبل إنشاء PDF.','bad');return;}
- const el=buildPdfContent(mode);el.style.position='fixed';el.style.left='-10000px';el.style.top='0';document.body.appendChild(el);
+ const el=buildPdfContent(mode);el.style.position='absolute';el.style.left='0';el.style.top='0';el.style.zIndex='999999';el.style.pointerEvents='none';document.body.appendChild(el);
  const customer=($('customerSearch').value.trim()||'عميل').replace(/[^\u0600-\u06FF\w\s-]/g,'').trim()||'عميل';
  const invoice=($('invoiceNo').value||'New').replace(/[^\u0600-\u06FF\w-]/g,'')||'New';
  const filename=(mode==='items'?'كشف_أصناف_وكميات_':'فاتورة_بيع_')+customer+'_'+invoice+'.pdf';
