@@ -16,7 +16,28 @@ h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:s
 .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.actions button{padding:10px 15px;border:1px solid #d7dee8;border-radius:7px;cursor:pointer}.save{background:#172a46;color:#fff;border-color:#172a46!important}.post{background:#198754;color:#fff;border-color:#198754!important}
 .msg{margin-top:12px;padding:10px;border-radius:7px}.ok{background:#e8f7ef;color:#087f4f}.bad{background:#fdecec;color:#b42318}
 @media(max-width:1100px){.totals{grid-template-columns:repeat(4,1fr)}}@media(max-width:950px){.grid{grid-template-columns:1fr 1fr}.totals{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.grid{grid-template-columns:1fr}.notes{grid-column:span 1}.totals{grid-template-columns:1fr 1fr}}
-@media print{.top,.actions,.add{display:none}.card{box-shadow:none;border:0}.wrap{width:100%;margin:0}body{background:#fff}}
+@media print{
+ body.print-items .table th:nth-child(4),body.print-items .table td:nth-child(4),
+ body.print-items .table th:nth-child(5),body.print-items .table td:nth-child(5),
+ body.print-items .table th:nth-child(6),body.print-items .table td:nth-child(6),
+ body.print-items .table th:nth-child(7),body.print-items .table td:nth-child(7),
+ body.print-items .table th:nth-child(8),body.print-items .table td:nth-child(8),
+ body.print-items .table th:nth-child(9),body.print-items .table td:nth-child(9),
+ body.print-items .table th:nth-child(10),body.print-items .table td:nth-child(10),
+ body.print-items .table th:nth-child(11),body.print-items .table td:nth-child(11),
+ body.print-items .table th:nth-child(12),body.print-items .table td:nth-child(12),
+ body.print-items .table th:nth-child(13),body.print-items .table td:nth-child(13),
+ body.print-items .table th:nth-child(14),body.print-items .table td:nth-child(14),
+ body.print-items .totals{display:none}
+ body.print-items .table table{min-width:0}
+ body.print-items .table th:nth-child(1),body.print-items .table td:nth-child(1){width:65%}
+ body.print-items .table th:nth-child(2),body.print-items .table td:nth-child(2){width:15%}
+ body.print-items .table th:nth-child(3),body.print-items .table td:nth-child(3){width:20%}
+ body.print-items .print-hide{display:none!important}
+ .print-choice{display:none!important}
+ .top,.actions,.add{display:none}.card{box-shadow:none;border:0}.wrap{width:100%;margin:0}body{background:#fff}
+}
+.top,.actions,.add{display:none}.card{box-shadow:none;border:0}.wrap{width:100%;margin:0}body{background:#fff}}
 </style>
 </head>
 <body>
@@ -50,13 +71,27 @@ h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:s
 <div class="total"><b>خصم من المنبع</b><div class="num" id="withholding">0.00</div></div>
 <div class="total"><b>الربح</b><div class="num" id="profit">0.00</div></div><div class="total"><b>هامش الربح %</b><div class="num" id="margin">0.00%</div></div><div class="total net"><b>صافي الفاتورة</b><div class="num" id="total">0.00</div></div>
 </div>
-<div class="actions"><button class="save" onclick="saveDraft()">💾 حفظ مسودة</button><button class="post" onclick="validateAndPost()">📤 الترحيل</button><button onclick="window.print()">🖨 طباعة</button><button onclick="location.href='sales-invoice.html?v=11'">📄 فاتورة جديدة</button></div>
+<div class="actions"><button class="save" onclick="saveDraft()">💾 حفظ مسودة</button><button class="post" onclick="validateAndPost()">📤 الترحيل</button><button onclick="showPrintChoice()">🖨 طباعة</button><button onclick="location.href='sales-invoice.html?v=11'">📄 فاتورة جديدة</button></div>
 <div id="msg"></div>
 </div></div>
+<div id="printChoice" style="display:none;position:fixed;inset:0;background:#0006;z-index:100000;align-items:center;justify-content:center">
+ <div style="background:#fff;border-radius:12px;padding:22px;min-width:320px;max-width:90%;box-shadow:0 10px 40px #0004;text-align:center">
+  <h3 style="margin-top:0">اختار نوع الطباعة</h3>
+  <p style="color:#667085">اختار الشكل المناسب للعميل</p>
+  <button class="btn" onclick="printFullInvoice()">🧾 فاتورة بيع كاملة</button>
+  <button class="btn" onclick="printItemsOnly()">📦 أصناف وكميات فقط</button>
+  <button class="btn" onclick="closePrintChoice()">إلغاء</button>
+ </div>
+</div>
 <script>
 const SB_URL='https://fyqyodnboryzaejlhdlk.supabase.co',SB_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(SB_URL,SB_KEY);
 let user,items=[],units=[],sites=[],customers=[];
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let printMode='full';
+function showPrintChoice(){$('printChoice').style.display='flex'}
+function closePrintChoice(){$('printChoice').style.display='none'}
+function printFullInvoice(){printMode='full';document.body.classList.remove('print-items');closePrintChoice();window.print()}
+function printItemsOnly(){printMode='items';document.body.classList.add('print-items');closePrintChoice();window.print()}
 function msg(t,c){$('msg').className='msg '+c;$('msg').textContent=t}
 function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 async function start(){
@@ -220,4 +255,4 @@ async function saveDraft(){
 }
 start();
 </script>
-</body></html>
+</body></html><script>window.addEventListener('afterprint',()=>document.body.classList.remove('print-items'));</script>
