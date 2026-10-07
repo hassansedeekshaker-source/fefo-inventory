@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480">
+<defs>
+ <linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f6d36b"/><stop offset=".45" stop-color="#b77a18"/><stop offset="1" stop-color="#6f430e"/></linearGradient>
+ <linearGradient id="g2" x1="0" x2="1"><stop stop-color="#7a480b"/><stop offset=".5" stop-color="#d5a43a"/><stop offset="1" stop-color="#8a5510"/></linearGradient>
+</defs>
+<rect width="1200" height="480" fill="transparent"/>
+<g transform="translate(35 45)">
+ <path d="M45 280 C125 170 180 95 250 25 C235 95 205 145 180 180 C235 112 292 62 345 30 C330 120 285 190 225 238 C170 282 105 303 45 280Z" fill="url(#g)" stroke="#6f430e" stroke-width="6"/>
+ <path d="M85 295 C160 255 235 225 302 145 C300 215 268 285 210 325 C160 360 100 347 85 295Z" fill="url(#g2)" stroke="#6f430e" stroke-width="6"/>
+ <path d="M118 324 C205 350 300 332 380 280 C325 355 245 390 165 380 C125 375 105 355 118 324Z" fill="url(#g)" stroke="#6f430e" stroke-width="5"/>
+ <path d="M335 48 C372 78 393 112 407 160 C370 145 340 119 320 86Z" fill="url(#g)" stroke="#6f430e" stroke-width="5"/>
+ <path d="M355 100 C402 116 430 146 449 187 C407 174 375 151 349 127Z" fill="url(#g)" stroke="#6f430e" stroke-width="5"/>
+ <circle cx="150" cy="206" r="10" fill="#5d390c"/>
+ <path d="M150 220 C170 230 185 242 198 259" fill="none" stroke="#6f430e" stroke-width="6" stroke-linecap="round"/>
+ <path d="M45 382 C155 350 290 350 410 382" fill="none" stroke="#c08a27" stroke-width="9" stroke-linecap="round"/>
+</g>
+<g fill="#70450f" font-family="Tahoma, Arial, sans-serif" text-anchor="middle">
+ <text x="785" y="155" font-size="58" font-weight="800">شركة الطائر الحر</text>
+ <text x="785" y="218" font-size="32" font-weight="700">لتعبئة وتوريد المواد الغذائية</text>
+ <line x1="565" y1="250" x2="1005" y2="250" stroke="#c18a28" stroke-width="5"/>
+ <text x="785" y="305" font-size="42" font-weight="700" letter-spacing="7">FREE BIRD</text>
+ <text x="785" y="350" font-size="23" font-weight="600" letter-spacing="3">DRY FOOD PACKAGING &amp; SUPPLY</text>
+ <text x="785" y="405" font-size="18" fill="#9a6a1b">شريكك الأمثل في عالم الأغذية</text>
+</g>
+</svg>
