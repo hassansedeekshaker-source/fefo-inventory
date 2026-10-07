@@ -45,67 +45,30 @@
 </section>
 <div id="globalMsg"></div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
 <script>
-const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+const SB_URL='https://fyqyodnboryzaejlhdlk.supabase.co', SB_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
-let accounts=[],assets=[];
+let assets=[];
 function money(x){return Number(x||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function previewAsset(){const cost=Number($('aCost').value||0),res=Number($('aResidual').value||0),life=Number($('aLife').value||0);if(cost>0&&life>0&&res<=cost){const base=cost-res; $('assetPreview').innerHTML='<b>ملخص قبل الحفظ</b> — القيمة القابلة للإهلاك: '+money(base)+' | الإهلاك الشهري التقريبي: <b>'+money(base/life)+'</b> | إجمالي مدة الإهلاك: '+life+' شهر | القيمة الدفترية النهائية: '+money(res);}else $('assetPreview').textContent='أدخل تكلفة الأصل ومدة الإهلاك بشكل صحيح لعرض الإهلاك الشهري.'}
+function token(){try{const x=localStorage.getItem('sb-fyqyodnboryzaejlhdlk-auth-token');if(!x)return '';const j=JSON.parse(x);return j.access_token||''}catch(e){return ''}}
+function headers(){const t=token();return {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+(t||SB_KEY),'Prefer':'return=representation'}}
+async function api(path,opts={}){const r=await fetch(SB_URL+'/rest/v1/'+path,{...opts,headers:{...headers(),...(opts.headers||{})}});const text=await r.text();let data;try{data=text?JSON.parse(text):null}catch(e){data=text}if(!r.ok)throw new Error(data?.message||data?.hint||data?.details||text||('HTTP '+r.status));return data}
+function previewAsset(){const cost=Number($('aCost').value||0),res=Number($('aResidual').value||0),life=Number($('aLife').value||0);if(cost>0&&life>0&&res<=cost){const base=cost-res;$('assetPreview').innerHTML='<b>ملخص قبل الحفظ</b> — القيمة القابلة للإهلاك: '+money(base)+' | الإهلاك الشهري التقريبي: <b>'+money(base/life)+'</b> | إجمالي مدة الإهلاك: '+life+' شهر | القيمة الدفترية النهائية: '+money(res);}else $('assetPreview').textContent='أدخل تكلفة الأصل ومدة الإهلاك بشكل صحيح لعرض الإهلاك الشهري.'}
 function msg(id,text,bad=false){$(id).innerHTML='<div class="msg '+(bad?'bad':'ok')+'">'+esc(text)+'</div>'}
-function tab(id,b){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');b.classList.add('active');if(id==='schedule')loadSchedule()}
-async function init(){
- $('status').textContent='جاري التحقق من الدخول...';
- const sessionPromise=sb.auth.getSession();
- const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('انتهت مهلة الاتصال بقاعدة البيانات')),8000));
- let s;
- try{s=await Promise.race([sessionPromise,timeout]);}catch(e){$('status').textContent='جاهز';msg('globalMsg','الشاشة جاهزة، لكن الاتصال بقاعدة البيانات لم يكتمل. حاول الحفظ بعد التأكد من تسجيل الدخول.',true);return}
- if(!s.data.session){location.href='accounting.html';return}
- $('status').textContent='متصل ✓';$('who').textContent=s.data.session.user.email;
- $('aDate').value=$('aStartDate').value=$('cDate').value=$('cStart').value=new Date().toISOString().slice(0,10);
- let r=await sb.rpc('get_active_coa_accounts');
- if(!r.error && Array.isArray(r.data) && r.data.length){
-   accounts=r.data;
-   const opts='<option value="">-- اختر الحساب --</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code+' - '+a.name_ar)+'</option>').join('');
-   ['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML=opts);
- }
- $('status').textContent='متصل ✓';
- await Promise.all([loadAssets(),loadCosts()]);
-}
-async function loadAssets(){
- let r=await sb.from('fixed_assets').select('*').order('acquisition_date',{ascending:false});if(r.error){msg('globalMsg',r.error.message,true);return}assets=r.data||[];
- $('assetsBody').innerHTML=assets.map(a=>'<tr><td>'+esc(a.asset_name)+'</td><td>'+esc(a.asset_type)+'</td><td>'+money(a.cost)+'</td><td>'+a.useful_life_months+' شهر</td><td>'+money((Number(a.cost)-Number(a.residual_value||0))/Number(a.useful_life_months))+'</td><td>'+esc(a.acquisition_date)+'</td></tr>').join('');
- const o='<option value="">-- اختر الأصل --</option>'+assets.map(a=>'<option value="'+a.id+'">'+esc(a.asset_name)+'</option>').join('');
- $('cAsset').innerHTML=o;$('sAsset').innerHTML='<option value="">كل الأصول</option>'+assets.map(a=>'<option value="'+a.id+'">'+esc(a.asset_name)+'</option>').join('');
-}
-async function saveAsset(){
+function tab(id,b){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');b.classList.add('active');if(id==='costs')loadCosts();if(id==='schedule')loadSchedule()}
+async function loadAssets(){try{const r=await api('fixed_assets?select=*&order=acquisition_date.desc');assets=r||[];$('assetsBody').innerHTML=assets.map(a=>'<tr><td>'+esc(a.asset_name)+'</td><td>'+esc(a.asset_type)+'</td><td>'+money(a.cost)+'</td><td>'+a.useful_life_months+' شهر</td><td>'+money((Number(a.cost)-Number(a.residual_value||0))/Number(a.useful_life_months))+'</td><td>'+esc(a.depreciation_start_date||a.acquisition_date)+'</td></tr>').join('')||'<tr><td colspan="6">لا توجد أصول مسجلة</td></tr>';const o='<option value="">-- اختر الأصل --</option>'+assets.map(a=>'<option value="'+a.id+'">'+esc(a.asset_name)+'</option>').join('');$('cAsset').innerHTML=o;$('sAsset').innerHTML='<option value="">كل الأصول</option>'+assets.map(a=>'<option value="'+a.id+'">'+esc(a.asset_name)+'</option>').join('');}catch(e){msg('globalMsg','تعذر تحميل الأصول: '+e.message,true)}}
+async function saveAsset(){try{
+ $('assetMsg').innerHTML='<div class="msg">جاري حفظ الأصل وإنشاء جدول الإهلاك...</div>';
  const cost=Number($('aCost').value),res=Number($('aResidual').value||0),life=Number($('aLife').value),start=$('aStartDate').value,acq=$('aDate').value;
- if(!$('aName').value.trim()||cost<=0||life<=0||res>cost||!$('aExp').value||!$('aAccum').value||!acq||!start||start<acq){msg('assetMsg','راجع اسم الأصل والتواريخ والقيمة والمدة واختر حسابي مصروف الإهلاك ومجمع الإهلاك.',true);return}
- const r=await sb.rpc('create_fixed_asset',{p_asset_name:$('aName').value.trim(),p_asset_type:$('aType').value,p_acquisition_date:$('aDate').value,p_cost:cost,p_residual_value:res,p_useful_life_months:life,p_depreciation_expense_account_id:$('aExp').value,p_accumulated_depreciation_account_id:$('aAccum').value,p_notes:$('aNotes').value||null,p_depreciation_start_date:start});
- if(r.error){msg('assetMsg',r.error.message,true);return}msg('assetMsg','تم حفظ الأصل وإنشاء جدول الإهلاك الشهري تلقائيًا.');document.querySelectorAll('#assets input,#assets textarea').forEach(x=>{if(x.id!=='aDate')x.value=''});$('aResidual').value='0';$('aType').value='vehicle';$('aStartDate').value=new Date().toISOString().slice(0,10);$('assetPreview').textContent='أدخل تكلفة الأصل ومدة الإهلاك بشكل صحيح لعرض الإهلاك الشهري.';await loadAssets();
-}
-async function loadCosts(){
- let r=await sb.from('asset_costs').select('*,fixed_assets(asset_name)').order('cost_date',{ascending:false});if(r.error){msg('globalMsg',r.error.message,true);return}
- $('costsBody').innerHTML=(r.data||[]).map(c=>'<tr><td>'+esc(c.fixed_assets?.asset_name||'')+'</td><td>'+esc(c.description)+'</td><td>'+money(c.amount)+'</td><td>'+c.distribution_months+' شهر</td><td>'+money(Number(c.amount)/Number(c.distribution_months))+'</td><td>'+esc(c.start_date)+'</td></tr>').join('');
-}
-async function saveCost(){
- const amount=Number($('cAmount').value),months=Number($('cMonths').value);
- if(!$('cAsset').value||!$('cDesc').value.trim()||amount<=0||months<=0){msg('costMsg','راجع الأصل والبيان والقيمة والمدة.',true);return}
- const r=await sb.rpc('create_asset_cost',{p_asset_id:$('cAsset').value,p_cost_date:$('cDate').value,p_description:$('cDesc').value.trim(),p_amount:amount,p_distribution_months:months,p_start_date:$('cStart').value,p_expense_account_id:$('cExp').value||null,p_deferred_account_id:$('cDef').value||null,p_notes:$('cNotes').value||null});
- if(r.error){msg('costMsg',r.error.message,true);return}msg('costMsg','تم حفظ التكلفة وإنشاء جدول التوزيع الشهري تلقائيًا.');await loadCosts();$('cDesc').value='';$('cAmount').value='';$('cMonths').value='';$('cNotes').value='';
-}
-async function loadSchedule(){
- let q=sb.from('v_asset_monthly_charges').select('*').order('charge_month',{ascending:true});
- if($('fromMonth').value)q=q.gte('charge_month',$('fromMonth').value+'-01');
- if($('toMonth').value)q=q.lte('charge_month',$('toMonth').value+'-01');
- if($('sAsset').value)q=q.eq('asset_id',$('sAsset').value);
- if($('sPosted').value)q=q.eq('posted',$('sPosted').value==='true');
- const r=await q;if(r.error){msg('globalMsg',r.error.message,true);return}
- $('scheduleBody').innerHTML=(r.data||[]).map(x=>'<tr><td>'+esc(x.charge_month)+'</td><td>'+esc(x.asset_name)+'</td><td>'+esc(x.cost_description||'إهلاك الأصل')+'</td><td>'+money(x.charge_amount)+'</td><td>'+(x.posted?'مرحل':'غير مرحل')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد بيانات</td></tr>';
-}
-async function logout(){await sb.auth.signOut();location.href='accounting.html'}
-(()=>{const d=new Date().toISOString().slice(0,10);['aDate','aStartDate','cDate','cStart'].forEach(id=>{const el=$(id);if(el&&!el.value)el.value=d;});})();
-window.addEventListener('error',e=>{const el=document.getElementById('status');if(el)el.textContent='خطأ في تحميل الشاشة';const g=document.getElementById('globalMsg');if(g)g.innerHTML='<div class="msg bad">'+esc(e.message||'حدث خطأ في تشغيل الشاشة')+'</div>'});
-(async()=>{try{if(!window.supabase){throw new Error('مكتبة الاتصال بقاعدة البيانات لم تُحمّل');}await init();}catch(e){$('status').textContent='تعذر الاتصال';msg('globalMsg','تعذر تشغيل شاشة الأصول: '+(e?.message||e),true);}})();
+ if(!$('aName').value.trim()||cost<=0||life<=0||res>cost||!acq||!start||start<acq){msg('assetMsg','راجع اسم الأصل والتواريخ والتكلفة والمدة.',true);return}
+ const data=await api('rpc/create_fixed_asset',{method:'POST',body:JSON.stringify({p_asset_name:$('aName').value.trim(),p_asset_type:$('aType').value,p_acquisition_date:acq,p_cost:cost,p_residual_value:res,p_useful_life_months:life,p_depreciation_expense_account_id:$('aExp').value,p_accumulated_depreciation_account_id:$('aAccum').value,p_notes:$('aNotes').value||null,p_depreciation_start_date:start})});
+ msg('assetMsg','تم حفظ الأصل وإنشاء جدول الإهلاك الشهري بنجاح.');await loadAssets();await loadSchedule();
+}catch(e){msg('assetMsg','خطأ الحفظ: '+e.message,true)}}
+async function loadCosts(){try{const r=await api('asset_costs?select=*,fixed_assets(asset_name)&order=cost_date.desc');$('costsBody').innerHTML=(r||[]).map(c=>'<tr><td>'+esc(c.fixed_assets?.asset_name||'')+'</td><td>'+esc(c.description)+'</td><td>'+money(c.amount)+'</td><td>'+c.distribution_months+' شهر</td><td>'+money(Number(c.amount)/Number(c.distribution_months))+'</td><td>'+esc(c.start_date)+'</td></tr>').join('')||'<tr><td colspan="6">لا توجد تكاليف مسجلة</td></tr>'}catch(e){msg('globalMsg','تعذر تحميل التكاليف: '+e.message,true)}}
+async function saveCost(){try{const amount=Number($('cAmount').value),months=Number($('cMonths').value);if(!$('cAsset').value||!$('cDesc').value.trim()||amount<=0||months<=0){msg('costMsg','راجع الأصل والبيان والقيمة والمدة.',true);return}await api('rpc/create_asset_cost',{method:'POST',body:JSON.stringify({p_asset_id:$('cAsset').value,p_cost_date:$('cDate').value,p_description:$('cDesc').value.trim(),p_amount:amount,p_distribution_months:months,p_start_date:$('cStart').value,p_expense_account_id:$('cExp').value||null,p_deferred_account_id:$('cDef').value||null,p_notes:$('cNotes').value||null})});msg('costMsg','تم حفظ التكلفة وإنشاء جدول التوزيع الشهري.');await loadCosts()}catch(e){msg('costMsg','خطأ الحفظ: '+e.message,true)}}
+async function loadSchedule(){try{let q='v_asset_monthly_charges?select=*&order=charge_month.asc';const params=[];if($('fromMonth').value)params.push('charge_month=gte.'+$('fromMonth').value+'-01');if($('toMonth').value)params.push('charge_month=lte.'+$('toMonth').value+'-01');if($('sAsset').value)params.push('asset_id=eq.'+$('sAsset').value);if($('sPosted').value)params.push('posted=eq.'+$('sPosted').value);if(params.length)q+='&'+params.join('&');const r=await api(q);$('scheduleBody').innerHTML=(r||[]).map(x=>'<tr><td>'+esc(x.charge_month)+'</td><td>'+esc(x.asset_name)+'</td><td>'+esc(x.cost_description||'إهلاك الأصل')+'</td><td>'+money(x.charge_amount)+'</td><td>'+(x.posted?'مرحل':'غير مرحل')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد بيانات</td></tr>'}catch(e){msg('globalMsg','تعذر تحميل جدول التحميل: '+e.message,true)}}
+async function logout(){try{const t=token();if(t)await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+t}})}catch(e){}localStorage.removeItem('sb-fyqyodnboryzaejlhdlk-auth-token');location.href='accounting.html'}
+function init(){const d=new Date().toISOString().slice(0,10);['aDate','aStartDate','cDate','cStart'].forEach(id=>{if($(id)&&!$(id).value)$(id).value=d});$('status').textContent='شاشة الأصول جاهزة للعمل';loadAssets();loadCosts()}
+window.addEventListener('error',e=>{const g=$('globalMsg');if(g)g.innerHTML='<div class="msg bad">خطأ في الشاشة: '+esc(e.message||'خطأ غير معروف')+'</div>'});
+init();
 </script></body></html>
