@@ -47,7 +47,7 @@
 </main>
 <script>
 const SB_URL='https://fyqyodnboryzaejlhdlk.supabase.co', SB_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
-const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 let assets=[];
 function money(x){return Number(x||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function token(){try{const x=localStorage.getItem('sb-fyqyodnboryzaejlhdlk-auth-token');if(!x)return '';const j=JSON.parse(x);return j.access_token||''}catch(e){return ''}}
