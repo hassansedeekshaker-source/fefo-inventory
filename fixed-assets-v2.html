@@ -4,7 +4,7 @@
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial;background:#f4f6fa;color:#172033}header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}main{max-width:1350px;margin:20px auto;padding:0 15px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}a,button{border:0;border-radius:9px;padding:10px 15px;text-decoration:none;cursor:pointer;font-size:14px}a{background:#fff;color:#18243a;border:1px solid #dce2ec}a.primary,button.primary{background:#18243a;color:#fff}button.success{background:#087443;color:#fff}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:15px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}input,select,textarea{padding:10px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;width:100%}textarea{min-height:65px}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}.num{font-size:24px;font-weight:bold;margin-top:6px}.small{font-size:12px;color:#667085}.msg{margin-top:10px;padding:10px;border-radius:9px;background:#eef4ff}.bad{background:#fff0f0;color:#b42318}.ok{background:#ecfdf3;color:#087443}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}.tab{background:#eef2f7}.tab.active{background:#18243a;color:#fff}.panel{display:none}.panel.active{display:block}@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}}
 </style></head>
-<body><header><b>🚗 إهلاك الأصول وتوزيع التكاليف الكبيرة</b><span id="status">جاري الاتصال...</span></header>
+<body><header><b>🚗 إهلاك الأصول وتوزيع التكاليف الكبيرة</b><span id="status">جاهز</span></header>
 <main>
 <div class="bar"><a class="primary" href="accounting.html">🏠 الرئيسية</a><button onclick="logout()">تسجيل الخروج</button><span id="who" class="small" style="padding:10px"></span></div>
 <div class="card"><h2>محرك الإهلاك والتوزيع</h2><p class="small">أنت تحدد قيمة الأصل والمدة فقط، والسيستم يحسب التحميل الشهري ويولّد جدول الأشهر تلقائيًا. آخر شهر يعالج فرق الكسور تلقائيًا.</p></div>
@@ -17,8 +17,8 @@
 <div class="field"><label>تكلفة الأصل</label><input id="aCost" type="number" min="0" step=".01" oninput="previewAsset()"></div>
 <div class="field"><label>القيمة التخريدية المتوقعة</label><input id="aResidual" type="number" min="0" step=".01" value="0" oninput="previewAsset()"></div>
 <div class="field"><label>مدة الإهلاك بالشهور</label><input id="aLife" type="number" min="1" step="1" placeholder="مثال: 60" oninput="previewAsset()"></div>
-<div class="field"><label>حساب مصروف الإهلاك</label><select id="aExp"></select></div>
-<div class="field"><label>حساب مجمع الإهلاك</label><select id="aAccum"></select></div>
+<div class="field"><label>حساب مصروف الإهلاك</label><select id="aExp"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609">1591 - مجمع إهلاك السيارات</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
+<div class="field"><label>حساب مجمع الإهلاك</label><select id="aAccum"><option value="">-- اختر الحساب --</option><option value="c5d7b5d0-c243-4740-86c4-bb537b4f7609">1591 - مجمع إهلاك السيارات</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
 <div class="field full"><label>ملاحظات</label><textarea id="aNotes"></textarea></div>
 </div><div id="assetPreview" class="msg" style="margin-top:12px">أدخل التكلفة والمدة لعرض الإهلاك الشهري.</div><div style="margin-top:12px"><button class="success" onclick="saveAsset()">حفظ وإنشاء جدول الإهلاك</button></div><div id="assetMsg"></div></div>
 <div class="card"><h3>الأصول المسجلة</h3><table><thead><tr><th>الأصل</th><th>النوع</th><th>التكلفة</th><th>المدة</th><th>الإهلاك الشهري</th><th>بدء الإهلاك</th></tr></thead><tbody id="assetsBody"></tbody></table></div>
@@ -31,8 +31,8 @@
 <div class="field"><label>قيمة التكلفة</label><input id="cAmount" type="number" min="0" step=".01"></div>
 <div class="field"><label>مدة التوزيع بالشهور</label><input id="cMonths" type="number" min="1" step="1" placeholder="مثال: 12 أو 13"></div>
 <div class="field"><label>بداية التحميل</label><input id="cStart" type="date"></div>
-<div class="field"><label>حساب المصروف</label><select id="cExp"></select></div>
-<div class="field"><label>حساب التكلفة المؤجلة</label><select id="cDef"></select></div>
+<div class="field"><label>حساب المصروف</label><select id="cExp"><option value="">-- اختر الحساب --</option><option value="761f491c-6ed6-4a56-aaff-2b6be242f1c5">1500 - الأصول الثابتة</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
+<div class="field"><label>حساب التكلفة المؤجلة</label><select id="cDef"><option value="">-- اختر الحساب --</option><option value="761f491c-6ed6-4a56-aaff-2b6be242f1c5">1500 - الأصول الثابتة</option><option value="761403ed-be69-42c9-b6ca-aa89a2817474">1590 - مجمع الإهلاك</option></select></div>
 <div class="field full"><label>ملاحظات</label><textarea id="cNotes"></textarea></div>
 </div><div style="margin-top:12px"><button class="success" onclick="saveCost()">حفظ وإنشاء جدول التوزيع</button></div><div id="costMsg"></div></div>
 <div class="card"><h3>التكاليف المسجلة</h3><table><thead><tr><th>الأصل</th><th>البيان</th><th>القيمة</th><th>المدة</th><th>الشهري</th><th>البداية</th></tr></thead><tbody id="costsBody"></tbody></table></div>
@@ -46,7 +46,7 @@
 <div id="globalMsg"></div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <script>
 const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
@@ -56,14 +56,21 @@ function previewAsset(){const cost=Number($('aCost').value||0),res=Number($('aRe
 function msg(id,text,bad=false){$(id).innerHTML='<div class="msg '+(bad?'bad':'ok')+'">'+esc(text)+'</div>'}
 function tab(id,b){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');b.classList.add('active');if(id==='schedule')loadSchedule()}
 async function init(){
- const s=await sb.auth.getSession(); if(!s.data.session){location.href='accounting.html';return}
+ $('status').textContent='جاري التحقق من الدخول...';
+ const sessionPromise=sb.auth.getSession();
+ const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('انتهت مهلة الاتصال بقاعدة البيانات')),8000));
+ let s;
+ try{s=await Promise.race([sessionPromise,timeout]);}catch(e){$('status').textContent='جاهز';msg('globalMsg','الشاشة جاهزة، لكن الاتصال بقاعدة البيانات لم يكتمل. حاول الحفظ بعد التأكد من تسجيل الدخول.',true);return}
+ if(!s.data.session){location.href='accounting.html';return}
  $('status').textContent='متصل ✓';$('who').textContent=s.data.session.user.email;
  $('aDate').value=$('aStartDate').value=$('cDate').value=$('cStart').value=new Date().toISOString().slice(0,10);
  let r=await sb.rpc('get_active_coa_accounts');
- if(r.error){['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML='<option value="">تعذر تحميل الحسابات</option>');msg('globalMsg','تعذر تحميل دليل الحسابات: '+r.error.message,true);return}
- accounts=r.data||[];
- const opts='<option value="">-- اختر الحساب --</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code+' - '+a.name_ar)+'</option>').join('');
- ['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML=opts);
+ if(!r.error && Array.isArray(r.data) && r.data.length){
+   accounts=r.data;
+   const opts='<option value="">-- اختر الحساب --</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code+' - '+a.name_ar)+'</option>').join('');
+   ['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML=opts);
+ }
+ $('status').textContent='متصل ✓';
  await Promise.all([loadAssets(),loadCosts()]);
 }
 async function loadAssets(){
@@ -98,6 +105,7 @@ async function loadSchedule(){
  $('scheduleBody').innerHTML=(r.data||[]).map(x=>'<tr><td>'+esc(x.charge_month)+'</td><td>'+esc(x.asset_name)+'</td><td>'+esc(x.cost_description||'إهلاك الأصل')+'</td><td>'+money(x.charge_amount)+'</td><td>'+(x.posted?'مرحل':'غير مرحل')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد بيانات</td></tr>';
 }
 async function logout(){await sb.auth.signOut();location.href='accounting.html'}
+(()=>{const d=new Date().toISOString().slice(0,10);['aDate','aStartDate','cDate','cStart'].forEach(id=>{const el=$(id);if(el&&!el.value)el.value=d;});})();
 window.addEventListener('error',e=>{const el=document.getElementById('status');if(el)el.textContent='خطأ في تحميل الشاشة';const g=document.getElementById('globalMsg');if(g)g.innerHTML='<div class="msg bad">'+esc(e.message||'حدث خطأ في تشغيل الشاشة')+'</div>'});
 (async()=>{try{if(!window.supabase){throw new Error('مكتبة الاتصال بقاعدة البيانات لم تُحمّل');}await init();}catch(e){$('status').textContent='تعذر الاتصال';msg('globalMsg','تعذر تشغيل شاشة الأصول: '+(e?.message||e),true);}})();
 </script></body></html>
