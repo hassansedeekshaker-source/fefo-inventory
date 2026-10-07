@@ -58,7 +58,9 @@ async function init(){
  const s=await sb.auth.getSession(); if(!s.data.session){location.href='accounting.html';return}
  $('status').textContent='متصل ✓';$('who').textContent=s.data.session.user.email;
  $('aDate').value=$('aStartDate').value=$('cDate').value=$('cStart').value=new Date().toISOString().slice(0,10);
- let r=await sb.from('coa_accounts').select('id,code,name_ar,account_type').eq('active',true).order('code'); if(r.error){msg('globalMsg',r.error.message,true);return} accounts=r.data||[];
+ let r=await sb.rpc('get_active_coa_accounts');
+ if(r.error){['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML='<option value="">تعذر تحميل الحسابات</option>');msg('globalMsg','تعذر تحميل دليل الحسابات: '+r.error.message,true);return}
+ accounts=r.data||[];
  const opts='<option value="">-- اختر الحساب --</option>'+accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code+' - '+a.name_ar)+'</option>').join('');
  ['aExp','aAccum','cExp','cDef'].forEach(id=>$(id).innerHTML=opts);
  await Promise.all([loadAssets(),loadCosts()]);
