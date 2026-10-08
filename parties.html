@@ -88,7 +88,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 </div>
 <div id="supplierLedgerMsg"></div>
 <div style="overflow:auto;margin-top:16px">
-<table id="supplierLedgerTable" style="min-width:1100px">
+<table id="supplierLedgerTable" style="min-width:980px">
 <thead><tr>
 <th>الرقم المرجعي</th><th>نوع الحركة</th><th>التاريخ</th><th>كود الحساب</th><th>وصف الحساب</th><th>الرصيد السابق</th><th>قيمة مدينة</th><th>قيمة دائنة</th><th>صافي القيمة</th><th>الرصيد الختامي</th><th>العملة</th>
 </tr></thead>
@@ -207,9 +207,8 @@ async function loadSupplierLedger(id){
      "الرقم المرجعي":m.ref,
      "نوع الحركة":m.type,
      "التاريخ":m.date||"",
-     "كود الحساب":m.code,
-     "وصف الحساب":m.desc,
-     "الرصيد السابق":previous,
+     "اسم الحساب":supplierLedgerName,
+     "الرصيد الافتتاحي":opening,
      "قيمة مدينة":debit,
      "قيمة دائنة":credit,
      "صافي القيمة":net,
@@ -223,7 +222,7 @@ async function loadSupplierLedger(id){
  $("slPayments").textContent=money2(totalPay);
  $("slBalance").textContent=money2(bal);
  $("slCount").textContent=String(supplierLedgerRows.length);
- $("supplierLedgerBody").innerHTML=supplierLedgerRows.length?supplierLedgerRows.map(m=>"<tr><td>"+esc(m["الرقم المرجعي"])+"</td><td>"+esc(m["نوع الحركة"])+"</td><td>"+esc(m["التاريخ"])+"</td><td>"+esc(m["كود الحساب"])+"</td><td>"+esc(m["وصف الحساب"])+"</td><td>"+money2(m["الرصيد السابق"])+"</td><td>"+money2(m["قيمة مدينة"])+"</td><td>"+money2(m["قيمة دائنة"])+"</td><td>"+money2(m["صافي القيمة"])+"</td><td>"+money2(m["الرصيد الختامي"])+"</td><td>EGP</td></tr>").join(""):"<tr><td colspan=\"11\" class=\"empty\">لا توجد حركات لهذا المورد.</td></tr>";
+ $("supplierLedgerBody").innerHTML=supplierLedgerRows.length?supplierLedgerRows.map(m=>"<tr><td>"+esc(m["الرقم المرجعي"])+"</td><td>"+esc(m["نوع الحركة"])+"</td><td>"+esc(m["التاريخ"])+"</td><td>"+esc(m["اسم الحساب"])+"</td><td>"+money2(m["الرصيد الافتتاحي"])+"</td><td>"+money2(m["قيمة مدينة"])+"</td><td>"+money2(m["قيمة دائنة"])+"</td><td>"+money2(m["صافي القيمة"])+"</td><td>"+money2(m["الرصيد الختامي"])+"</td><td>EGP</td></tr>").join(""):"<tr><td colspan=\"10\" class=\"empty\">لا توجد حركات لهذا المورد.</td></tr>";
  $("supplierLedgerMsg").innerHTML="<div class=\"msg ok\">تم تحميل كل حركات المورد المترحلة ✓</div>";
  window.scrollTo({top:box.offsetTop-20,behavior:"smooth"});
 }
@@ -232,7 +231,7 @@ function exportSupplierLedgerExcel(){
  const data=[...supplierLedgerRows];
  const wb=XLSX.utils.book_new();
  const ws=XLSX.utils.json_to_sheet(data);
- ws["!cols"]=[{wch:22},{wch:18},{wch:14},{wch:18},{wch:28},{wch:18},{wch:16},{wch:16},{wch:16},{wch:18},{wch:10}];
+ ws["!cols"]=[{wch:22},{wch:18},{wch:14},{wch:28},{wch:18},{wch:16},{wch:16},{wch:16},{wch:18},{wch:10}];
  XLSX.utils.book_append_sheet(wb,ws,"كشف الحساب");
  const summary=[
   {"البيان":"المورد","القيمة":supplierLedgerName},
