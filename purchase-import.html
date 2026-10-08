@@ -89,7 +89,7 @@ function downloadTemplateFallback(){
   +'<Worksheet ss:Name="قوائم النظام"><Table><Row><Cell><Data ss:Type="String">الموردون</Data></Cell></Row><Row><Cell><Data ss:Type="String">الأصناف</Data></Cell></Row><Row><Cell><Data ss:Type="String">الوحدات</Data></Cell></Row></Table></Worksheet>'
   +'<Worksheet ss:Name="تعليمات"><Table><Row><Cell><Data ss:Type="String">املأ ورقة المشتريات فقط. لا تكتب كود الصنف. المخزن يتم اختياره من الشاشة.</Data></Cell></Row></Table></Worksheet></Workbook>';
  const blob=new Blob([xml],{type:'application/vnd.ms-excel'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='قالب_استيراد_المشتريات.xls';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ const a=document.createElement('a');a.href=window.URL.createObjectURL(blob);a.download='قالب_استيراد_المشتريات.xls';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>window.URL.revokeObjectURL(a.href),1000);
 }
 
 async function init(){
