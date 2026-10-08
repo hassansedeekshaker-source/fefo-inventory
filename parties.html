@@ -21,7 +21,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 </style>
 <style>
 .partySmart{margin:0 0 12px}.smartRow{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;border:1px solid #dfe4ec;border-radius:10px;overflow:visible;background:#fff}.smart{min-width:120px;padding:11px 18px;text-decoration:none;color:#172033;border-left:1px solid #dfe4ec;display:flex;gap:10px;justify-content:center;align-items:center;background:#fff}.smart b{font-size:12px}.smart.active{background:#18243a;color:#fff}.moreWrap{position:relative}.moreBtn{border:0;border-radius:0;height:100%;cursor:pointer}.moreMenu{display:none;position:absolute;right:0;top:100%;min-width:190px;background:#fff;border:1px solid #dfe4ec;border-radius:0 0 10px 10px;box-shadow:0 8px 20px #0002;z-index:20}.moreWrap.open .moreMenu{display:block}.moreMenu a{display:flex;justify-content:space-between;padding:12px 15px;text-decoration:none;color:#172033;border-bottom:1px solid #edf0f5}.detailTop{display:flex;justify-content:space-between;gap:15px;align-items:center}.detailNav{display:flex;gap:8px}.partyBody{display:grid;grid-template-columns:280px 1fr;gap:20px;margin-top:20px}.profileBox{border:1px solid #e1e6ef;border-radius:12px;padding:18px;background:#fafbfc}.avatar{font-size:48px}.statsArea{padding:5px}.hint{margin-top:18px;padding:13px;background:#eef2f7;border-radius:10px;color:#475467;font-size:13px}.muted{color:#667085;font-size:13px}@media(max-width:800px){.partyBody{grid-template-columns:1fr}.smart{min-width:105px;padding:10px 12px}}
-</style><style>#supplierResults .supplier-result:hover{background:#f4f7fb}</style></head>
+</style><style>#supplierResults .supplier-result:hover{background:#f4f7fb}</style><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head>
 <body>
 <header><b>👥 العملاء والموردون</b><div><a class="btn primary" href="accounting.html">🏠 الرئيسية</a> <button onclick="logout()">تسجيل الخروج</button> <span id="status">جاري الاتصال...</span></div></header>
 
@@ -73,7 +73,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <section id="supplierLedger" class="card" style="display:none">
 <div class="detailTop" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
 <div><div class="muted">كشف حساب المورد</div><h2 id="supplierLedgerTitle" style="margin:4px 0 0">-</h2></div>
-<button class="btn" onclick="closeSupplierLedger()">✖ إغلاق الكشف</button>
+<div class="detailNav"><button class="btn" onclick="exportSupplierLedgerExcel()">📊 تصدير Excel</button><button class="btn" onclick="closeSupplierLedger()">✖ إغلاق الكشف</button></div>
 </div>
 <div class="statGrid" style="margin-top:16px">
 <div class="stat">الرصيد الافتتاحي<b id="slOpening">0.00</b></div>
@@ -81,14 +81,20 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="stat">إجمالي المردودات<b id="slReturns">0.00</b></div>
 <div class="stat">إجمالي السداد<b id="slPayments">0.00</b></div>
 </div>
-<div class="hint">الرصيد الحالي = الرصيد الافتتاحي + المشتريات − المردودات − السداد.</div>
+<div class="hint">الكشف يعرض كل حركات المورد المترحلة، مع الرصيد السابق وقيمة الحركة وصافي القيمة والرصيد الختامي.</div>
 <div class="statGrid" style="margin-top:12px;grid-template-columns:1fr 1fr">
 <div class="stat">الرصيد الحالي<b id="slBalance">0.00</b></div>
 <div class="stat">عدد الحركات<b id="slCount">0</b></div>
 </div>
 <div id="supplierLedgerMsg"></div>
-<table style="margin-top:16px"><thead><tr><th>التاريخ</th><th>نوع الحركة</th><th>رقم المستند</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead><tbody id="supplierLedgerBody"></tbody></table>
-</section>
+<div style="overflow:auto;margin-top:16px">
+<table id="supplierLedgerTable" style="min-width:1100px">
+<thead><tr>
+<th>الرقم المرجعي</th><th>نوع الحركة</th><th>التاريخ</th><th>كود الحساب</th><th>وصف الحساب</th><th>الرصيد السابق</th><th>قيمة مدينة</th><th>قيمة دائنة</th><th>صافي القيمة</th><th>الرصيد الختامي</th><th>العملة</th>
+</tr></thead>
+<tbody id="supplierLedgerBody"></tbody>
+</table>
+</div>
 </section>
 </main>
 
@@ -149,7 +155,7 @@ function selectParty(type,id){
 }function supplierCode(x){return x.code||("SUP-"+String(x.id).padStart(6,"0"))}
 function renderSupplierResults(list){
  const box=$("supplierResults");if(!box)return;
- box.innerHTML=list.slice(0,50).map(x=>"<div class=\"supplier-result\" data-id=\""+x.id+"\" style=\"padding:10px 12px;border-bottom:1px solid #edf0f5;cursor:pointer\"><b>"+esc(x.name)+"</b><span class=\"small\" style=\"display:block\">"+esc(supplierCode(x))+"</span></div>").join("");
+ box.innerHTML=list.slice(0,50).map(x=>"<div class=\"supplier-result\" data-id=\""+x.id+"\" style=\"padding:10px 12px;border-bottom:1px solid #edf0f5;cursor:pointer\"><b>"+esc(x.name)+"</b><span class=\"small\" style=\"display:block\">"+esc(supplierCode(x))+"</span></div>").join("")||"<div class=\"small\" style=\"padding:10px\">لا توجد نتائج.</div>";
  box.style.display="block";
  box.querySelectorAll(".supplier-result").forEach(el=>el.addEventListener("click",()=>selectSupplierForLedger(Number(el.dataset.id))));
 }
@@ -160,28 +166,86 @@ function supplierSearchInit(){
  document.addEventListener("click",e=>{if(!e.target.closest("#supplierPicker"))$("supplierResults").style.display="none"});
  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){const first=document.querySelector("#supplierResults .supplier-result");if(first){e.preventDefault();selectSupplierForLedger(Number(first.dataset.id))}}});
 }
-async function selectSupplierForLedger(id){const x=suppliers.find(a=>a.id===id);if(!x)return;$("supplierSearch").value=x.name||"";$("supplierResults").style.display="none";await loadSupplierLedger(id)}
+async function selectSupplierForLedger(id){
+ const x=suppliers.find(a=>a.id===id);if(!x)return;
+ $("supplierSearch").value=x.name||"";
+ $("supplierResults").style.display="none";
+ await loadSupplierLedger(id);
+}
 function money2(n){return Number(n||0).toLocaleString("ar-EG",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function safeDate(v){return v||""}
+let supplierLedgerRows=[],supplierLedgerName="";
 async function loadSupplierLedger(id){
  const x=suppliers.find(a=>a.id===id);if(!x)return;
- const box=$("supplierLedger");box.style.display="block";$("supplierLedgerTitle").textContent="📄 "+(x.name||"-");$("supplierLedgerMsg").innerHTML="<div class=\"msg\" style=\"background:#eef2f7\">جاري تحميل كل حركات المورد...</div>";
+ supplierLedgerName=x.name||"";
+ const box=$("supplierLedger");box.style.display="block";
+ $("supplierLedgerTitle").textContent="📄 "+supplierLedgerName;
+ $("supplierLedgerMsg").innerHTML="<div class=\"msg\" style=\"background:#eef2f7\">جاري تحميل كل حركات المورد...</div>";
  const [p,r,ft]=await Promise.all([
   sb.from("purchases").select("id,invoice_no,purchase_date,total").eq("supplier_id",id).eq("status","posted").order("purchase_date"),
   sb.from("purchase_returns").select("id,return_no,return_date,total").eq("supplier_id",id).eq("status","posted").order("return_date"),
   sb.from("finance_transactions").select("id,transaction_no,transaction_date,transaction_type,amount,reference_no,notes,journal_entry_id").eq("supplier_id",id).not("journal_entry_id","is",null).order("transaction_date")
  ]);
- const bad=[p,r,ft].find(z=>z.error);if(bad){$("supplierLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
+ const bad=[p,r,ft].find(z=>z.error);
+ if(bad){$("supplierLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
  const opening=Number(x.opening_balance||0),moves=[];
- if(opening!==0)moves.push({date:"",type:"رصيد افتتاحي",no:"-",desc:"الرصيد الافتتاحي",debit:opening<0?Math.abs(opening):0,credit:opening>0?opening:0});
- (p.data||[]).forEach(a=>moves.push({date:a.purchase_date,type:"فاتورة شراء",no:a.invoice_no||"-",desc:"فاتورة مشتريات",debit:0,credit:Number(a.total||0)}));
- (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مردود مشتريات",no:a.return_no||"-",desc:"مردود مشتريات",debit:Number(a.total||0),credit:0}));
- (ft.data||[]).forEach(a=>{const pay=a.transaction_type==="payment";moves.push({date:a.transaction_date,type:pay?"سداد مورد":"حركة مالية",no:a.transaction_no||a.reference_no||"-",desc:a.notes||(pay?"سداد للمورد":"حركة مالية للمورد"),debit:pay?Number(a.amount||0):0,credit:pay?0:Number(a.amount||0)})});
- moves.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.no).localeCompare(String(b.no),"ar",{numeric:true}));
+ // نحافظ على منطق الرصيد الحالي الموجود في الشاشة: المشتريات تزيد الرصيد، والمردودات والسداد تقلله.
+ if(opening!==0)moves.push({date:"",type:"رصيد افتتاحي",ref:"-",code:supplierCode(x),desc:"الرصيد الافتتاحي",debit:opening<0?Math.abs(opening):0,credit:opening>0?opening:0});
+ (p.data||[]).forEach(a=>moves.push({date:a.purchase_date,type:"فاتورة شراء",ref:a.invoice_no||"-",code:supplierCode(x),desc:"فاتورة مشتريات",debit:0,credit:Number(a.total||0),sourceId:a.id}));
+ (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مردود مشتريات",ref:a.return_no||"-",code:supplierCode(x),desc:"مردود مشتريات",debit:Number(a.total||0),credit:0,sourceId:a.id}));
+ (ft.data||[]).forEach(a=>{const pay=a.transaction_type==="payment";moves.push({date:a.transaction_date,type:pay?"سداد مورد":"حركة مالية",ref:a.transaction_no||a.reference_no||"-",code:supplierCode(x),desc:a.notes||(pay?"سداد للمورد":"حركة مالية للمورد"),debit:pay?Number(a.amount||0):0,credit:pay?0:Number(a.amount||0),sourceId:a.id})});
+ moves.sort((a,b)=>safeDate(a.date).localeCompare(safeDate(b.date))||String(a.ref).localeCompare(String(b.ref),"ar",{numeric:true}));
  let bal=0,totalPurch=0,totalRet=0,totalPay=0;
- const html=moves.map(m=>{bal+=Number(m.credit||0)-Number(m.debit||0);if(m.type==="فاتورة شراء")totalPurch+=Number(m.credit||0);if(m.type==="مردود مشتريات")totalRet+=Number(m.debit||0);if(m.type==="سداد مورد")totalPay+=Number(m.debit||0);return "<tr><td>"+esc(m.date||"-")+"</td><td>"+esc(m.type)+"</td><td>"+esc(m.no)+"</td><td>"+esc(m.desc)+"</td><td>"+money2(m.debit)+"</td><td>"+money2(m.credit)+"</td><td>"+money2(bal)+"</td></tr>"}).join("");
- $("slOpening").textContent=money2(opening);$("slPurchases").textContent=money2(totalPurch);$("slReturns").textContent=money2(totalRet);$("slPayments").textContent=money2(totalPay);$("slBalance").textContent=money2(bal);$("slCount").textContent=String(moves.length);$("supplierLedgerBody").innerHTML=html||"<tr><td colspan=\"7\" class=\"empty\">لا توجد حركات لهذا المورد.</td></tr>";$("supplierLedgerMsg").innerHTML="<div class=\"msg ok\">تم تحميل كل الحركات المترحلة للمورد ✓</div>";window.scrollTo({top:box.offsetTop-20,behavior:"smooth"});
+ supplierLedgerRows=moves.map(m=>{
+   const previous=bal;
+   const debit=Number(m.debit||0),credit=Number(m.credit||0),net=debit-credit;
+   bal=bal+credit-debit;
+   if(m.type==="فاتورة شراء")totalPurch+=credit;
+   if(m.type==="مردود مشتريات")totalRet+=debit;
+   if(m.type==="سداد مورد")totalPay+=debit;
+   return {
+     "الرقم المرجعي":m.ref,
+     "نوع الحركة":m.type,
+     "التاريخ":m.date||"",
+     "كود الحساب":m.code,
+     "وصف الحساب":m.desc,
+     "الرصيد السابق":previous,
+     "قيمة مدينة":debit,
+     "قيمة دائنة":credit,
+     "صافي القيمة":net,
+     "الرصيد الختامي":bal,
+     "العملة":"EGP"
+   };
+ });
+ $("slOpening").textContent=money2(opening);
+ $("slPurchases").textContent=money2(totalPurch);
+ $("slReturns").textContent=money2(totalRet);
+ $("slPayments").textContent=money2(totalPay);
+ $("slBalance").textContent=money2(bal);
+ $("slCount").textContent=String(supplierLedgerRows.length);
+ $("supplierLedgerBody").innerHTML=supplierLedgerRows.length?supplierLedgerRows.map(m=>"<tr><td>"+esc(m["الرقم المرجعي"])+"</td><td>"+esc(m["نوع الحركة"])+"</td><td>"+esc(m["التاريخ"])+"</td><td>"+esc(m["كود الحساب"])+"</td><td>"+esc(m["وصف الحساب"])+"</td><td>"+money2(m["الرصيد السابق"])+"</td><td>"+money2(m["قيمة مدينة"])+"</td><td>"+money2(m["قيمة دائنة"])+"</td><td>"+money2(m["صافي القيمة"])+"</td><td>"+money2(m["الرصيد الختامي"])+"</td><td>EGP</td></tr>").join(""):"<tr><td colspan=\"11\" class=\"empty\">لا توجد حركات لهذا المورد.</td></tr>";
+ $("supplierLedgerMsg").innerHTML="<div class=\"msg ok\">تم تحميل كل حركات المورد المترحلة ✓</div>";
+ window.scrollTo({top:box.offsetTop-20,behavior:"smooth"});
 }
-function closeSupplierLedger(){$("supplierLedger").style.display="none"}
+function exportSupplierLedgerExcel(){
+ if(!supplierLedgerRows.length){alert("اختر موردًا أولاً ولا توجد حركات لتصديرها.");return}
+ const data=[...supplierLedgerRows];
+ const wb=XLSX.utils.book_new();
+ const ws=XLSX.utils.json_to_sheet(data);
+ ws["!cols"]=[{wch:22},{wch:18},{wch:14},{wch:18},{wch:28},{wch:18},{wch:16},{wch:16},{wch:16},{wch:18},{wch:10}];
+ XLSX.utils.book_append_sheet(wb,ws,"كشف الحساب");
+ const summary=[
+  {"البيان":"المورد","القيمة":supplierLedgerName},
+  {"البيان":"الرصيد الافتتاحي","القيمة":Number($("slOpening").textContent.replace(/,/g,""))||0},
+  {"البيان":"إجمالي المشتريات","القيمة":Number($("slPurchases").textContent.replace(/,/g,""))||0},
+  {"البيان":"إجمالي المردودات","القيمة":Number($("slReturns").textContent.replace(/,/g,""))||0},
+  {"البيان":"إجمالي السداد","القيمة":Number($("slPayments").textContent.replace(/,/g,""))||0},
+  {"البيان":"الرصيد الحالي","القيمة":Number($("slBalance").textContent.replace(/,/g,""))||0}
+ ];
+ const sm=XLSX.utils.json_to_sheet(summary);sm["!cols"]=[{wch:28},{wch:22}];XLSX.utils.book_append_sheet(wb,sm,"الملخص");
+ XLSX.writeFile(wb,"كشف_حساب_"+supplierLedgerName+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+function closeSupplierLedger(){supplierLedgerRows=[];supplierLedgerName="";$("supplierLedger").style.display="none"}
 async function saveCustomer(){
  const name=$('cName').value.trim();if(!name){$('cMsg').innerHTML='<div class="msg bad">اكتب اسم العميل.</div>';return}
  const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,opening_balance:Number($('cOpening').value||0),withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0)};
