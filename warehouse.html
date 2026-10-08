@@ -20,6 +20,7 @@ select,input{width:100%;padding:11px;border:1px solid #d6dce8;border-radius:9px;
 .empty{text-align:center;padding:35px;color:#667085}.small{font-size:12px;color:#667085}
 @media(max-width:850px){.controls{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:500px){.stats{grid-template-columns:1fr}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <header><b>📦 نظام إدارة المخزون والمحاسبة</b><span>قسم المخزن</span></header>
@@ -48,7 +49,7 @@ select,input{width:100%;padding:11px;border:1px solid #d6dce8;border-radius:9px;
 <div class="panel">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
     <div><b id="siteTitle">المخزن</b><div class="small">الأصناف هنا هي نفس الأصناف الموجودة في دليل الأصناف — لا يتم إنشاء أصناف مكررة للمخزن.</div></div>
-    <button class="light" onclick="loadAll()">↻ تحديث</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="light" onclick="loadAll()">↻ تحديث</button><button class="light" onclick="exportExcel()">📊 تصدير Excel</button></div>
   </div>
   <div id="msg" class="small"></div>
   <div class="table-wrap">
@@ -63,7 +64,7 @@ select,input{width:100%;padding:11px;border:1px solid #d6dce8;border-radius:9px;
 <script>
 const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
 const $=id=>document.getElementById(id);
-let sites=[],items=[],lots=[],moves=[];
+let sites=[],items=[],lots=[],moves=[],currentRows=[];
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function num(v){return Number(v||0)}
@@ -128,6 +129,7 @@ function render(){
     rows.push({it,qty,reserved,available,cost,value,min,status,cls});
     qtyTotal+=qty;valueTotal+=value;if(qty>0)stockCount++;
   }
+  currentRows=rows;
   $('itemsCount').textContent=rows.length.toLocaleString('en-US');
   $('stockCount').textContent=stockCount.toLocaleString('en-US');
   $('qtyTotal').textContent=fmt(qtyTotal);
@@ -141,6 +143,24 @@ function render(){
 
 $('site').addEventListener('change',render);$('search').addEventListener('input',render);$('filter').addEventListener('change',render);
 loadAll().catch(e=>{$('msg').textContent='تعذر تحميل المخزون: '+(e.message||e);$('body').innerHTML='<tr><td colspan="10" class="empty">حدث خطأ أثناء تحميل البيانات.</td></tr>'});
+
+function exportExcel(){
+  if(!currentRows.length){alert('لا توجد بيانات مطابقة للتصدير.');return;}
+  if(typeof XLSX==='undefined'){alert('جاري تحميل أداة Excel، حاول مرة أخرى بعد لحظات.');return;}
+  const siteName=(sites.find(s=>s.id===$('site').value)||{}).name_ar||'المخزن';
+  const data=currentRows.map(r=>({
+    'الكود':r.it.sku||'', 'الصنف':r.it.name_ar||'', 'الوحدة':r.it.unit_name||'',
+    'الرصيد':r.qty, 'المحجوز':r.reserved, 'المتاح':r.available,
+    'متوسط التكلفة':r.cost, 'قيمة المخزون':r.value, 'الحد الأدنى':r.min, 'الحالة':r.status
+  }));
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws['!cols']=[{wch:24},{wch:45},{wch:12},{wch:14},{wch:14},{wch:14},{wch:18},{wch:18},{wch:14},{wch:22}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'المخزون');
+  const date=new Date().toISOString().slice(0,10);
+  const safe=siteName.replace(/[\\/:*?"<>|]/g,'-');
+  XLSX.writeFile(wb,'مخزون_'+safe+'_'+date+'.xlsx');
+}
 </script>
 <script>
 /* تنقل كيبورد خاص بشاشة المخزن — الشاشة استعلامية وليست إدخال حركة */
