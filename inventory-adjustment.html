@@ -120,18 +120,29 @@ function render(){
    const d=diff(r),v=d===null?0:d*r.cost;
    let status=d===null?'لم يتم الجرد':d>0?'زيادة':d<0?'عجز':'مطابق';
    let cls=d===null?'zero':d>0?'plus':d<0?'minus':'zero';
-   return '<tr class="'+(d!==null?'changed':'')+'">'+
+   return '<tr data-row-id="'+r.id+'" class="'+(d!==null?'changed':'')+'">'+
     '<td>'+esc(r.sku)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.unit)+'</td>'+
     '<td>'+fmt(r.system)+'</td><td>'+money(r.cost)+'</td>'+
     '<td><input class="actual" type="number" min="0" step=".001" placeholder="أدخل الجرد" value="'+(r.actual===null?'':r.actual)+'" data-id="'+r.id+'"></td>'+
     '<td class="'+cls+'">'+(d===null?'—':fmt(d))+'</td><td class="'+cls+'">'+(d===null?'—':money(v))+'</td><td class="status '+cls+'">'+status+'</td></tr>'
  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:35px">لا توجد أصناف مطابقة للبحث.</td></tr>';
  document.querySelectorAll('input.actual').forEach(inp=>inp.addEventListener('input',e=>{
-   const r=rows.find(x=>x.id===e.target.dataset.id);r.actual=e.target.value===''?null:n(e.target.value);render();
-   const el=document.querySelector('input.actual[data-id="'+e.target.dataset.id+'"]');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}
+   const r=rows.find(x=>x.id===e.target.dataset.id);if(!r)return;r.actual=e.target.value===''?null:n(e.target.value);updateRowLive(r,e.target.closest('tr'))
  }));
 }
 
+function updateRowLive(r,tr){
+ const d=diff(r),v=d===null?0:d*r.cost,cls=d===null?'zero':d>0?'plus':d<0?'minus':'zero';
+ tr.className=d!==null?'changed':'';
+ const cells=tr.children;
+ cells[6].className=cls;cells[6].textContent=d===null?'—':fmt(d);
+ cells[7].className=cls;cells[7].textContent=d===null?'—':money(v);
+ cells[8].className='status '+cls;cells[8].textContent=d===null?'لم يتم الجرد':d>0?'زيادة':d<0?'عجز':'مطابق';
+ const counted=rows.filter(x=>x.actual!==null&&x.actual!=='');let iq=0,sq=0;
+ for(const x of counted){const dx=diff(x);if(dx>0)iq+=dx;if(dx<0)sq+=Math.abs(dx)}
+ $('counted').textContent=counted.length.toLocaleString('en-US');
+ $('increaseQty').textContent=fmt(iq);$('shortageQty').textContent=fmt(sq);
+}
 function clearCounts(){rows.forEach(r=>r.actual=null);render();msg('تم مسح الكميات الفعلية فقط. أرصدة النظام لم تتغير.','')}
 
 async function postAll(){
