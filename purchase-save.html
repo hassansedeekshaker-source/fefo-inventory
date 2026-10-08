@@ -124,7 +124,7 @@ async function loadEdit(id){
    tr.querySelector('.qty').value=Number(x.qty||0);
    tr.querySelector('.price').value=Number(x.unit_cost||0);
    tr.querySelector('.disc').value=Number(x.discount_rate||0);
-   tr.querySelector('.tax').value=(Number(x.tax_rate||0)*100);
+   tr.querySelector('.tax').value=(Number(x.tax_rate||0)*100).toFixed(2);
   }
   if(!$('lines').children.length)line();
   calc();
