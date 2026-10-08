@@ -18,6 +18,10 @@
 <div class="field"><b>المخزن</b><select id="site"><option value="">-- اختر المخزن --</option></select></div>
 <div class="field"><b>ملف Excel</b><input id="file" type="file" accept=".xlsx,.xls"></div>
 </div>
+<div class="actions" style="margin-top:12px">
+<button class="btn primary" id="templateBtn" type="button">📄 تحميل قالب Excel الجاهز</button>
+</div>
+<div class="msg info" style="margin-top:10px">القالب يحتوي على ورقة لإدخال المشتريات وورقة قوائم النظام للموردين والأصناف والوحدات، بالإضافة إلى ورقة تعليمات.</div>
 <div class="drop">ملف Excel المطلوب يحتوي فقط على: <b>المورد | التاريخ | رقم الفاتورة | الصنف | الوحدة | الكمية | سعر الشراء</b><br><small>لا نحتاج كود الصنف.</small></div>
 <div id="msg" class="msg info">اختر المخزن وارفع الملف.</div>
 </div>
@@ -47,6 +51,36 @@ function dateNorm(v){
 }
 function findByName(arr,name){const n=norm(name);return arr.find(x=>norm(x.name_ar||x.name)===n)}
 function setMsg(t,kind='info'){$('msg').className='msg '+kind;$('msg').textContent=t}
+function cleanKey(v){return norm(v).replace(/[|]/g,'')}
+function downloadTemplate(){
+ const headers=['المورد','التاريخ','رقم الفاتورة','الصنف','الوحدة','الكمية','سعر الشراء'];
+ const ws=XLSX.utils.aoa_to_sheet([headers]);
+ ws['!cols']=[{wch:28},{wch:14},{wch:18},{wch:34},{wch:16},{wch:14},{wch:16}];
+ ws['!autofilter']={ref:'A1:G1'};ws['!freeze']={xSplit:0,ySplit:1};
+ const listRows=[
+  ['الموردون','','','الأصناف','','','الوحدات'],
+  ...Array.from({length:Math.max(suppliers.length,items.length,units.length)},(_,i)=>[
+   suppliers[i]?.name||'',items[i]?.name_ar||'',items[i]?.sku||'',units[i]?.name_ar||units[i]?.name||''
+  ])
+ ];
+ const wl=XLSX.utils.aoa_to_sheet(listRows);
+ wl['!cols']=[{wch:28},{wch:36},{wch:18},{wch:18}];
+ const info=XLSX.utils.aoa_to_sheet([
+  ['تعليمات استخدام قالب استيراد المشتريات'],
+  ['1','املأ ورقة "المشتريات" فقط.'],
+  ['2','لا تكتب كود الصنف؛ النظام يطابق الصنف بالاسم.'],
+  ['3','استخدم اسم المورد والصنف والوحدة كما هما في ورقة "قوائم النظام" لتجنب أخطاء المطابقة.'],
+  ['4','التاريخ بصيغة يوم/شهر/سنة أو تاريخ Excel صحيح.'],
+  ['5','إذا كانت الفاتورة تحتوي أكثر من صنف، كرر نفس المورد والتاريخ ورقم الفاتورة في كل سطر.'],
+  ['6','المخزن لا يُكتب في Excel؛ يتم اختياره مرة واحدة من شاشة الاستيراد.'],
+  ['7','لا تكرر فاتورة سبق استيرادها بنفس المورد والتاريخ ورقم الفاتورة.'],
+  ['8','بعد رفع الملف سيعرض النظام المعاينة والأخطاء قبل إنشاء أي مسودة.']
+ ]);
+ info['!cols']=[{wch:8},{wch:110}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المشتريات');XLSX.utils.book_append_sheet(wb,wl,'قوائم النظام');XLSX.utils.book_append_sheet(wb,info,'تعليمات');
+ XLSX.writeFile(wb,'قالب_استيراد_المشتريات.xlsx');
+}
+$('templateBtn').onclick=downloadTemplate
 async function init(){
  const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
  const [S,Su,I,U]=await Promise.all([sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),sb.from('suppliers').select('id,name').order('name'),sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,tax_rate').eq('active',true),sb.from('inv_units').select('*').order('name_ar')]);
@@ -89,12 +123,19 @@ $('importBtn').onclick=async()=>{
  $('importBtn').disabled=true;setMsg('جاري إنشاء المسودات...','info');
  try{
   const groups=new Map();for(const x of parsed){const k=x.sp.id+'|'+x.date+'|'+x.invoice;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
+  const existing=await sb.from('purchases').select('supplier_id,purchase_date,invoice_no,status').eq('site_id',site);
+  if(existing.error)throw existing.error;
+  const existingKeys=new Set((existing.data||[]).map(x=>x.supplier_id+'|'+String(x.purchase_date).slice(0,10)+'|'+String(x.invoice_no??'').trim()));
+  const duplicateGroups=[...groups.entries()].filter(([k])=>existingKeys.has(k));
+  if(duplicateGroups.length)throw Error('يوجد '+duplicateGroups.length+' فاتورة موجودة بالفعل بنفس المورد والتاريخ ورقم الفاتورة. لم يتم إنشاء أي مسودة.');
   let created=0;
   for(const rows of groups.values()){
    const subtotal=rows.reduce((a,x)=>a+x.qty*x.price,0);
-   const h=await sb.from('purchases').insert({invoice_no:rows[0].invoice,supplier_id:rows[0].sp.id,site_id:site,purchase_date:rows[0].date,subtotal,tax:0,total:subtotal,status:'draft',created_by:user.id,withholding_tax:0}).select('id').single();
+   const tax=rows.reduce((a,x)=>a+x.qty*x.price*Number(x.it.tax_rate||0)/100,0);
+   const total=subtotal+tax;
+   const h=await sb.from('purchases').insert({invoice_no:rows[0].invoice,supplier_id:rows[0].sp.id,site_id:site,purchase_date:rows[0].date,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:0}).select('id').single();
    if(h.error)throw h.error;
-   const lines=rows.map(x=>({purchase_id:h.data.id,item_id:x.it.id,qty:x.qty,unit_cost:x.price,discount_rate:0,discount_amount:0,tax_rate:Number(x.it.tax_rate||0),tax_amount:0,line_total:x.qty*x.price}));
+   const lines=rows.map(x=>{const lineBase=x.qty*x.price;const lineTax=lineBase*Number(x.it.tax_rate||0)/100;return {purchase_id:h.data.id,item_id:x.it.id,qty:x.qty,unit_cost:x.price,discount_rate:0,discount_amount:0,tax_rate:Number(x.it.tax_rate||0),tax_amount:lineTax,line_total:lineBase+lineTax}});
    const l=await sb.from('purchase_lines').insert(lines);if(l.error)throw l.error;created++;
   }
   setMsg('تم إنشاء '+created+' فاتورة كمسودة بنجاح ✓ لا يوجد ترحيل أو حركة مخزون حتى الآن.','good');$('importBtn').disabled=true;
