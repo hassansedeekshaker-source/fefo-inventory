@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>استيراد فواتير المشتريات من Excel</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2'"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#172033;font-family:Tahoma,Arial,sans-serif}.page{max-width:1450px;margin:18px auto;padding:0 14px}.top,.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn{border:0;border-radius:8px;padding:10px 15px;background:#e8edf5;color:#172033;text-decoration:none;cursor:pointer}.primary{background:#18243a;color:#fff}.green{background:#087f4f;color:#fff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field b{font-size:13px}.field input,.field select{height:42px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:#fff}.drop{border:2px dashed #aeb9c8;border-radius:12px;padding:30px;text-align:center;margin-top:14px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{padding:13px;border:1px solid #dce3ed;border-radius:9px;text-align:center}.stat strong{display:block;font-size:21px;margin-top:5px}.table-wrap{overflow:auto;max-height:520px}table{width:100%;border-collapse:collapse;min-width:1000px}th,td{padding:8px;border-bottom:1px solid #e5e9f0;text-align:center;white-space:nowrap}th{background:#eef2f7;position:sticky;top:0}.ok{color:#087443}.bad{color:#b42318}.warn{color:#a15c00}.actions{display:flex;gap:8px;flex-wrap:wrap}.msg{padding:11px;border-radius:8px;margin-top:10px}.info{background:#eef3fa}.good{background:#e5f7ee;color:#087f4f}.error{background:#fdecec;color:#b42318}@media(max-width:800px){.grid,.summary{grid-template-columns:1fr 1fr}}@media(max-width:550px){.grid,.summary{grid-template-columns:1fr}}
 </style>
@@ -38,7 +38,8 @@
 </div>
 </div>
 <script>
-const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(URL,KEY);
+const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+let sb=null;
 const $=id=>document.getElementById(id);let user=null,sites=[],suppliers=[],items=[],units=[],parsed=[];
 function norm(v){return String(v??'').trim().toLocaleLowerCase('ar-EG').replace(/\s+/g,' ')}
 function num(v){return Number(String(v??'').replace(/,/g,''))||0}
@@ -53,6 +54,7 @@ function findByName(arr,name){const n=norm(name);return arr.find(x=>norm(x.name_
 function setMsg(t,kind='info'){$('msg').className='msg '+kind;$('msg').textContent=t}
 function cleanKey(v){return norm(v).replace(/[|]/g,'')}
 function downloadTemplate(){
+ if(typeof XLSX==='undefined'){downloadTemplateFallback();return;}
  const headers=['المورد','التاريخ','رقم الفاتورة','الصنف','الوحدة','الكمية','سعر الشراء'];
  const ws=XLSX.utils.aoa_to_sheet([headers]);
  ws['!cols']=[{wch:28},{wch:14},{wch:18},{wch:34},{wch:16},{wch:14},{wch:16}];
@@ -80,9 +82,20 @@ function downloadTemplate(){
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المشتريات');XLSX.utils.book_append_sheet(wb,wl,'قوائم النظام');XLSX.utils.book_append_sheet(wb,info,'تعليمات');
  XLSX.writeFile(wb,'قالب_استيراد_المشتريات.xlsx');
 }
+function downloadTemplateFallback(){
+ const xml='<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>'
+  +'<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
+  +'<Worksheet ss:Name="المشتريات"><Table><Row><Cell><Data ss:Type="String">المورد</Data></Cell><Cell><Data ss:Type="String">التاريخ</Data></Cell><Cell><Data ss:Type="String">رقم الفاتورة</Data></Cell><Cell><Data ss:Type="String">الصنف</Data></Cell><Cell><Data ss:Type="String">الوحدة</Data></Cell><Cell><Data ss:Type="String">الكمية</Data></Cell><Cell><Data ss:Type="String">سعر الشراء</Data></Cell></Row></Table></Worksheet>'
+  +'<Worksheet ss:Name="قوائم النظام"><Table><Row><Cell><Data ss:Type="String">الموردون</Data></Cell></Row><Row><Cell><Data ss:Type="String">الأصناف</Data></Cell></Row><Row><Cell><Data ss:Type="String">الوحدات</Data></Cell></Row></Table></Worksheet>'
+  +'<Worksheet ss:Name="تعليمات"><Table><Row><Cell><Data ss:Type="String">املأ ورقة المشتريات فقط. لا تكتب كود الصنف. المخزن يتم اختياره من الشاشة.</Data></Cell></Row></Table></Worksheet></Workbook>';
+ const blob=new Blob([xml],{type:'application/vnd.ms-excel'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='قالب_استيراد_المشتريات.xls';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
 async function init(){
  try{
-  if(typeof supabase==='undefined')throw Error('مكتبة الاتصال بقاعدة البيانات لم يتم تحميلها. اعمل تحديث للصفحة.');
+  if(typeof supabase==='undefined')throw Error('مكتبة الاتصال بقاعدة البيانات لم يتم تحميلها.');
+  sb=supabase.createClient(URL,KEY);
   const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
   const S=await sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'); if(S.error)throw S.error;
   sites=S.data||[];$('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+x.name_ar+'</option>').join(''));
@@ -150,6 +163,7 @@ $('importBtn').onclick=async()=>{
  }catch(e){setMsg('حدث خطأ أثناء الاستيراد: '+(e.message||e),'error');$('importBtn').disabled=false}
 };
 $('clearBtn').onclick=()=>{parsed=[];$('file').value='';$('review').style.display='none';setMsg('تم مسح الملف.','info')};
-window.addEventListener('DOMContentLoaded',()=>init());;
+window.addEventListener('DOMContentLoaded',()=>init());
+window.addEventListener('load',()=>{if(typeof XLSX==='undefined')setMsg('تعذر تحميل مكتبة Excel؛ زر القالب سيستخدم النسخة البديلة تلقائيًا.','warn');});
 </script>
 </body></html>
