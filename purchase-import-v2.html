@@ -143,7 +143,7 @@ $('importBtn').onclick=async()=>{
  $('importBtn').disabled=true;setMsg('جاري إنشاء المسودات...','info');
  try{
   const groups=new Map();for(const x of parsed){const k=x.sp.id+'|'+x.date+'|'+x.invoice;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
-  const existing=await sb.from('purchases').select('supplier_id,purchase_date,invoice_no,status').eq('site_id',site);
+  const existing=await sb.from('purchases').select('supplier_id,purchase_date,invoice_no,status').eq('site_id',site).neq('status','cancelled');
   if(existing.error)throw existing.error;
   const existingKeys=new Set((existing.data||[]).map(x=>x.supplier_id+'|'+String(x.purchase_date).slice(0,10)+'|'+String(x.invoice_no??'').trim()));
   const duplicateGroups=[...groups.entries()].filter(([k])=>existingKeys.has(k));
