@@ -81,7 +81,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="stat">إجمالي المردودات<b id="slReturns">0.00</b></div>
 <div class="stat">إجمالي السداد<b id="slPayments">0.00</b></div>
 </div>
-<div class="hint">الكشف يعرض كل حركات المورد المترحلة، مع الرصيد السابق وقيمة الحركة وصافي القيمة والرصيد الختامي.</div>
+<div class="hint">الكشف يعرض كل حركات المورد المترحلة، ويحسب الرصيد الافتتاحي لكل سطر من الرصيد الختامي للسطر السابق، وصافي القيمة = مدين - دائن، والرصيد الختامي = الافتتاحي + مدين - دائن.</div>
 <div class="statGrid" style="margin-top:12px;grid-template-columns:1fr 1fr">
 <div class="stat">الرصيد الحالي<b id="slBalance">0.00</b></div>
 <div class="stat">عدد الحركات<b id="slCount">0</b></div>
@@ -90,7 +90,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div style="overflow:auto;margin-top:16px">
 <table id="supplierLedgerTable" style="min-width:980px">
 <thead><tr>
-<th>الرقم المرجعي</th><th>نوع الحركة</th><th>التاريخ</th><th>كود الحساب</th><th>وصف الحساب</th><th>الرصيد السابق</th><th>قيمة مدينة</th><th>قيمة دائنة</th><th>صافي القيمة</th><th>الرصيد الختامي</th><th>العملة</th>
+<th>الرقم المرجعي</th><th>نوع الحركة</th><th>التاريخ</th><th>اسم الحساب</th><th>الرصيد الافتتاحي</th><th>قيمة مدينة</th><th>قيمة دائنة</th><th>صافي القيمة</th><th>الرصيد الختامي</th><th>العملة</th>
 </tr></thead>
 <tbody id="supplierLedgerBody"></tbody>
 </table>
@@ -189,30 +189,32 @@ async function loadSupplierLedger(id){
  const bad=[p,r,ft].find(z=>z.error);
  if(bad){$("supplierLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
  const opening=Number(x.opening_balance||0),moves=[];
- // نحافظ على منطق الرصيد الحالي الموجود في الشاشة: المشتريات تزيد الرصيد، والمردودات والسداد تقلله.
- if(opening!==0)moves.push({date:"",type:"رصيد افتتاحي",ref:"-",code:supplierCode(x),desc:"الرصيد الافتتاحي",debit:opening<0?Math.abs(opening):0,credit:opening>0?opening:0});
- (p.data||[]).forEach(a=>moves.push({date:a.purchase_date,type:"فاتورة شراء",ref:a.invoice_no||"-",code:supplierCode(x),desc:"فاتورة مشتريات",debit:0,credit:Number(a.total||0),sourceId:a.id}));
- (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مردود مشتريات",ref:a.return_no||"-",code:supplierCode(x),desc:"مردود مشتريات",debit:Number(a.total||0),credit:0,sourceId:a.id}));
- (ft.data||[]).forEach(a=>{const pay=a.transaction_type==="payment";moves.push({date:a.transaction_date,type:pay?"سداد مورد":"حركة مالية",ref:a.transaction_no||a.reference_no||"-",code:supplierCode(x),desc:a.notes||(pay?"سداد للمورد":"حركة مالية للمورد"),debit:pay?Number(a.amount||0):0,credit:pay?0:Number(a.amount||0),sourceId:a.id})});
- moves.sort((a,b)=>safeDate(a.date).localeCompare(safeDate(b.date))||String(a.ref).localeCompare(String(b.ref),"ar",{numeric:true}));
- let bal=0,totalPurch=0,totalRet=0,totalPay=0;
- supplierLedgerRows=moves.map(m=>{
-   const previous=bal;
+ (p.data||[]).forEach(a=>moves.push({date:a.purchase_date,type:"فاتورة شراء",ref:a.invoice_no||"-",debit:0,credit:Number(a.total||0)}));
+ (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مردود مشتريات",ref:a.return_no||"-",debit:Number(a.total||0),credit:0}));
+ (ft.data||[]).forEach(a=>{
+   const pay=a.transaction_type==="payment";
+   moves.push({date:a.transaction_date,type:pay?"دفع":"حركة مالية",ref:a.transaction_no||a.reference_no||"-",debit:pay?Number(a.amount||0):0,credit:pay?0:Number(a.amount||0)});
+ });
+ moves.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||String(a.ref).localeCompare(String(b.ref),"ar",{numeric:true}));
+
+ let balance=opening,totalPurch=0,totalRet=0,totalPay=0;
+ supplierLedgerRows=moves.map((m,index)=>{
+   const openingRow=balance;
    const debit=Number(m.debit||0),credit=Number(m.credit||0),net=debit-credit;
-   bal=bal+credit-debit;
+   balance=openingRow+net;
    if(m.type==="فاتورة شراء")totalPurch+=credit;
    if(m.type==="مردود مشتريات")totalRet+=debit;
-   if(m.type==="سداد مورد")totalPay+=debit;
+   if(m.type==="دفع")totalPay+=debit;
    return {
      "الرقم المرجعي":m.ref,
      "نوع الحركة":m.type,
      "التاريخ":m.date||"",
      "اسم الحساب":supplierLedgerName,
-     "الرصيد الافتتاحي":opening,
+     "الرصيد الافتتاحي":openingRow,
      "قيمة مدينة":debit,
      "قيمة دائنة":credit,
      "صافي القيمة":net,
-     "الرصيد الختامي":bal,
+     "الرصيد الختامي":balance,
      "العملة":"EGP"
    };
  });
@@ -220,7 +222,7 @@ async function loadSupplierLedger(id){
  $("slPurchases").textContent=money2(totalPurch);
  $("slReturns").textContent=money2(totalRet);
  $("slPayments").textContent=money2(totalPay);
- $("slBalance").textContent=money2(bal);
+ $("slBalance").textContent=money2(balance);
  $("slCount").textContent=String(supplierLedgerRows.length);
  $("supplierLedgerBody").innerHTML=supplierLedgerRows.length?supplierLedgerRows.map(m=>"<tr><td>"+esc(m["الرقم المرجعي"])+"</td><td>"+esc(m["نوع الحركة"])+"</td><td>"+esc(m["التاريخ"])+"</td><td>"+esc(m["اسم الحساب"])+"</td><td>"+money2(m["الرصيد الافتتاحي"])+"</td><td>"+money2(m["قيمة مدينة"])+"</td><td>"+money2(m["قيمة دائنة"])+"</td><td>"+money2(m["صافي القيمة"])+"</td><td>"+money2(m["الرصيد الختامي"])+"</td><td>EGP</td></tr>").join(""):"<tr><td colspan=\"10\" class=\"empty\">لا توجد حركات لهذا المورد.</td></tr>";
  $("supplierLedgerMsg").innerHTML="<div class=\"msg ok\">تم تحميل كل حركات المورد المترحلة ✓</div>";
@@ -228,10 +230,18 @@ async function loadSupplierLedger(id){
 }
 function exportSupplierLedgerExcel(){
  if(!supplierLedgerRows.length){alert("اختر موردًا أولاً ولا توجد حركات لتصديرها.");return}
- const data=[...supplierLedgerRows];
+ const headers=["الرقم المرجعي","نوع الحركة","التاريخ","اسم الحساب","الرصيد الافتتاحي","قيمة مدينة","قيمة دائنة","صافي القيمة","الرصيد الختامي","العملة"];
+ const data=[headers];
+ supplierLedgerRows.forEach((m,i)=>{
+   const row=i+2;
+   const opening=i===0?Number(m["الرصيد الافتتاحي"]||0):{f:`=I${row-1}`};
+   const net={f:`=F${row}-G${row}`};
+   const closing={f:`=E${row}+F${row}-G${row}`};
+   data.push([m["الرقم المرجعي"],m["نوع الحركة"],m["التاريخ"],m["اسم الحساب"],opening,m["قيمة مدينة"],m["قيمة دائنة"],net,closing,m["العملة"]]);
+ });
  const wb=XLSX.utils.book_new();
- const ws=XLSX.utils.json_to_sheet(data);
- ws["!cols"]=[{wch:22},{wch:18},{wch:14},{wch:28},{wch:18},{wch:16},{wch:16},{wch:16},{wch:18},{wch:10}];
+ const ws=XLSX.utils.aoa_to_sheet(data);
+ ws["!cols"]=[{wch:22},{wch:16},{wch:14},{wch:28},{wch:18},{wch:16},{wch:16},{wch:16},{wch:18},{wch:10}];
  XLSX.utils.book_append_sheet(wb,ws,"كشف الحساب");
  const summary=[
   {"البيان":"المورد","القيمة":supplierLedgerName},
