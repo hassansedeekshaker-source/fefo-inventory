@@ -7,8 +7,28 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#17233b;font-family:Tahoma,Arial,sans-serif}.page{width:100%;min-height:100vh;padding:12px}.card{width:100%;background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 12px #0001}.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.top a,.btn{display:inline-block;border:0;border-radius:8px;padding:10px 15px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}.top .green,.save{background:#087f4f;color:#fff}.title{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e7ef;padding-bottom:12px}.title h1{margin:0;font-size:25px}.head{display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:12px;margin:16px 0;padding:14px;background:#fafbfd;border:1px solid #dce3ed;border-radius:8px}label{display:flex;flex-direction:column;gap:6px;font-weight:700}input,select{width:100%;height:40px;border:1px solid #cbd5e1;border-radius:7px;padding:7px 9px;background:#fff;font-size:14px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1050px}th{background:#edf2f8;padding:10px;white-space:nowrap}td{padding:7px;border-bottom:1px solid #e5e9f0;text-align:center}td input,td select{height:36px;padding:5px;font-size:13px}.item-picker{position:relative;min-width:220px}.item-search{width:100%;min-width:210px}.item-results{display:none;position:fixed;z-index:99999;background:#fff;border:1px solid #b8c5d6;border-radius:7px;max-height:300px;overflow:auto;box-shadow:0 8px 24px #0003;text-align:right}.item-option{display:block;width:100%;border:0;border-bottom:1px solid #eef1f5;background:#fff;text-align:right;padding:9px;cursor:pointer;color:#17233b}.item-option:hover,.item-option:focus{background:#eaf2ff}.item-empty{padding:10px;color:#667085}.add{margin-top:12px;border:0;border-radius:8px;padding:10px 16px;background:#eef3fa;cursor:pointer;font-weight:700}.del{border:0;border-radius:7px;padding:8px 12px;cursor:pointer;background:#f1f3f6}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}.sum{border:1px solid #dce3ed;border-radius:8px;padding:13px;text-align:center}.sum b{display:block;color:#5b687b;margin-bottom:6px}.sum strong{font-size:21px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.actions button{border:0;border-radius:8px;padding:10px 16px;cursor:pointer}.msg{padding:11px;border-radius:8px;margin-top:12px}.ok{background:#e5f7ee;color:#087f4f}.bad{background:#fdecec;color:#b42318}.loading{background:#eef3fa;color:#344054}@media(max-width:900px){.head{grid-template-columns:1fr 1fr}.summary{grid-template-columns:1fr 1fr}}@media(max-width:600px){.head,.summary{grid-template-columns:1fr}}
 </style>
-</head>
-<body>
+<style>
+.print-header{display:none}
+@media print{
+ @page{size:A4;margin:10mm}
+ body{background:#fff!important;color:#111!important}
+ .top,.actions,.add,button{display:none!important}
+ .print-header{display:block!important;border:1px solid #d7c19a;border-radius:10px;overflow:hidden;margin-bottom:12px}
+ .print-header-main{display:flex;align-items:center;min-height:105px;background:linear-gradient(90deg,#fbf2df,#fff 55%,#6f430e)}
+ .print-company{width:50%;text-align:center;padding:10px}
+ .print-company b{display:block;font-size:25px}
+ .print-company span{display:block;font-size:17px;font-weight:700;margin-top:4px}
+ .print-company small{display:block;font-size:12px;margin-top:7px}
+ .print-partner{width:25%;text-align:center;font-size:17px;font-weight:800;line-height:1.5;padding:10px}
+ .print-empty{width:25%}
+ .print-contact{background:#f7ecd7;text-align:center;padding:7px;font-size:12px;border-top:1px solid #d7c19a}
+ .card{box-shadow:none!important;border:0!important;padding:0!important;min-height:0!important}
+ main{margin:0!important;max-width:none!important}
+ table{page-break-inside:auto}
+ tr{page-break-inside:avoid}
+}
+</style></head>
+<body><div class="print-header"><div class="print-header-main"><div class="print-empty"></div><div class="print-company"><b>شركة الطائر الحر</b><span>لتعبئة وتوريد المواد الغذائية</span><small>بولارس الدولية - بوصلة 3 - قطعة 127 - السادس من أكتوبر</small></div><div class="print-partner">شريكك الأمثل<br>في عالم الأغذية</div></div><div class="print-contact">☎ 01065606565 - 01066833110 - 01005400590 &nbsp;&nbsp; | &nbsp;&nbsp; السجل التجاري: 37697</div></div>
 <div class="page"><div class="top">
 <a href="accounting.html">🏠 الرئيسية</a><a class="green" href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-saved.html">📋 المشتريات المحفوظة</a><a href="purchase-post.html">📤 ترحيل المشتريات</a><a href="purchases.html">↩ المشتريات</a>
 </div>
