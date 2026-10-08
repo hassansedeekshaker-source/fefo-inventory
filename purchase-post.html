@@ -1,1 +1,104 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ترحيل المشتريات</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><style>body{font-family:Arial,sans-serif;background:#f4f6fa;margin:0;color:#17233b}#app{max-width:1250px;margin:25px auto}.card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 3px 16px #0001}.top{display:flex;gap:10px;margin-bottom:14px}.top a,.btn,button{border:0;border-radius:9px;padding:10px 16px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}.top a:first-child,.ok{background:#087f4f;color:#fff}.head{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}label{display:flex;flex-direction:column;gap:6px}input,select{padding:10px;border:1px solid #ccd5e3;border-radius:8px}table{width:100%;border-collapse:collapse;margin:18px 0}th,td{padding:10px;border-bottom:1px solid #e5e9f0;text-align:right}th{background:#eef2f7}.msg{padding:12px;margin-top:14px;border-radius:8px}.msg.ok{background:#e5f7ee;color:#087f4f}.msg.bad{background:#fdecec;color:#b42318}@media(max-width:800px){.head{grid-template-columns:1fr 1fr}}</style></head><body data-workflow="purchase-post"><main id="app"></main><script src="workflow.js"></script><script>(function(){function addBack(){if([...document.querySelectorAll('button,a')].some(el=>el.textContent.includes('رجوع للشاشة السابقة')))return;const b=document.createElement('button');b.type='button';b.textContent='↩ رجوع للشاشة السابقة';b.className='btn';b.style.cssText='margin-left:8px;cursor:pointer;';b.onclick=function(){if(window.history.length>1)window.history.back();else window.location.href='accounting.html';};const main=document.querySelector('main')||document.body;const top=main.querySelector('.top');if(top)top.prepend(b);else main.insertBefore(b,main.firstChild)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBack);else addBack()})();</script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ترحيل المشتريات</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#17233b}
+#app{max-width:1250px;margin:22px auto;padding:0 14px}.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.top a,.btn,button{border:0;border-radius:9px;padding:10px 15px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer}
+.primary,.ok{background:#087f4f;color:#fff}.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 3px 16px #0001}
+table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:10px 8px;border-bottom:1px solid #e5e9f0;text-align:center}th{background:#eef2f7}
+.msg{padding:12px;border-radius:8px;margin-top:12px}.good{background:#e5f7ee;color:#087f4f}.bad{background:#fdecec;color:#b42318}.info{background:#eef3fa;color:#344054}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.muted{color:#667085;font-size:13px}
+</style>
+</head>
+<body>
+<main id="app">
+<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-save.html?saved=1">📋 المشتريات المحفوظة</a><a class="primary" href="purchase-post.html">📤 الترحيل</a></div>
+<div class="card"><h1>📤 ترحيل المشتريات</h1><p class="muted">هذه الشاشة تعرض المسودات فقط. لا يؤثر المستند على المخزون أو الحسابات حتى يتم ترحيله.</p>
+<div id="msg" class="msg info">جاري تحميل المسودات...</div>
+<div class="actions"><button onclick="loadDrafts()">🔄 تحديث</button><button class="ok" onclick="postSelected()">📤 ترحيل المحدد</button><button onclick="selectInvoice959()">اختبار فاتورة 959</button></div>
+<table><thead><tr><th>تحديد</th><th>رقم الفاتورة</th><th>التاريخ</th><th>المورد</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody id="drafts"></tbody></table>
+</div></main>
+<script>
+const SUPA_URL='https://fyqyodnboryzaejlhdlk.supabase.co';
+const SUPA_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+let sb=null,user=null,rows=[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function msg(t,c='info'){const e=$('msg');e.className='msg '+c;e.textContent=t}
+async function init(){
+ try{
+  if(typeof window.supabase==='undefined')throw new Error('مكتبة الاتصال بقاعدة البيانات لم تعمل.');
+  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}
+  user=s.data.session.user;await loadDrafts();
+ }catch(e){msg(e.message||e,'bad')}
+}
+async function loadDrafts(){
+ try{
+  msg('جاري تحميل المسودات...','info');
+  const r=await sb.from('purchases').select('id,invoice_no,purchase_date,supplier_id,subtotal,tax,total,suppliers(name)').eq('status','draft').order('purchase_date',{ascending:false}).order('invoice_no',{ascending:false});
+  if(r.error)throw r.error;
+  rows=r.data||[];
+  $('drafts').innerHTML=rows.map(x=>'<tr><td><input type="checkbox" class="ck" value="'+x.id+'"></td><td>'+esc(x.invoice_no||x.id.slice(0,8))+'</td><td>'+esc(x.purchase_date||'')+'</td><td>'+esc(x.suppliers?.name||'-')+'</td><td>'+Number(x.subtotal||0).toFixed(2)+'</td><td>'+Number(x.tax||0).toFixed(2)+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td>مسودة</td></tr>').join('')||'<tr><td colspan="8">لا توجد مسودات محفوظة حاليًا.</td></tr>';
+  msg('تم تحميل '+rows.length+' مسودة.','good');
+ }catch(e){msg(e.message||e,'bad')}
+}
+function selectInvoice959(){
+ document.querySelectorAll('.ck').forEach(x=>x.checked=false);
+ const row=rows.find(x=>String(x.invoice_no||'').trim()==='959');
+ if(!row)return msg('الفاتورة 959 غير موجودة ضمن المسودات.','bad');
+ const ck=document.querySelector('.ck[value="'+CSS.escape(row.id)+'"]');
+ if(ck){ck.checked=true;msg('تم تحديد فاتورة 959 فقط. لم يتم الترحيل.','info')}
+}
+async function getAccount(code,name,type){
+ let r=await sb.from('coa_accounts').select('*').eq('code',code).eq('active',true).maybeSingle();
+ if(r.error)throw r.error;if(r.data)return r.data;
+ r=await sb.from('coa_accounts').insert({code,name_ar:name,account_type:type,active:true}).select().single();
+ if(r.error)throw r.error;return r.data;
+}
+async function createJournal(source,id,date,desc,lines){
+ let e=await sb.from('journal_entries').insert({entry_date:date,source_type:source,source_id:id,description:desc,posted:true,created_by:user.id}).select().single();
+ if(e.error)throw e.error;
+ const r=await sb.from('journal_lines').insert(lines.map(x=>({...x,entry_id:e.data.id})));
+ if(r.error)throw r.error;
+}
+async function postPurchase(id){
+ const hq=await sb.from('purchases').select('*').eq('id',id).single();if(hq.error)throw hq.error;
+ const h=hq.data;const lr=await sb.from('purchase_lines').select('*').eq('purchase_id',id);if(lr.error)throw lr.error;
+ const ls=lr.data||[];if(!h||h.status!=='draft')throw new Error('الفاتورة غير موجودة أو ليست مسودة.');
+ let sub=0,tax=0;
+ for(const x of ls){
+  const net=Number(x.qty||0)*Number(x.unit_cost||0)-Number(x.discount_amount||0);sub+=net;tax+=Number(x.tax_amount||0);
+  const uc=Number(x.qty||0)?net/Number(x.qty):0;
+  const lot=await sb.from('inv_lots').insert({item_id:x.item_id,site_id:h.site_id,batch_no:x.batch_no,expiry_date:x.expiry_date,qty_on_hand:x.qty,unit_cost:uc,supplier_invoice_no:h.invoice_no,received_at:new Date().toISOString()}).select().single();
+  if(lot.error)throw lot.error;
+  const mv=await sb.from('inv_movements').insert({item_id:x.item_id,site_id:h.site_id,lot_id:lot.data.id,movement_type:'receipt',qty:x.qty,unit_cost:uc,reference_type:'purchase',reference_id:id,notes:'ترحيل فاتورة مشتريات',created_by:user.id});
+  if(mv.error)throw mv.error;
+  const old=(await sb.from('inventory_costs').select('*').eq('item_id',x.item_id).eq('site_id',h.site_id).maybeSingle()).data;
+  const q=Number(old?.qty_on_hand||0),v=Number(old?.inventory_value||0),nq=q+Number(x.qty||0),nv=v+net;
+  const cu=await sb.from('inventory_costs').upsert({item_id:x.item_id,site_id:h.site_id,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});
+  if(cu.error)throw cu.error;
+ }
+ const inv=await getAccount('1310','مخزون بضائع','asset');
+ const sup=await getAccount('2120','الموردون','liability');
+ const j=[{account_id:inv.id,debit:sub,credit:0,description:'مخزون المشتريات',site_id:h.site_id}];
+ if(tax>0){const vat=await getAccount('1230','ضريبة القيمة المضافة - مدخلات','asset');j.push({account_id:vat.id,debit:tax,credit:0,description:'ضريبة مشتريات',site_id:h.site_id})}
+ j.push({account_id:sup.id,debit:0,credit:Number(h.total||0),description:'استحقاق المورد',site_id:h.site_id});
+ await createJournal('purchase',id,h.purchase_date,'ترحيل مشتريات '+(h.invoice_no||''),j);
+ const up=await sb.from('purchases').update({status:'posted'}).eq('id',id).eq('status','draft');if(up.error)throw up.error;
+}
+async function postSelected(){
+ const ids=[...document.querySelectorAll('.ck:checked')].map(x=>x.value);
+ if(!ids.length)return msg('حدد فاتورة واحدة على الأقل.','bad');
+ if(!confirm('سيتم ترحيل '+ids.length+' فاتورة وتحديث المخزون والقيود المحاسبية. هل تريد المتابعة؟'))return;
+ try{for(const id of ids)await postPurchase(id);msg('تم ترحيل '+ids.length+' فاتورة بنجاح ✓','good');await loadDrafts()}
+ catch(e){msg('حدث خطأ أثناء الترحيل: '+(e.message||e),'bad')}
+}
+init();
+</script>
+</body></html>
