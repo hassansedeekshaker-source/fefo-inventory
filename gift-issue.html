@@ -80,6 +80,8 @@ function setupPicker(tr){
    input.value=x.name_ar+' — '+(x.sku||'');
    tr.dataset.itemId=x.id;box.style.display='none';
    await itemChanged(tr);
+   tr.querySelector('.qty')?.focus();
+   tr.querySelector('.qty')?.select();
   });
  }
  input.addEventListener('input',draw);
@@ -90,7 +92,26 @@ function setupPicker(tr){
  });
  document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});
 }
-function addLine(){const tr=document.createElement('tr');tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="stock ro" value="0.000" readonly></td><td class="cost">0.00</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td class="lineTotal">0.00</td><td><button class="light" onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';$('lines').appendChild(tr);tr.querySelector('.qty').oninput=calc;setupPicker(tr);}
+function addLine(){
+ const tr=document.createElement('tr');
+ tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="stock ro" value="0.000" readonly></td><td class="cost">0.00</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td class="lineTotal">0.00</td><td><button class="light" onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';
+ $('lines').appendChild(tr);
+ const qtyInput=tr.querySelector('.qty');
+ qtyInput.oninput=calc;
+ qtyInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+   e.preventDefault();
+   const next=tr.nextElementSibling;
+   if(next){
+    next.querySelector('.item-search')?.focus();
+   }else{
+    addLine();
+    document.querySelector('#lines tr:last-child .item-search')?.focus();
+   }
+  }
+ });
+ setupPicker(tr);
+}
 async function itemChanged(tr){
  const x=items.find(i=>String(i.id)===String(tr.dataset.itemId));if(!x)return;
  tr.querySelector('.unit').textContent=x.unit_name||'-';
