@@ -11,7 +11,7 @@
 .top a,.btn,button{border:0;border-radius:9px;padding:10px 16px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer;white-space:nowrap}
 .top a:first-child,.new-movement,.ok{background:#087f4f;color:#fff}.card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 3px 16px #0001}
 table{width:100%;border-collapse:separate;border-spacing:0;margin-top:18px;font-size:14px}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.summary .box{border:1px solid #dfe5ee;border-radius:10px;padding:14px;text-align:center;background:#fafbfd}.summary b{display:block;color:#667085;margin-bottom:7px}.summary strong{font-size:21px}@media(max-width:900px){.summary{grid-template-columns:repeat(2,1fr)}}th,td{padding:11px 8px;border-bottom:1px solid #e5e9f0;text-align:center}th{background:#eef2f7}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.summary .box{border:1px solid #dfe5ee;border-radius:10px;padding:14px;text-align:center;background:#fafbfd}.summary b{display:block;color:#667085;margin-bottom:7px}.summary strong{font-size:21px}@media(max-width:900px){.summary{grid-template-columns:repeat(2,1fr)}}th,td{padding:11px 8px;border-bottom:1px solid #e5e9f0;text-align:center}th{background:#eef2f7}.danger{background:#b42318;color:#fff}
 .msg{padding:12px;margin-top:14px;border-radius:8px}.msg.ok{background:#e5f7ee;color:#087f4f}.msg.bad{background:#fdecec;color:#b42318}
 @media(max-width:900px){#app{width:98%}.card{padding:14px}table{font-size:12px}th,td{padding:7px 4px}}
 </style>
@@ -29,7 +29,7 @@ async function init(){
  try{
   const s=await sb.auth.getSession();
   if(!s.data.session){location.href='accounting.html';return}
-  $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-post.html">📤 الترحيل</a></div><div class="card"><h1>📋 المشتريات المحفوظة</h1><p>الفواتير المحفوظة كمسودات ولم يتم ترحيلها.</p><div id="savedMsg"></div><div class="summary"><div class="box"><b>عدد الفواتير</b><strong id="invCount">0</strong></div><div class="box"><b>الإجمالي بدون الضريبة</b><strong id="subTotal">0.00</strong></div><div class="box"><b>إجمالي الضريبة</b><strong id="taxTotal">0.00</strong></div><div class="box"><b>الإجمالي شامل الضريبة</b><strong id="grandTotal">0.00</strong></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button onclick="loadSaved()">🔄 تحديث</button><button class="ok" onclick="exportExcel()">📊 تصدير Excel</button></div><table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>المورد</th><th>قيمة الفاتورة</th><th>الضريبة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody id="savedBody"></tbody></table></div>';
+  $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-post.html">📤 الترحيل</a></div><div class="card"><h1>📋 المشتريات المحفوظة</h1><p>الفواتير المحفوظة كمسودات ولم يتم ترحيلها.</p><div id="savedMsg"></div><div class="summary"><div class="box"><b>عدد الفواتير</b><strong id="invCount">0</strong></div><div class="box"><b>الإجمالي بدون الضريبة</b><strong id="subTotal">0.00</strong></div><div class="box"><b>إجمالي الضريبة</b><strong id="taxTotal">0.00</strong></div><div class="box"><b>الإجمالي شامل الضريبة</b><strong id="grandTotal">0.00</strong></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button onclick="loadSaved()">🔄 تحديث</button><button class="ok" onclick="exportExcel()">📊 تصدير Excel</button><button class="danger" onclick="deleteAllDrafts()">🗑 حذف كل المسودات</button></div><table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>المورد</th><th>قيمة الفاتورة</th><th>الضريبة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody id="savedBody"></tbody></table></div>';
   await loadSaved();
  }catch(e){
   $('app').innerHTML='<div class="card"><h2>تعذر تحميل المشتريات المحفوظة</h2><div class="msg bad">'+esc(e.message||e)+'</div><a class="btn" href="accounting.html">🏠 العودة للرئيسية</a></div>';
@@ -72,6 +72,21 @@ window.exportExcel=()=>{
 };
 window.openSaved=id=>location.href='purchase-save.html?edit='+encodeURIComponent(id);
 window.postSaved=id=>location.href='purchase-post.html?select='+encodeURIComponent(id);
+window.deleteAllDrafts=async()=>{ 
+ if(!confirm('سيتم حذف جميع فواتير الشراء المحفوظة كمسودة وبنودها نهائيًا. لن يتم حذف أي فاتورة مرحلة. هل تريد المتابعة؟'))return;
+ try{
+  const q=await sb.from('purchases').select('id',{count:'exact',head:false}).eq('status','draft');
+  if(q.error)throw q.error;
+  const count=(q.data||[]).length;
+  if(!count){msg('لا توجد مسودات لحذفها.','bad');return}
+  const d=await sb.from('purchase_lines').delete().in('purchase_id',(q.data||[]).map(x=>x.id));
+  if(d.error)throw d.error;
+  const r=await sb.from('purchases').delete().eq('status','draft');
+  if(r.error)throw r.error;
+  msg('تم حذف '+count+' مسودة وبنودها نهائيًا ✓','ok');
+  await loadSaved();
+ }catch(e){msg(e.message||e,'bad')}
+};
 window.deleteSaved=async id=>{
  if(!confirm('هل تريد حذف هذه المسودة نهائيًا؟'))return;
  try{
