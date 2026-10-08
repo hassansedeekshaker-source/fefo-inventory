@@ -151,11 +151,11 @@ $('importBtn').onclick=async()=>{
   let created=0;
   for(const rows of groups.values()){
    const subtotal=rows.reduce((a,x)=>a+x.qty*x.price,0);
-   const tax=rows.reduce((a,x)=>a+x.qty*x.price*Number(x.it.tax_rate||0)/100,0);
+   const tax=rows.reduce((a,x)=>a+x.qty*x.price*Number(x.it.tax_rate||0),0);
    const total=subtotal+tax;
    const h=await sb.from('purchases').insert({invoice_no:rows[0].invoice,supplier_id:rows[0].sp.id,site_id:site,purchase_date:rows[0].date,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:0}).select('id').single();
    if(h.error)throw h.error;
-   const lines=rows.map(x=>{const lineBase=x.qty*x.price;const lineTax=lineBase*Number(x.it.tax_rate||0)/100;return {purchase_id:h.data.id,item_id:x.it.id,qty:x.qty,unit_cost:x.price,discount_rate:0,discount_amount:0,tax_rate:Number(x.it.tax_rate||0),tax_amount:lineTax}});
+   const lines=rows.map(x=>{const lineBase=x.qty*x.price;const lineTax=lineBase*Number(x.it.tax_rate||0);return {purchase_id:h.data.id,item_id:x.it.id,qty:x.qty,unit_cost:x.price,discount_rate:0,discount_amount:0,tax_rate:Number(x.it.tax_rate||0),tax_amount:lineTax}});
    const l=await sb.from('purchase_lines').insert(lines);if(l.error)throw l.error;created++;
   }
   setMsg('تم إنشاء '+created+' فاتورة كمسودة بنجاح ✓ لا يوجد ترحيل أو حركة مخزون حتى الآن.','good');$('importBtn').disabled=true;
