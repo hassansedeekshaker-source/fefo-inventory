@@ -184,18 +184,18 @@ async function postAll(){
      if(cu.error)throw cu.error;
    }
 
-   const [shortAcc,incAcc,invAcc]=await Promise.all([
-     sb.from('coa_accounts').select('id').eq('code','6410').single(),
-     sb.from('coa_accounts').select('id').eq('code','4920').single(),
+   const [diffAcc,invAcc]=await Promise.all([
+     sb.from('coa_accounts').select('id').eq('code','6400').single(),
+     sb.from('coa_accounts').select('id').eq('code','6400').single(),
      sb.from('coa_accounts').select('id').eq('code','1310').single()
    ]);
-   if(shortAcc.error)throw shortAcc.error;if(incAcc.error)throw incAcc.error;if(invAcc.error)throw invAcc.error;
+   if(diffAcc.error)throw diffAcc.error;if(invAcc.error)throw invAcc.error;
 
    const je=await sb.from('journal_entries').insert({entry_date:date,source_type:'inventory_adjustment',source_id:batchId,description:'تسوية جرد المخزون',posted:true,created_by:user.id}).select().single();
    if(je.error)throw je.error;
    const lines=[];
-   if(shortValue>0){lines.push({entry_id:je.data.id,account_id:shortAcc.data.id,debit:shortValue,credit:0,description:'عجز جرد',site_id:site});lines.push({entry_id:je.data.id,account_id:invAcc.data.id,debit:0,credit:shortValue,description:'نقص المخزون بسبب الجرد',site_id:site})}
-   if(incValue>0){lines.push({entry_id:je.data.id,account_id:invAcc.data.id,debit:incValue,credit:0,description:'زيادة مخزون بسبب الجرد',site_id:site});lines.push({entry_id:je.data.id,account_id:incAcc.data.id,debit:0,credit:incValue,description:'أرباح فروق جرد',site_id:site})}
+   if(shortValue>0){lines.push({entry_id:je.data.id,account_id:diffAcc.data.id,debit:shortValue,credit:0,description:'عجز جرد',site_id:site});lines.push({entry_id:je.data.id,account_id:invAcc.data.id,debit:0,credit:shortValue,description:'نقص المخزون بسبب الجرد',site_id:site})}
+   if(incValue>0){lines.push({entry_id:je.data.id,account_id:invAcc.data.id,debit:incValue,credit:0,description:'زيادة مخزون بسبب الجرد',site_id:site});lines.push({entry_id:je.data.id,account_id:diffAcc.data.id,debit:0,credit:incValue,description:'أرباح فروق جرد',site_id:site})}
    const jl=await sb.from('journal_lines').insert(lines);if(jl.error)throw jl.error;
    msg('تم ترحيل الجرد بالكامل ✓ — '+diffs.length+' تسوية، زيادة '+money(incValue)+'، وعجز '+money(shortValue),'ok');
    await loadInventory();
