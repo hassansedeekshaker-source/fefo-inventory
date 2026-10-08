@@ -15,7 +15,7 @@ function err(s){$('msg').innerHTML='<div class="msg bad">'+esc(s)+'</div>'}
 async function load(){try{
  const p=new URLSearchParams(location.search),presetType=p.get('type')||'',customerId=p.get('customer_id'),supplierId=p.get('supplier_id');
  if(presetType)$('type').value=presetType;
- const type=$('type').value,from=$('from').value,to=$('to').value;
+ const type=$('type').value,from=$('from').value,to=$('to').value;const pageTitle=document.querySelector('h1');if(pageTitle)pageTitle.textContent=type==='purchase'?'📋 المشتريات المترحلة':type==='sale'?'📋 المبيعات المترحلة':'📋 المستندات المترحلة';
  const [sales,purchases,sr,pr,expenses]=await Promise.all([
   sb.from('sales').select('id,invoice_no,sale_date,total,customer_id,status').eq('status','posted').gte('sale_date',from).lte('sale_date',to),
   sb.from('purchases').select('id,invoice_no,purchase_date,total,supplier_id,status').eq('status','posted').gte('purchase_date',from).lte('purchase_date',to),
