@@ -142,4 +142,14 @@ function render(){
 $('site').addEventListener('change',render);$('search').addEventListener('input',render);$('filter').addEventListener('change',render);
 loadAll().catch(e=>{$('msg').textContent='تعذر تحميل المخزون: '+(e.message||e);$('body').innerHTML='<tr><td colspan="10" class="empty">حدث خطأ أثناء تحميل البيانات.</td></tr>'});
 </script>
-</body></html>
+<script>
+/* تنقل كيبورد خاص بشاشة المخزن — الشاشة استعلامية وليست إدخال حركة */
+document.addEventListener('keydown',function(e){
+  if(e.defaultPrevented || e.key!=='Enter' || e.ctrlKey || e.altKey || e.shiftKey) return;
+  const t=e.target;
+  if(!(t instanceof HTMLElement)) return;
+  if(t.id==='site'){e.preventDefault();$('search').focus();$('search').select();return;}
+  if(t.id==='search'){e.preventDefault();$('filter').focus();return;}
+  if(t.id==='filter'){e.preventDefault();loadAll();return;}
+});
+</script></body></html>
