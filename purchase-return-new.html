@@ -151,4 +151,26 @@ async function save(post){
 }
 init();
 </script>
-<script src="keyboard-nav.js"></script></body></html>
+<script>
+document.addEventListener('keydown',function(e){
+  if(e.defaultPrevented || e.key!=='Enter' || e.ctrlKey || e.altKey || e.shiftKey) return;
+  const t=e.target;
+  if(!(t instanceof HTMLElement) || t.tagName==='TEXTAREA') return;
+  if(t.classList.contains('qty')){
+    const rows=[...document.querySelectorAll('#lines tr')];
+    const row=t.closest('tr'), i=row?rows.indexOf(row):-1;
+    const next=i>=0 ? rows[i+1]?.querySelector('.qty') : null;
+    if(next){e.preventDefault();next.focus();next.select();}
+    return;
+  }
+  if(t.id==='supplier'){e.preventDefault();$('site').focus();return;}
+  if(t.id==='site'){e.preventDefault();$('purchase').focus();return;}
+  if(t.id==='purchase'){
+    e.preventDefault();
+    if($('purchase').value){
+      loadPurchaseLines().then(()=>setTimeout(()=>document.querySelector('#lines tr .qty')?.focus(),0));
+    }
+  }
+});
+</script>
+</body></html></body></html>
