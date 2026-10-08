@@ -60,7 +60,7 @@ function downloadTemplate(){
  const listRows=[
   ['الموردون','','','الأصناف','','','الوحدات'],
   ...Array.from({length:Math.max(suppliers.length,items.length,units.length)},(_,i)=>[
-   suppliers[i]?.name||'',items[i]?.name_ar||'',items[i]?.sku||'',units[i]?.name_ar||units[i]?.name||''
+   suppliers[i]?.name||'','','',items[i]?.name_ar||'',items[i]?.sku||'','',units[i]?.name_ar||units[i]?.name||''
   ])
  ];
  const wl=XLSX.utils.aoa_to_sheet(listRows);
