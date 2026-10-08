@@ -56,49 +56,83 @@ function n(v){return Number(v||0)} function fmt(v){return n(v).toLocaleString('e
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function msg(s,c){$('msg').className='msg '+(c||'');$('msg').textContent=s}
 async function init(){
- const ses=await sb.auth.getSession();if(!ses.data.session){location.href='accounting.html';return} user=ses.data.session.user;$('date').value=new Date().toISOString().slice(0,10);
- const [ir,sr]=await Promise.all([sb.from('inv_items').select('id,sku,name_ar,unit_name,purchase_price').eq('active',true).order('name_ar'),sb.from('inv_sites').select('id,name_ar,code').eq('active',true).order('name_ar')]);
+ const ses=await sb.auth.getSession();if(!ses.data.session){location.href='accounting.html';return}
+ user=ses.data.session.user;$('date').value=new Date().toISOString().slice(0,10);
+ const [ir,sr]=await Promise.all([
+  sb.from('inv_items').select('id,sku,name_ar,unit_name,purchase_price').eq('active',true).order('name_ar'),
+  sb.from('inv_sites').select('id,name_ar,code').eq('active',true).order('name_ar')
+ ]);
  if(ir.error)throw ir.error;if(sr.error)throw sr.error;items=ir.data||[];
  $('site').innerHTML='<option value="">-- اختر المخزن --</option>'+(sr.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+' — '+esc(x.code)+'</option>').join('');
- $('site').onchange=loadInventory;$('search').oninput=render;
+ $('site').onchange=refreshAllRows;
+ addLine();
 }
-async function loadInventory(){
- const site=$('site').value;if(!site){rows=[];render();return} msg('جاري تحميل الأصناف...','');
- const [cr,lr]=await Promise.all([sb.from('inventory_costs').select('item_id,qty_on_hand,inventory_value,weighted_avg_cost').eq('site_id',site).limit(10000),sb.from('inv_lots').select('item_id,qty_on_hand,unit_cost').eq('site_id',site).limit(10000)]);
- if(cr.error)throw cr.error;if(lr.error)throw lr.error;const costs=new Map((cr.data||[]).map(x=>[x.item_id,x]));
- const lots=new Map();for(const l of (lr.data||[])){let a=lots.get(l.item_id);if(!a)a={q:0,v:0};a.q+=n(l.qty_on_hand);a.v+=n(l.qty_on_hand)*n(l.unit_cost);lots.set(l.item_id,a)}
- rows=items.map(it=>{const c=costs.get(it.id),l=lots.get(it.id),q=c?n(c.qty_on_hand):n(l?.q),v=c?n(c.inventory_value):n(l?.v);return {id:it.id,sku:it.sku,name:it.name_ar,unit:it.unit_name||'',stock:q,cost:q?(c&&c.weighted_avg_cost!=null?n(c.weighted_avg_cost):v/q):n(it.purchase_price),qty:null}})
- render();msg('تم تحميل أصناف المخزن. اكتب كميات الهدايا المطلوبة فقط.','');
+function setupItemPicker(tr){
+ const input=tr.querySelector('.item-search'),box=tr.querySelector('.item-results');
+ function draw(){
+  const q=input.value.trim().toLocaleLowerCase();
+  if(!q){box.style.display='none';box.innerHTML='';return}
+  const found=items.filter(x=>String(x.name_ar||'').toLocaleLowerCase().includes(q)||String(x.sku||'').toLocaleLowerCase().includes(q)).slice(0,30);
+  box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-id="'+esc(x.id)+'">'+esc(x.name_ar)+' — '+esc(x.sku||'')+'</button>').join(''):'<div class="item-empty">لا توجد أصناف مطابقة</div>';
+  const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(250,r.width)+'px';box.style.top=(r.bottom+2)+'px';box.style.display='block';
+  box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const x=items.find(z=>z.id===b.dataset.id);if(!x)return;input.value=x.name_ar+' — '+(x.sku||'');tr.dataset.itemId=x.id;box.style.display='none';itemChanged(tr)});
+ }
+ input.addEventListener('input',draw);
+ input.addEventListener('focus',()=>{if(input.value.trim()&&!tr.dataset.itemId)draw()});
+ input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const b=box.querySelector('[data-id]');if(b){e.preventDefault();b.click()}}});
+ document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});
 }
-function visible(){const t=$('search').value.trim().toLowerCase();return rows.filter(r=>!t||String(r.sku||'').toLowerCase().includes(t)||String(r.name||'').toLowerCase().includes(t))}
-function render(){
- const vs=visible();$('count').textContent=rows.length.toLocaleString('en-US');const chosen=rows.filter(r=>r.qty!==null&&r.qty!==''&&n(r.qty)>0);$('selected').textContent=chosen.length;
- $('total').textContent=fmt(chosen.reduce((a,r)=>a+n(r.qty)*r.cost,0));
- $('body').innerHTML=vs.length?vs.map(r=>{const q=r.qty===null?'':r.qty,v=n(q),valid=v<=r.stock,st=v===0?'—':valid?'جاهز':'الرصيد غير كافٍ';return '<tr class="'+(v?'changed':'')+'" data-id="'+r.id+'"><td>'+esc(r.sku)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.unit)+'</td><td>'+n(r.stock).toFixed(3)+'</td><td>'+fmt(r.cost)+'</td><td><input class="qty" type="number" min="0" step=".001" placeholder="أدخل" value="'+q+'"></td><td>'+fmt(v*r.cost)+'</td><td class="'+(valid?'ok':'bad')+'">'+st+'</td></tr>'}).join(''):'<tr><td colspan="8" style="text-align:center;padding:35px">لا توجد أصناف مطابقة.</td></tr>';
- document.querySelectorAll('input.qty').forEach(inp=>inp.addEventListener('input',e=>{const r=rows.find(x=>x.id===e.target.closest('tr').dataset.id);r.qty=e.target.value===''?null:n(e.target.value);updateRow(r,e.target.closest('tr'))}));
+function addLine(){
+ const tr=document.createElement('tr');
+ tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="stock ro" value="0.000" readonly></td><td class="cost">0.00</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td class="lineTotal">0.00</td><td><button class="light" onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';
+ $('lines').appendChild(tr);
+ tr.querySelector('.qty').oninput=()=>calc();
+ setupItemPicker(tr);
 }
-function updateRow(r,tr){const q=n(r.qty),v=q*r.cost,ok=q<=r.stock;tr.className=q?'changed':'';const c=tr.children;c[6].textContent=fmt(v);c[7].className=ok?'ok':'bad';c[7].textContent=q?(ok?'جاهز':'الرصيد غير كافٍ'):'—';const chosen=rows.filter(x=>x.qty!==null&&x.qty!==''&&n(x.qty)>0);$('selected').textContent=chosen.length;$('total').textContent=fmt(chosen.reduce((a,x)=>a+n(x.qty)*x.cost,0))}
-function clearQty(){rows.forEach(r=>r.qty=null);render();msg('تم مسح كميات الهدايا فقط.','')}
+async function itemChanged(tr){
+ const x=items.find(i=>i.id===tr.dataset.itemId);if(!x)return;
+ tr.querySelector('.unit').textContent=x.unit_name||'-';tr.querySelector('.stock').value='0.000';tr.querySelector('.cost').textContent='0.00';await loadRowStock(tr);calc();
+}
+async function loadRowStock(tr){
+ const itemId=tr.dataset.itemId,siteId=$('site').value;if(!itemId||!siteId)return;
+ const r=await sb.from('inventory_costs').select('qty_on_hand,weighted_avg_cost').eq('item_id',itemId).eq('site_id',siteId).maybeSingle();if(r.error)throw r.error;
+ let q=n(r.data?.qty_on_hand),c=n(r.data?.weighted_avg_cost);
+ if(q<=0||c<=0){const lr=await sb.from('inv_lots').select('qty_on_hand,unit_cost').eq('item_id',itemId).eq('site_id',siteId).gt('qty_on_hand',0);if(!lr.error&&lr.data?.length){q=lr.data.reduce((s,x)=>s+n(x.qty_on_hand),0);const v=lr.data.reduce((s,x)=>s+n(x.qty_on_hand)*n(x.unit_cost),0);c=q?v/q:0}}
+ tr.querySelector('.stock').value=q.toFixed(3);tr.querySelector('.cost').textContent=c.toFixed(2);tr.dataset.cost=c;calc();
+}
+async function refreshAllRows(){for(const tr of document.querySelectorAll('#lines tr'))if(tr.dataset.itemId)await loadRowStock(tr);calc()}
+function calc(){
+ let total=0,count=0;
+ document.querySelectorAll('#lines tr').forEach(tr=>{const q=n(tr.querySelector('.qty')?.value),c=n(tr.dataset.cost),stock=n(tr.querySelector('.stock')?.value);if(tr.dataset.itemId&&q>0){count++;total+=q*c}tr.querySelector('.lineTotal').textContent=(q*c).toFixed(2);tr.className=(q>stock&&tr.dataset.itemId)?'badrow':''});
+ $('selected').textContent=count;$('total').textContent=total.toFixed(2);
+}
+function clearLines(){$('lines').innerHTML='';addLine();calc();msg('تم مسح البنود فقط.','')}
 async function postAll(){
  const site=$('site').value,date=$('date').value,notes=$('notes').value.trim();if(!site)return msg('اختر المخزن أولاً.','bad');
- const chosen=rows.filter(r=>r.qty!==null&&r.qty!==''&&n(r.qty)>0);if(!chosen.length)return msg('أدخل كمية هدية لصنف واحد على الأقل.','bad');
- if(chosen.some(r=>n(r.qty)>r.stock))return msg('يوجد صنف مطلوب صرف كمية أكبر من رصيده. راجع الكميات.','bad');
- const total=chosen.reduce((a,r)=>a+n(r.qty)*r.cost,0);if(!confirm('سيتم ترحيل '+chosen.length+' أصناف كهدية بقيمة '+fmt(total)+' جنيه في عملية واحدة. هل تريد المتابعة؟'))return;
- const btn=$('postBtn');btn.disabled=true;btn.textContent='⏳ جاري الترحيل...';msg('جاري ترحيل الهدايا، لا تغلق الصفحة.','');
+ const rows=[...document.querySelectorAll('#lines tr')].filter(tr=>tr.dataset.itemId);
+ if(!rows.length)return msg('أضف صنفًا واحدًا على الأقل.','bad');
+ const chosen=rows.map(tr=>({tr,id:tr.dataset.itemId,qty:n(tr.querySelector('.qty').value),stock:n(tr.querySelector('.stock').value),cost:n(tr.dataset.cost),name:tr.querySelector('.item-search').value})).filter(x=>x.qty>0);
+ if(!chosen.length)return msg('أدخل كميات صحيحة.','bad');
+ if(chosen.some(x=>x.qty>x.stock))return msg('يوجد صنف مطلوب صرف كمية أكبر من رصيده. راجع الكميات.','bad');
+ if(new Set(chosen.map(x=>x.id)).size!==chosen.length)return msg('الصنف مكرر في أكثر من بند. اجمع الكمية في بند واحد.','bad');
+ const total=chosen.reduce((a,x)=>a+x.qty*x.cost,0);
+ if(!confirm('سيتم ترحيل '+chosen.length+' أصناف في عملية هدايا واحدة بقيمة '+total.toFixed(2)+' جنيه. هل تريد المتابعة؟'))return;
+ const btn=$('postBtn');btn.disabled=true;btn.textContent='⏳ جاري الترحيل...';
  try{
   const docId=crypto.randomUUID();
-  for(let i=0;i<chosen.length;i++){
-   const r=chosen[i],qty=n(r.qty),value=qty*r.cost;msg('جاري ترحيل '+(i+1)+' من '+chosen.length+': '+r.name,'');
-   const lr=await sb.from('inv_lots').select('id,qty_on_hand,expiry_date').eq('item_id',r.id).eq('site_id',site).gt('qty_on_hand',0).order('expiry_date',{ascending:true});if(lr.error)throw lr.error;let rem=qty;
-   for(const lot of (lr.data||[])){if(rem<=0)break;const take=Math.min(rem,n(lot.qty_on_hand));const u=await sb.from('inv_lots').update({qty_on_hand:n(lot.qty_on_hand)-take}).eq('id',lot.id);if(u.error)throw u.error;const mv=await sb.from('inv_movements').insert({item_id:r.id,site_id:site,lot_id:lot.id,movement_type:'issue',qty:take,unit_cost:r.cost,reference_type:'gift',reference_id:docId,notes:notes||'صرف هدايا من المخزون',created_by:user.id});if(mv.error)throw mv.error;rem-=take}
-   if(rem>0)throw Error('تعذر استكمال صرف الصنف: '+r.name);
-   const old=await sb.from('inventory_costs').select('qty_on_hand,inventory_value').eq('item_id',r.id).eq('site_id',site).maybeSingle();if(old.error)throw old.error;const oq=n(old.data?.qty_on_hand),ov=n(old.data?.inventory_value),nq=oq-qty,nv=Math.max(0,ov-value);
-   const cu=await sb.from('inventory_costs').upsert({item_id:r.id,site_id:site,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});if(cu.error)throw cu.error;
+  for(const x of chosen){
+   const lr=await sb.from('inv_lots').select('id,qty_on_hand,expiry_date').eq('item_id',x.id).eq('site_id',site).gt('qty_on_hand',0).order('expiry_date',{ascending:true});if(lr.error)throw lr.error;
+   let rem=x.qty;
+   for(const lot of lr.data||[]){if(rem<=0)break;const take=Math.min(rem,n(lot.qty_on_hand));const u=await sb.from('inv_lots').update({qty_on_hand:n(lot.qty_on_hand)-take}).eq('id',lot.id);if(u.error)throw u.error;const mv=await sb.from('inv_movements').insert({item_id:x.id,site_id:site,lot_id:lot.id,movement_type:'issue',qty:take,unit_cost:x.cost,reference_type:'gift',reference_id:docId,notes:notes||'صرف هدايا من المخزون',created_by:user.id});if(mv.error)throw mv.error;rem-=take}
+   if(rem>0)throw Error('تعذر استكمال صرف الصنف: '+x.name);
+   const old=await sb.from('inventory_costs').select('qty_on_hand,inventory_value').eq('item_id',x.id).eq('site_id',site).maybeSingle();if(old.error)throw old.error;
+   const oq=n(old.data?.qty_on_hand),ov=n(old.data?.inventory_value),nq=oq-x.qty,nv=Math.max(0,ov-x.qty*x.cost);
+   const cu=await sb.from('inventory_costs').upsert({item_id:x.id,site_id:site,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});if(cu.error)throw cu.error;
   }
   const [acc,inv]=await Promise.all([sb.from('coa_accounts').select('id').eq('code','6320').single(),sb.from('coa_accounts').select('id').eq('code','1310').single()]);if(acc.error)throw acc.error;if(inv.error)throw inv.error;
   const je=await sb.from('journal_entries').insert({entry_date:date,source_type:'inventory_gift',source_id:docId,description:notes||'صرف هدايا من المخزون',posted:true,created_by:user.id}).select().single();if(je.error)throw je.error;
   const jl=await sb.from('journal_lines').insert([{entry_id:je.data.id,account_id:acc.data.id,debit:total,credit:0,description:'هدايا وعينات مجانية',site_id:site},{entry_id:je.data.id,account_id:inv.data.id,debit:0,credit:total,description:'خروج هدايا من المخزون',site_id:site}]);if(jl.error)throw jl.error;
-  msg('تم ترحيل صرف الهدايا ✓ — '+chosen.length+' أصناف بقيمة '+fmt(total)+' جنيه في عملية واحدة.','ok');$('notes').value='';clearQty();await loadInventory();
+  msg('تم ترحيل صرف الهدايا ✓ — '+chosen.length+' أصناف بقيمة '+total.toFixed(2)+' جنيه في عملية واحدة.','ok');$('notes').value='';clearLines();
  }catch(e){msg('حدث خطأ أثناء الترحيل: '+(e.message||e),'bad')}finally{btn.disabled=false;btn.textContent='📤 ترحيل صرف الهدايا'}
 }
 init().catch(e=>msg(e.message||e,'bad'));
