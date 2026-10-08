@@ -7,8 +7,28 @@
 *{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#172033;font-family:Tahoma,Arial,sans-serif}.wrap{width:100%;margin:0}.card{width:100%;min-height:calc(100vh - 10px);background:#fff;border:1px solid #dfe5ed;border-radius:8px;padding:14px}.top{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.btn{padding:9px 14px;border:1px solid #d7dee8;border-radius:7px;background:#fff;color:#172033;text-decoration:none;cursor:pointer}.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.title h1{margin:0;font-size:30px;font-weight:500}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-weight:700}input,select{width:100%;padding:9px;border:1px solid #ccd5e3;border-radius:7px;background:#fff;font-size:14px}.readonly{background:#f4f6fa!important}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1350px}th,td{border:1px solid #dfe5ed;padding:7px;text-align:center;white-space:nowrap}th{background:#eef2f7}td input,td select{min-width:70px;padding:7px}.add{margin:10px 0;padding:9px 14px;border:1px dashed #9aa7b8;border-radius:7px;background:#fff;cursor:pointer}.totals{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.total{border:1px solid #e0e5ec;border-radius:8px;padding:12px;text-align:center;background:#fafbfd}.total b{display:block;margin-bottom:6px}.num{font-size:19px;font-weight:700}.net{background:#eef7f2}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions button{padding:10px 16px;border:0;border-radius:7px;cursor:pointer}.save{background:#087f4f;color:#fff}.post{background:#18243a;color:#fff}.msg{margin-top:12px;padding:10px;border-radius:7px}.okmsg{background:#e5f7ee;color:#087f4f}.badmsg{background:#fdecec;color:#b42318}
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.totals{grid-template-columns:1fr 1fr}}@media(max-width:600px){.grid,.totals{grid-template-columns:1fr}.title{display:block}}
 </style>
-</head>
-<body>
+<style>
+.print-header{display:none}
+@media print{
+ @page{size:A4;margin:10mm}
+ body{background:#fff!important;color:#111!important}
+ .top,.actions,.add,button{display:none!important}
+ .print-header{display:block!important;border:1px solid #d7c19a;border-radius:10px;overflow:hidden;margin-bottom:12px}
+ .print-header-main{display:flex;align-items:center;min-height:105px;background:linear-gradient(90deg,#fbf2df,#fff 55%,#6f430e)}
+ .print-company{width:50%;text-align:center;padding:10px}
+ .print-company b{display:block;font-size:25px}
+ .print-company span{display:block;font-size:17px;font-weight:700;margin-top:4px}
+ .print-company small{display:block;font-size:12px;margin-top:7px}
+ .print-partner{width:25%;text-align:center;font-size:17px;font-weight:800;line-height:1.5;padding:10px}
+ .print-empty{width:25%}
+ .print-contact{background:#f7ecd7;text-align:center;padding:7px;font-size:12px;border-top:1px solid #d7c19a}
+ .card{box-shadow:none!important;border:0!important;padding:0!important;min-height:0!important}
+ main{margin:0!important;max-width:none!important}
+ table{page-break-inside:auto}
+ tr{page-break-inside:avoid}
+}
+</style></head>
+<body><div class="print-header"><div class="print-header-main"><div class="print-empty"></div><div class="print-company"><b>شركة الطائر الحر</b><span>لتعبئة وتوريد المواد الغذائية</span><small>بولارس الدولية - بوصلة 3 - قطعة 127 - السادس من أكتوبر</small></div><div class="print-partner">شريكك الأمثل<br>في عالم الأغذية</div></div><div class="print-contact">☎ 01065606565 - 01066833110 - 01005400590 &nbsp;&nbsp; | &nbsp;&nbsp; السجل التجاري: 37697</div></div>
 <div class="wrap">
 <div class="top">
 <a class="btn" href="accounting.html">🏠 الرئيسية</a><a class="btn" href="purchases.html">↩ المشتريات</a><a class="btn" href="purchase-return-new.html?saved=1">📋 المردودات المحفوظة</a><a class="btn" href="purchase-return-post.html">📤 الترحيل</a>
