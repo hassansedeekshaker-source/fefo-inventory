@@ -38,7 +38,6 @@
 </div>
 </div>
 <script>
-const SB_URL='https://fyqyodnboryzaejlhdlk.supabase.co',SB_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
 let sb=null;
 const $=id=>document.getElementById(id);let user=null,sites=[],suppliers=[],items=[],units=[],parsed=[];
 function norm(v){return String(v??'').trim().toLocaleLowerCase('ar-EG').replace(/\s+/g,' ')}
@@ -95,7 +94,7 @@ function downloadTemplateFallback(){
 async function init(){
  try{
   if(typeof supabase==='undefined')throw Error('مكتبة الاتصال بقاعدة البيانات لم يتم تحميلها.');
-  sb=supabase.createClient(SB_URL,SB_KEY);
+  sb=window.supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
   const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
   const S=await sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'); if(S.error)throw S.error;
   sites=S.data||[];$('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+x.name_ar+'</option>').join(''));
