@@ -38,7 +38,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <p class="small">إضافة وتعديل بيانات العملاء والموردين من شاشة واحدة. رقم السجل في قاعدة البيانات لا يتغير عند التعديل.</p>
 <div class="tabs"><button id="tabCustomers" class="active" onclick="switchTab('customers')">👤 العملاء</button><button id="tabSuppliers" onclick="switchTab('suppliers')">🚚 الموردون</button></div><div id="quickActions"></div><div id="detail" class="detail"></div>
 
-<div id="customerPicker" class="card" style="margin-bottom:14px">
+<section id="customers" class="panel active"><div id="customerPicker" class="card" style="margin-bottom:14px">
 <h3 style="margin-top:0">🔎 اختيار عميل</h3>
 <div class="field" style="max-width:560px;position:relative">
 <label>اكتب اسم العميل أو الكود</label>
@@ -46,7 +46,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div id="customerResults" style="position:absolute;right:0;left:0;top:100%;background:#fff;border:1px solid #dce2ec;border-radius:9px;box-shadow:0 8px 20px #0002;z-index:30;display:none;max-height:280px;overflow:auto"></div>
 </div>
 <p class="small" style="margin:8px 0 0">بمجرد اختيار العميل سيظهر كشف حسابه وكل حركاته أسفل الجدول.</p>
-</div><section id="customers" class="panel active">
+</div>
 <div class="row">
 <div class="field"><label>اسم العميل *</label><input id="cName"></div>
 <div class="field"><label>رقم الهاتف</label><input id="cPhone"></div>
@@ -60,7 +60,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <table><thead><tr><th>الكود</th><th>اسم العميل</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>خصم المنبع</th><th>الإجراء</th></tr></thead><tbody id="cBody"></tbody></table>
 </section>
 
-<div id="supplierPicker" class="card" style="margin-bottom:14px">
+<section id="suppliers" class="panel"><div id="supplierPicker" class="card" style="margin-bottom:14px">
 <h3 style="margin-top:0">🔎 اختيار مورد</h3>
 <div class="field" style="max-width:560px;position:relative">
 <label>اكتب اسم المورد أو الكود</label>
@@ -68,7 +68,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div id="supplierResults" style="position:absolute;right:0;left:0;top:100%;background:#fff;border:1px solid #dce2ec;border-radius:9px;box-shadow:0 8px 20px #0002;z-index:30;display:none;max-height:280px;overflow:auto"></div>
 </div>
 <p class="small" style="margin:8px 0 0">بمجرد اختيار المورد سيظهر كشف حسابه وكل حركاته أسفل الجدول.</p>
-</div><section id="suppliers" class="panel">
+</div>
 <div class="row">
 <div class="field"><label>اسم المورد *</label><input id="sName"></div>
 <div class="field"><label>رقم الهاتف</label><input id="sPhone"></div>
@@ -78,6 +78,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="row" style="margin-top:12px"><button class="success" id="sSave" onclick="saveSupplier()">➕ إضافة المورد</button><button onclick="clearSupplier()">جديد</button></div>
 <div id="sMsg"></div>
 <table><thead><tr><th>الكود</th><th>اسم المورد</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>الإجراء</th></tr></thead><tbody id="sBody"></tbody></table>
+</section>
 <section id="customerLedger" class="card" style="display:none">
 <div class="detailTop" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
 <div><div class="muted">كشف حساب العميل</div><h2 id="customerLedgerTitle" style="margin:4px 0 0">-</h2></div>
@@ -143,6 +144,13 @@ async function start(){ $('login').style.display='none';$('app').style.display='
 function switchTab(tab){
   $('customers').classList.toggle('active',tab==='customers');$('suppliers').classList.toggle('active',tab==='suppliers');
   $('tabCustomers').classList.toggle('active',tab==='customers');$('tabSuppliers').classList.toggle('active',tab==='suppliers');
+  const cp=$('customerPicker'),sp=$('supplierPicker'),cl=$('customerLedger'),sl=$('supplierLedger');
+  if(cp)cp.style.display=tab==='customers'?'block':'none';
+  if(sp)sp.style.display=tab==='suppliers'?'block':'none';
+  if(cl&&tab==='customers')cl.style.display=cl.dataset.open==='1'?'block':'none';
+  if(sl&&tab==='suppliers')sl.style.display=sl.dataset.open==='1'?'block':'none';
+  if(cl&&tab!=='customers')cl.style.display='none';
+  if(sl&&tab!=='suppliers')sl.style.display='none';
 }
 
 async function loadAll(){
@@ -152,7 +160,7 @@ async function loadAll(){
   sb.from('purchases').select('supplier_id,total').eq('status','posted'),sb.from('purchase_returns').select('supplier_id,total').eq('status','posted')
  ]);
  const bad=[c,s,sa,sr,p,pr].find(x=>x.error);if(bad){$('cMsg').innerHTML='<div class="msg bad">'+esc(bad.error.message)+'</div>';return}
- customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();supplierSearchInit();customerSearchInit();
+ customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();supplierSearchInit();customerSearchInit();switchTab("customers");
 }
 function customerBalance(id){return Number(customers.find(x=>x.id===id)?.opening_balance||0)+sales.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-salesReturns.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
 function supplierBalance(id){return Number(suppliers.find(x=>x.id===id)?.opening_balance||0)+purchases.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-purchaseReturns.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
@@ -207,7 +215,7 @@ let customerLedgerRows=[],customerLedgerName="";
 async function loadCustomerLedger(id){
  const x=customers.find(a=>a.id===id);if(!x)return;
  customerLedgerName=x.name||"";
- const box=$("customerLedger");box.style.display="block";
+ const box=$("customerLedger");box.style.display="block";box.dataset.open="1";
  $("customerLedgerTitle").textContent="📄 "+customerLedgerName;
  $("customerLedgerMsg").innerHTML="<div class=\"msg\" style=\"background:#eef2f7\">جاري تحميل كل حركات العميل...</div>";
  const [s,r,ft]=await Promise.all([
@@ -263,7 +271,7 @@ function exportCustomerLedgerExcel(){
  const sm=XLSX.utils.json_to_sheet(summary);sm["!cols"]=[{wch:28},{wch:22}];XLSX.utils.book_append_sheet(wb,sm,"الملخص");
  XLSX.writeFile(wb,"كشف_حساب_"+customerLedgerName+"_"+new Date().toISOString().slice(0,10)+".xlsx");
 }
-function closeCustomerLedger(){customerLedgerRows=[];customerLedgerName="";$("customerLedger").style.display="none"}
+function closeCustomerLedger(){customerLedgerRows=[];customerLedgerName="";$("customerLedger").dataset.open="0";$("customerLedger").style.display="none"}
 function supplierCode(x){return x.code||("SUP-"+String(x.id).padStart(6,"0"))}
 function renderSupplierResults(list){
  const box=$("supplierResults");if(!box)return;
@@ -290,7 +298,7 @@ let supplierLedgerRows=[],supplierLedgerName="";
 async function loadSupplierLedger(id){
  const x=suppliers.find(a=>a.id===id);if(!x)return;
  supplierLedgerName=x.name||"";
- const box=$("supplierLedger");box.style.display="block";
+ const box=$("supplierLedger");box.style.display="block";box.dataset.open="1";
  $("supplierLedgerTitle").textContent="📄 "+supplierLedgerName;
  $("supplierLedgerMsg").innerHTML="<div class=\"msg\" style=\"background:#eef2f7\">جاري تحميل كل حركات المورد...</div>";
  const [p,r,ft]=await Promise.all([
@@ -366,7 +374,7 @@ function exportSupplierLedgerExcel(){
  const sm=XLSX.utils.json_to_sheet(summary);sm["!cols"]=[{wch:28},{wch:22}];XLSX.utils.book_append_sheet(wb,sm,"الملخص");
  XLSX.writeFile(wb,"كشف_حساب_"+supplierLedgerName+"_"+new Date().toISOString().slice(0,10)+".xlsx");
 }
-function closeSupplierLedger(){supplierLedgerRows=[];supplierLedgerName="";$("supplierLedger").style.display="none"}
+function closeSupplierLedger(){supplierLedgerRows=[];supplierLedgerName="";$("supplierLedger").dataset.open="0";$("supplierLedger").style.display="none"}
 async function saveCustomer(){
  const name=$('cName').value.trim();if(!name){$('cMsg').innerHTML='<div class="msg bad">اكتب اسم العميل.</div>';return}
  const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,opening_balance:Number($('cOpening').value||0),withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0)};
