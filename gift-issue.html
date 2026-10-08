@@ -86,9 +86,22 @@ function setupPicker(tr){
  }
  input.addEventListener('input',draw);
  input.addEventListener('focus',()=>{if(input.value.trim()&&!tr.dataset.itemId)draw()});
+ let activeIndex=-1;
  input.addEventListener('keydown',e=>{
-  if(e.key==='Escape')box.style.display='none';
-  if(e.key==='Enter'){const first=box.querySelector('[data-id]');if(first){e.preventDefault();first.click()}}
+  const opts=[...box.querySelectorAll('[data-id]')];
+  if(e.key==='ArrowDown' || e.key==='ArrowUp'){
+   if(!opts.length)return;
+   e.preventDefault();
+   activeIndex = e.key==='ArrowDown' ? Math.min(activeIndex+1,opts.length-1) : Math.max(activeIndex-1,0);
+   opts.forEach((b,i)=>{b.style.background=i===activeIndex?'#eaf2ff':'#fff';});
+   opts[activeIndex].scrollIntoView({block:'nearest'});
+   return;
+  }
+  if(e.key==='Escape'){box.style.display='none';activeIndex=-1;return}
+  if(e.key==='Enter'){
+   const chosen=activeIndex>=0?opts[activeIndex]:opts[0];
+   if(chosen){e.preventDefault();chosen.click();activeIndex=-1}
+  }
  });
  document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});
 }
