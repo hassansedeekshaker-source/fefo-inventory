@@ -21,7 +21,7 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 </style>
 <style>
 .partySmart{margin:0 0 12px}.smartRow{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;border:1px solid #dfe4ec;border-radius:10px;overflow:visible;background:#fff}.smart{min-width:120px;padding:11px 18px;text-decoration:none;color:#172033;border-left:1px solid #dfe4ec;display:flex;gap:10px;justify-content:center;align-items:center;background:#fff}.smart b{font-size:12px}.smart.active{background:#18243a;color:#fff}.moreWrap{position:relative}.moreBtn{border:0;border-radius:0;height:100%;cursor:pointer}.moreMenu{display:none;position:absolute;right:0;top:100%;min-width:190px;background:#fff;border:1px solid #dfe4ec;border-radius:0 0 10px 10px;box-shadow:0 8px 20px #0002;z-index:20}.moreWrap.open .moreMenu{display:block}.moreMenu a{display:flex;justify-content:space-between;padding:12px 15px;text-decoration:none;color:#172033;border-bottom:1px solid #edf0f5}.detailTop{display:flex;justify-content:space-between;gap:15px;align-items:center}.detailNav{display:flex;gap:8px}.partyBody{display:grid;grid-template-columns:280px 1fr;gap:20px;margin-top:20px}.profileBox{border:1px solid #e1e6ef;border-radius:12px;padding:18px;background:#fafbfc}.avatar{font-size:48px}.statsArea{padding:5px}.hint{margin-top:18px;padding:13px;background:#eef2f7;border-radius:10px;color:#475467;font-size:13px}.muted{color:#667085;font-size:13px}@media(max-width:800px){.partyBody{grid-template-columns:1fr}.smart{min-width:105px;padding:10px 12px}}
-</style></head>
+</style><style>#supplierResults .supplier-result:hover{background:#f4f7fb}</style></head>
 <body>
 <header><b>👥 العملاء والموردون</b><div><a class="btn primary" href="accounting.html">🏠 الرئيسية</a> <button onclick="logout()">تسجيل الخروج</button> <span id="status">جاري الاتصال...</span></div></header>
 
@@ -52,7 +52,15 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <table><thead><tr><th>الكود</th><th>اسم العميل</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>خصم المنبع</th><th>الإجراء</th></tr></thead><tbody id="cBody"></tbody></table>
 </section>
 
-<section id="suppliers" class="panel">
+<div id="supplierPicker" class="card" style="margin-bottom:14px">
+<h3 style="margin-top:0">🔎 اختيار مورد</h3>
+<div class="field" style="max-width:560px;position:relative">
+<label>اكتب اسم المورد أو الكود</label>
+<input id="supplierSearch" autocomplete="off" placeholder="ابحث عن المورد...">
+<div id="supplierResults" style="position:absolute;right:0;left:0;top:100%;background:#fff;border:1px solid #dce2ec;border-radius:9px;box-shadow:0 8px 20px #0002;z-index:30;display:none;max-height:280px;overflow:auto"></div>
+</div>
+<p class="small" style="margin:8px 0 0">بمجرد اختيار المورد سيظهر كشف حسابه وكل حركاته أسفل الجدول.</p>
+</div><section id="suppliers" class="panel">
 <div class="row">
 <div class="field"><label>اسم المورد *</label><input id="sName"></div>
 <div class="field"><label>رقم الهاتف</label><input id="sPhone"></div>
@@ -62,6 +70,24 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="row" style="margin-top:12px"><button class="success" id="sSave" onclick="saveSupplier()">➕ إضافة المورد</button><button onclick="clearSupplier()">جديد</button></div>
 <div id="sMsg"></div>
 <table><thead><tr><th>الكود</th><th>اسم المورد</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>الإجراء</th></tr></thead><tbody id="sBody"></tbody></table>
+<section id="supplierLedger" class="card" style="display:none">
+<div class="detailTop" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+<div><div class="muted">كشف حساب المورد</div><h2 id="supplierLedgerTitle" style="margin:4px 0 0">-</h2></div>
+<button class="btn" onclick="closeSupplierLedger()">✖ إغلاق الكشف</button>
+</div>
+<div class="statGrid" style="margin-top:16px">
+<div class="stat">الرصيد الافتتاحي<b id="slOpening">0.00</b></div>
+<div class="stat">إجمالي المشتريات<b id="slPurchases">0.00</b></div>
+<div class="stat">إجمالي المردودات<b id="slReturns">0.00</b></div>
+<div class="stat">إجمالي السداد<b id="slPayments">0.00</b></div>
+</div>
+<div class="hint">الرصيد الحالي = الرصيد الافتتاحي + المشتريات − المردودات − السداد.</div>
+<div class="statGrid" style="margin-top:12px;grid-template-columns:1fr 1fr">
+<div class="stat">الرصيد الحالي<b id="slBalance">0.00</b></div>
+<div class="stat">عدد الحركات<b id="slCount">0</b></div>
+</div>
+<div id="supplierLedgerMsg"></div>
+<table style="margin-top:16px"><thead><tr><th>التاريخ</th><th>نوع الحركة</th><th>رقم المستند</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead><tbody id="supplierLedgerBody"></tbody></table>
 </section>
 </section>
 </main>
@@ -88,7 +114,7 @@ async function loadAll(){
   sb.from('purchases').select('supplier_id,total').eq('status','posted'),sb.from('purchase_returns').select('supplier_id,total').eq('status','posted')
  ]);
  const bad=[c,s,sa,sr,p,pr].find(x=>x.error);if(bad){$('cMsg').innerHTML='<div class="msg bad">'+esc(bad.error.message)+'</div>';return}
- customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();
+ customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();supplierSearchInit();
 }
 function customerBalance(id){return Number(customers.find(x=>x.id===id)?.opening_balance||0)+sales.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-salesReturns.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
 function supplierBalance(id){return Number(suppliers.find(x=>x.id===id)?.opening_balance||0)+purchases.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-purchaseReturns.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
@@ -96,7 +122,7 @@ function renderCustomers(){
  $('cBody').innerHTML=customers.map(x=>{const net=sales.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-salesReturns.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('CUS-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+customerBalance(x.id).toFixed(2)+'</b></td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="primary" onclick="selectParty(&quot;customer&quot;,'+x.id+')">فتح الحساب</button> <button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="9">لا توجد بيانات</td></tr>';
 }
 function renderSuppliers(){
- $('sBody').innerHTML=suppliers.map(x=>{const net=purchases.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-purchaseReturns.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('SUP-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+supplierBalance(x.id).toFixed(2)+'</b></td><td><button class="primary" onclick="selectParty(&quot;supplier&quot;,'+x.id+')">فتح الحساب</button> <button class="edit" onclick="editSupplier('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="8">لا توجد بيانات</td></tr>';
+ $('sBody').innerHTML=suppliers.map(x=>{const net=purchases.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-purchaseReturns.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('SUP-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+supplierBalance(x.id).toFixed(2)+'</b></td><td><button class="primary" onclick="selectSupplierForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editSupplier('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="8">لا توجد بيانات</td></tr>';
 }
 function toggleMore(el){el.parentElement.classList.toggle('open')}
 function selectParty(type,id){
@@ -120,7 +146,43 @@ function selectParty(type,id){
  $('quickActions').innerHTML='<div class="partySmart"><div class="smartRow">'+buttons.map((a,i)=>'<a class="smart '+(i===0?'active':'')+'" href="'+a[1]+'"><span>'+a[0]+'</span><b>'+a[2]+'</b></a>').join('')+'<div class="moreWrap"><button class="smart moreBtn" onclick="toggleMore(this)">المزيد ▾</button><div class="moreMenu">'+more.map(a=>'<a href="'+a[1]+'">'+a[0]+' <b>'+a[2]+'</b></a>').join('')+'</div></div></div></div>';
  $('detail').innerHTML='<section class="card partyDetail"><div class="detailTop"><div><div class="muted">'+label+' · '+code+'</div><h1 style="margin:4px 0 0">📄 '+esc(x.name)+'</h1></div><div class="detailNav"><button class="btn" onclick="history.back()">↩ رجوع للشاشة السابقة</button><a class="btn" href="parties.html">👥 العملاء والموردون</a><a class="btn" href="accounting.html">🏠 الرئيسية</a></div></div><div class="partyBody"><div class="profileBox"><div class="avatar">👤</div><h3>'+esc(x.name)+'</h3><div>النوع: '+label+'</div><div>الكود: '+code+'</div><div>الهاتف: '+esc(x.phone||'-')+'</div><div>العنوان: '+esc(x.address||'-')+'</div><div>ملاحظات: '+esc(x.notes||'-')+'</div></div><div class="statsArea"><div class="statGrid"><div class="stat">الرصيد الافتتاحي<b>'+Number(x.opening_balance||0).toFixed(2)+'</b></div><div class="stat">صافي الحركة<b>'+net.toFixed(2)+'</b></div><div class="stat">الرصيد الحالي<b>'+balance.toFixed(2)+'</b></div><div class="stat">الحالة<b>نشط</b></div></div><div class="hint">الأزرار بالأعلى تفتح عمليات '+(isC?'العميل':'المورد')+' المختار فقط، ولا تنقلك إلى عمليات باقي '+(isC?'العملاء':'الموردين')+'.</div></div></div></section>';
  $('detail').classList.add('show'); window.scrollTo({top:$('detail').offsetTop-20,behavior:'smooth'});
-}async function saveCustomer(){
+}function supplierCode(x){return x.code||("SUP-"+String(x.id).padStart(6,"0"))}
+function renderSupplierResults(list){
+ const box=$("supplierResults");if(!box)return;
+ box.innerHTML=list.slice(0,50).map(x=>"<div class=\"supplier-result\" data-id=\""+x.id+"\" style=\"padding:10px 12px;border-bottom:1px solid #edf0f5;cursor:pointer\"><b>"+esc(x.name)+"</b><span class=\"small\" style=\"display:block\">"+esc(supplierCode(x))+"</span></div>").join("");
+ box.style.display="block";
+ box.querySelectorAll(".supplier-result").forEach(el=>el.addEventListener("click",()=>selectSupplierForLedger(Number(el.dataset.id))));
+}
+function supplierSearchInit(){
+ const inp=$("supplierSearch");if(!inp)return;
+ inp.addEventListener("input",()=>{const q=inp.value.trim().toLowerCase();if(!q){$("supplierResults").style.display="none";return}const list=suppliers.filter(x=>String(x.name||"").toLowerCase().includes(q)||supplierCode(x).toLowerCase().includes(q));renderSupplierResults(list)});
+ inp.addEventListener("focus",()=>{const q=inp.value.trim().toLowerCase();if(q){const list=suppliers.filter(x=>String(x.name||"").toLowerCase().includes(q)||supplierCode(x).toLowerCase().includes(q));renderSupplierResults(list)}});
+ document.addEventListener("click",e=>{if(!e.target.closest("#supplierPicker"))$("supplierResults").style.display="none"});
+ inp.addEventListener("keydown",e=>{if(e.key==="Enter"){const first=document.querySelector("#supplierResults .supplier-result");if(first){e.preventDefault();selectSupplierForLedger(Number(first.dataset.id))}}});
+}
+async function selectSupplierForLedger(id){const x=suppliers.find(a=>a.id===id);if(!x)return;$("supplierSearch").value=x.name||"";$("supplierResults").style.display="none";await loadSupplierLedger(id)}
+function money2(n){return Number(n||0).toLocaleString("ar-EG",{minimumFractionDigits:2,maximumFractionDigits:2})}
+async function loadSupplierLedger(id){
+ const x=suppliers.find(a=>a.id===id);if(!x)return;
+ const box=$("supplierLedger");box.style.display="block";$("supplierLedgerTitle").textContent="📄 "+(x.name||"-");$("supplierLedgerMsg").innerHTML="<div class=\"msg\" style=\"background:#eef2f7\">جاري تحميل كل حركات المورد...</div>";
+ const [p,r,ft]=await Promise.all([
+  sb.from("purchases").select("id,invoice_no,purchase_date,total").eq("supplier_id",id).eq("status","posted").order("purchase_date"),
+  sb.from("purchase_returns").select("id,return_no,return_date,total").eq("supplier_id",id).eq("status","posted").order("return_date"),
+  sb.from("finance_transactions").select("id,transaction_no,transaction_date,transaction_type,amount,reference_no,notes,journal_entry_id").eq("supplier_id",id).not("journal_entry_id","is",null).order("transaction_date")
+ ]);
+ const bad=[p,r,ft].find(z=>z.error);if(bad){$("supplierLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
+ const opening=Number(x.opening_balance||0),moves=[];
+ if(opening!==0)moves.push({date:"",type:"رصيد افتتاحي",no:"-",desc:"الرصيد الافتتاحي",debit:opening<0?Math.abs(opening):0,credit:opening>0?opening:0});
+ (p.data||[]).forEach(a=>moves.push({date:a.purchase_date,type:"فاتورة شراء",no:a.invoice_no||"-",desc:"فاتورة مشتريات",debit:0,credit:Number(a.total||0)}));
+ (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مردود مشتريات",no:a.return_no||"-",desc:"مردود مشتريات",debit:Number(a.total||0),credit:0}));
+ (ft.data||[]).forEach(a=>{const pay=a.transaction_type==="payment";moves.push({date:a.transaction_date,type:pay?"سداد مورد":"حركة مالية",no:a.transaction_no||a.reference_no||"-",desc:a.notes||(pay?"سداد للمورد":"حركة مالية للمورد"),debit:pay?Number(a.amount||0):0,credit:pay?0:Number(a.amount||0)})});
+ moves.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.no).localeCompare(String(b.no),"ar",{numeric:true}));
+ let bal=0,totalPurch=0,totalRet=0,totalPay=0;
+ const html=moves.map(m=>{bal+=Number(m.credit||0)-Number(m.debit||0);if(m.type==="فاتورة شراء")totalPurch+=Number(m.credit||0);if(m.type==="مردود مشتريات")totalRet+=Number(m.debit||0);if(m.type==="سداد مورد")totalPay+=Number(m.debit||0);return "<tr><td>"+esc(m.date||"-")+"</td><td>"+esc(m.type)+"</td><td>"+esc(m.no)+"</td><td>"+esc(m.desc)+"</td><td>"+money2(m.debit)+"</td><td>"+money2(m.credit)+"</td><td>"+money2(bal)+"</td></tr>"}).join("");
+ $("slOpening").textContent=money2(opening);$("slPurchases").textContent=money2(totalPurch);$("slReturns").textContent=money2(totalRet);$("slPayments").textContent=money2(totalPay);$("slBalance").textContent=money2(bal);$("slCount").textContent=String(moves.length);$("supplierLedgerBody").innerHTML=html||"<tr><td colspan=\"7\" class=\"empty\">لا توجد حركات لهذا المورد.</td></tr>";$("supplierLedgerMsg").innerHTML="<div class=\"msg ok\">تم تحميل كل الحركات المترحلة للمورد ✓</div>";window.scrollTo({top:box.offsetTop-20,behavior:"smooth"});
+}
+function closeSupplierLedger(){$("supplierLedger").style.display="none"}
+async function saveCustomer(){
  const name=$('cName').value.trim();if(!name){$('cMsg').innerHTML='<div class="msg bad">اكتب اسم العميل.</div>';return}
  const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,opening_balance:Number($('cOpening').value||0),withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0)};
  let r=editingCustomer?await sb.from('customers').update(payload).eq('id',editingCustomer):await sb.from('customers').insert(payload);
