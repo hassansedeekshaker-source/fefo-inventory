@@ -22,7 +22,7 @@
 <button class="btn primary" id="templateBtn" type="button" onclick="downloadTemplate()">📄 تحميل قالب Excel الجاهز</button>
 </div>
 <div class="msg info" style="margin-top:10px">القالب يحتوي على ورقة لإدخال المشتريات وورقة قوائم النظام للموردين والأصناف والوحدات، بالإضافة إلى ورقة تعليمات.</div>
-<div class="drop">ملف Excel المطلوب يحتوي فقط على: <b>المورد | التاريخ | رقم الفاتورة | الصنف | الوحدة | الكمية | سعر الشراء</b><br><small>لا نحتاج كود الصنف.</small></div>
+<div class="drop">ملف Excel المطلوب يحتوي على: <b>المورد | التاريخ | رقم الفاتورة | الصنف | الوحدة | الكمية | سعر الشراء | الضريبة %</b><br><small>لا نحتاج كود الصنف. الضريبة: 14 أو 0.</small></div>
 <div id="msg" class="msg info">اختر المخزن وارفع الملف.</div>
 </div>
 <div class="card" id="review" style="display:none">
@@ -54,9 +54,9 @@ function setMsg(t,kind='info'){$('msg').className='msg '+kind;$('msg').textConte
 function cleanKey(v){return norm(v).replace(/[|]/g,'')}
 function downloadTemplate(){
  if(typeof XLSX==='undefined'){downloadTemplateFallback();return;}
- const headers=['المورد','التاريخ','رقم الفاتورة','الصنف','الوحدة','الكمية','سعر الشراء'];
+ const headers=['المورد','التاريخ','رقم الفاتورة','الصنف','الوحدة','الكمية','سعر الشراء','الضريبة %'];
  const ws=XLSX.utils.aoa_to_sheet([headers]);
- ws['!cols']=[{wch:28},{wch:14},{wch:18},{wch:34},{wch:16},{wch:14},{wch:16}];
+ ws['!cols']=[{wch:28},{wch:14},{wch:18},{wch:34},{wch:16},{wch:14},{wch:16},{wch:14}];
  ws['!autofilter']={ref:'A1:G1'};ws['!freeze']={xSplit:0,ySplit:1};
  const listRows=[
   ['الموردون','','','الأصناف','','','الوحدات'],
@@ -73,9 +73,10 @@ function downloadTemplate(){
   ['3','استخدم اسم المورد والصنف والوحدة كما هما في ورقة "قوائم النظام" لتجنب أخطاء المطابقة.'],
   ['4','التاريخ بصيغة يوم/شهر/سنة أو تاريخ Excel صحيح.'],
   ['5','إذا كانت الفاتورة تحتوي أكثر من صنف، كرر نفس المورد والتاريخ ورقم الفاتورة في كل سطر.'],
-  ['6','المخزن لا يُكتب في Excel؛ يتم اختياره مرة واحدة من شاشة الاستيراد.'],
-  ['7','لا تكرر فاتورة سبق استيرادها بنفس المورد والتاريخ ورقم الفاتورة.'],
-  ['8','بعد رفع الملف سيعرض النظام المعاينة والأخطاء قبل إنشاء أي مسودة.']
+  ['6','اكتب الضريبة % لكل بند: 14 للصنف الخاضع، و0 إذا اشتريت الصنف من السوق بدون ضريبة.'],
+  ['7','المخزن لا يُكتب في Excel؛ يتم اختياره مرة واحدة من شاشة الاستيراد.'],
+  ['8','لا تكرر فاتورة سبق استيرادها بنفس المورد والتاريخ ورقم الفاتورة.'],
+  ['9','بعد رفع الملف سيعرض النظام المعاينة والأخطاء قبل إنشاء أي مسودة.']
  ]);
  info['!cols']=[{wch:8},{wch:110}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المشتريات');XLSX.utils.book_append_sheet(wb,wl,'قوائم النظام');XLSX.utils.book_append_sheet(wb,info,'تعليمات');
@@ -86,7 +87,7 @@ function downloadTemplateFallback(){
   +'<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
   +'<Worksheet ss:Name="المشتريات"><Table><Row><Cell><Data ss:Type="String">المورد</Data></Cell><Cell><Data ss:Type="String">التاريخ</Data></Cell><Cell><Data ss:Type="String">رقم الفاتورة</Data></Cell><Cell><Data ss:Type="String">الصنف</Data></Cell><Cell><Data ss:Type="String">الوحدة</Data></Cell><Cell><Data ss:Type="String">الكمية</Data></Cell><Cell><Data ss:Type="String">سعر الشراء</Data></Cell></Row></Table></Worksheet>'
   +'<Worksheet ss:Name="قوائم النظام"><Table><Row><Cell><Data ss:Type="String">الموردون</Data></Cell></Row><Row><Cell><Data ss:Type="String">الأصناف</Data></Cell></Row><Row><Cell><Data ss:Type="String">الوحدات</Data></Cell></Row></Table></Worksheet>'
-  +'<Worksheet ss:Name="تعليمات"><Table><Row><Cell><Data ss:Type="String">املأ ورقة المشتريات فقط. لا تكتب كود الصنف. المخزن يتم اختياره من الشاشة.</Data></Cell></Row></Table></Worksheet></Workbook>';
+  +'<Worksheet ss:Name="تعليمات"><Table><Row><Cell><Data ss:Type="String">املأ ورقة المشتريات فقط. لا تكتب كود الصنف. المخزن يتم اختياره من الشاشة. الضريبة تُكتب في عمود الضريبة %: 14 أو 0.</Data></Cell></Row></Table></Worksheet></Workbook>';
  const blob=new Blob([xml],{type:'application/vnd.ms-excel'});
  const a=document.createElement('a');a.href=window.URL.createObjectURL(blob);a.download='قالب_استيراد_المشتريات.xls';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>window.URL.revokeObjectURL(a.href),1000);
 }
