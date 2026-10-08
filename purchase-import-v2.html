@@ -116,12 +116,12 @@ $('file').addEventListener('change',async e=>{
   const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
   if(!raw.length)throw Error('ملف Excel فارغ.');
   const headers=Object.keys(raw[0]);const aliases={
-   supplier:['المورد','اسم المورد'],date:['التاريخ','تاريخ الفاتورة'],invoice:['رقم الفاتورة','رقم فاتورة'],item:['الصنف','اسم الصنف'],unit:['الوحدة'],qty:['الكمية'],price:['سعر الشراء','السعر'],tax:['New Lines/قيمة الضريبة','قيمة الضريبة','الضريبة']
+   supplier:['المورد','اسم المورد'],date:['التاريخ','تاريخ الفاتورة'],invoice:['رقم الفاتورة','رقم فاتورة'],item:['الصنف','اسم الصنف'],unit:['الوحدة'],qty:['الكمية'],price:['سعر الشراء','السعر'],tax:['New Lines/قيمة الضريبة','قيمة الضريبة','الضريبة','الضريبة %','ضريبة %']
   };
   const col=k=>headers.find(h=>aliases[k].some(a=>norm(h)===norm(a)));
   const missing=Object.keys(aliases).filter(k=>k!=='tax'&&!col(k));if(missing.length)throw Error('أعمدة ناقصة: '+missing.map(k=>aliases[k][0]).join('، '));const taxCol=col('tax');
   parsed=raw.map((r,i)=>{
-   const supplier=String(r[col('supplier')]??'').trim(),item=String(r[col('item')]??'').trim(),unit=String(r[col('unit')]??'').trim(),date=dateNorm(r[col('date')]),invoice=String(r[col('invoice')]??'').trim(),qty=num(r[col('qty')]),price=num(r[col('price')]);const sp=findByName(suppliers,supplier),it=findByName(items,item),un=findByName(units,unit);const sourceTaxText=taxCol?String(r[taxCol]??'').trim():'';const sourceTax=sourceTaxText===''?null:num(sourceTaxText);const taxRate=sourceTax===null?Number(it?.tax_rate||0):(sourceTax>0?0.14:0);
+   const supplier=String(r[col('supplier')]??'').trim(),item=String(r[col('item')]??'').trim(),unit=String(r[col('unit')]??'').trim(),date=dateNorm(r[col('date')]),invoice=String(r[col('invoice')]??'').trim(),qty=num(r[col('qty')]),price=num(r[col('price')]);const sp=findByName(suppliers,supplier),it=findByName(items,item),un=findByName(units,unit);const sourceTaxText=taxCol?String(r[taxCol]??'').trim():'';const sourceTax=sourceTaxText===''?null:num(sourceTaxText.replace('%',''));const taxRate=sourceTax===null?Number(it?.tax_rate||0):(sourceTax>0?(sourceTax>1?sourceTax/100:sourceTax):0);
    const errors=[];if(!sp)errors.push('المورد غير موجود');if(!it)errors.push('الصنف غير موجود');if(!un)errors.push('الوحدة غير موجودة');if(!date)errors.push('التاريخ غير صحيح');if(!invoice)errors.push('رقم الفاتورة ناقص');if(qty<=0)errors.push('الكمية غير صحيحة');if(price<0)errors.push('السعر غير صحيح');
    if(it&&un&&it.unit_id&&un.id!==it.unit_id)errors.push('الوحدة لا تطابق وحدة الصنف');
    return {row:i+2,supplier,date,invoice,item,unit,qty,price,taxRate,sp,it,un,errors};
