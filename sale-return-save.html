@@ -15,8 +15,28 @@
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions button{padding:10px 16px;border:0;border-radius:7px;cursor:pointer}.save{background:#087f4f;color:#fff}.post{background:#18243a;color:#fff}.msg{margin-top:12px;padding:10px;border-radius:7px}.okmsg{background:#e5f7ee;color:#087f4f}.badmsg{background:#fdecec;color:#b42318}
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.totals{grid-template-columns:1fr 1fr}}
 </style>
-</head>
-<body>
+<style>
+.print-header{display:none}
+@media print{
+ @page{size:A4;margin:10mm}
+ body{background:#fff!important;color:#111!important}
+ .top,.actions,.add,button{display:none!important}
+ .print-header{display:block!important;border:1px solid #d7c19a;border-radius:10px;overflow:hidden;margin-bottom:12px}
+ .print-header-main{display:flex;align-items:center;min-height:105px;background:linear-gradient(90deg,#fbf2df,#fff 55%,#6f430e)}
+ .print-company{width:50%;text-align:center;padding:10px}
+ .print-company b{display:block;font-size:25px}
+ .print-company span{display:block;font-size:17px;font-weight:700;margin-top:4px}
+ .print-company small{display:block;font-size:12px;margin-top:7px}
+ .print-partner{width:25%;text-align:center;font-size:17px;font-weight:800;line-height:1.5;padding:10px}
+ .print-empty{width:25%}
+ .print-contact{background:#f7ecd7;text-align:center;padding:7px;font-size:12px;border-top:1px solid #d7c19a}
+ .card{box-shadow:none!important;border:0!important;padding:0!important;min-height:0!important}
+ main{margin:0!important;max-width:none!important}
+ table{page-break-inside:auto}
+ tr{page-break-inside:avoid}
+}
+</style></head>
+<body><div class="print-header"><div class="print-header-main"><div class="print-empty"></div><div class="print-company"><b>شركة الطائر الحر</b><span>لتعبئة وتوريد المواد الغذائية</span><small>بولارس الدولية - بوصلة 3 - قطعة 127 - السادس من أكتوبر</small></div><div class="print-partner">شريكك الأمثل<br>في عالم الأغذية</div></div><div class="print-contact">☎ 01065606565 - 01066833110 - 01005400590 &nbsp;&nbsp; | &nbsp;&nbsp; السجل التجاري: 37697</div></div>
 <div class="wrap"><div class="top"><a class="btn" href="accounting.html">🏠 الرئيسية</a><a class="btn" href="sales.html">↩ المبيعات</a><a class="btn" href="sale-return-save.html?saved=1">📋 المرتجعات المحفوظة</a><a class="btn" href="sale-return-post.html">📤 الترحيل</a></div>
 <div class="card"><div class="title"><h1>مرتجع مبيعات</h1><span>مرتجع عميل — إصدار التشغيل 2026-10-05</span></div>
 <div class="grid"><div class="field"><label>رقم المرتجع</label><input id="docno" placeholder="يُنشأ تلقائيًا"></div><div class="field"><label>التاريخ</label><input id="date" type="date"></div><div class="field"><label>المخزن</label><select id="site"></select></div><div class="field"><label>العميل</label><select id="customer"></select></div><div class="field"><label>فاتورة البيع الأصلية</label><select id="sale"></select></div><div class="field"><label>خصم من المنبع</label><input id="withholding" class="readonly" readonly value="0.00%"></div></div>
