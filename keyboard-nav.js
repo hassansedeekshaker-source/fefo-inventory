@@ -43,7 +43,7 @@
  document.addEventListener('keydown',function(e){
   const t=e.target;
   if(!(t instanceof HTMLElement))return;
-  if(e.key!=='Enter'||e.ctrlKey||e.altKey||e.shiftKey)return;
+  if(e.defaultPrevented||e.key!=='Enter'||e.ctrlKey||e.altKey||e.shiftKey)return;
   if(t.tagName==='TEXTAREA')return;
   if(t.matches('.item-search,.party-search input'))return;
   const n=nextFor(t);
