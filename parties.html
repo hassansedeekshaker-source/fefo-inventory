@@ -226,6 +226,7 @@ async function loadCustomerLedger(id){
  const bad=[s,r,ft].find(z=>z.error);
  if(bad){$("customerLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
  const opening=Number(x.opening_balance||0),moves=[];
+ moves.push({date:"",type:"رصيد افتتاحي",ref:"-",debit:0,credit:0,openingRow:opening});
  (s.data||[]).forEach(a=>moves.push({date:a.sale_date,type:"فاتورة بيع",ref:a.invoice_no||"-",debit:Number(a.total||0),credit:0}));
  (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مرتجع مبيعات",ref:a.return_no||"-",debit:0,credit:Number(a.total||0)}));
  (ft.data||[]).forEach(a=>{
@@ -234,8 +235,8 @@ async function loadCustomerLedger(id){
  });
  moves.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||String(a.ref).localeCompare(String(b.ref),"ar",{numeric:true}));
  let balance=opening,totalSales=0,totalReturns=0,totalReceipts=0;
- customerLedgerRows=moves.map(m=>{
-   const rowOpening=balance;
+ customerLedgerRows=moves.map((m,i)=>{
+   const rowOpening=i===0?Number(m.openingRow||0):balance;
    const debit=Number(m.debit||0),credit=Number(m.credit||0),net=debit-credit;
    balance=rowOpening+net;
    if(m.type==="فاتورة بيع")totalSales+=debit;
