@@ -4,12 +4,14 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>المشتريات المحفوظة</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;margin:0;color:#17233b}
 #app{width:min(1400px,96%);margin:22px auto}.top{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
 .top a,.btn,button{border:0;border-radius:9px;padding:10px 16px;background:#e8edf5;color:#17233b;text-decoration:none;cursor:pointer;white-space:nowrap}
 .top a:first-child,.new-movement,.ok{background:#087f4f;color:#fff}.card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 3px 16px #0001}
-table{width:100%;border-collapse:separate;border-spacing:0;margin-top:18px;font-size:14px}th,td{padding:11px 8px;border-bottom:1px solid #e5e9f0;text-align:center}th{background:#eef2f7}
+table{width:100%;border-collapse:separate;border-spacing:0;margin-top:18px;font-size:14px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.summary .box{border:1px solid #dfe5ee;border-radius:10px;padding:14px;text-align:center;background:#fafbfd}.summary b{display:block;color:#667085;margin-bottom:7px}.summary strong{font-size:21px}@media(max-width:900px){.summary{grid-template-columns:repeat(2,1fr)}}th,td{padding:11px 8px;border-bottom:1px solid #e5e9f0;text-align:center}th{background:#eef2f7}
 .msg{padding:12px;margin-top:14px;border-radius:8px}.msg.ok{background:#e5f7ee;color:#087f4f}.msg.bad{background:#fdecec;color:#b42318}
 @media(max-width:900px){#app{width:98%}.card{padding:14px}table{font-size:12px}th,td{padding:7px 4px}}
 </style>
@@ -27,7 +29,7 @@ async function init(){
  try{
   const s=await sb.auth.getSession();
   if(!s.data.session){location.href='accounting.html';return}
-  $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-post.html">📤 الترحيل</a></div><div class="card"><h1>📋 المشتريات المحفوظة</h1><p>الفواتير المحفوظة كمسودات ولم يتم ترحيلها.</p><div id="savedMsg"></div><button onclick="loadSaved()">🔄 تحديث</button><table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>المورد</th><th>قيمة الفاتورة</th><th>الضريبة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody id="savedBody"></tbody></table></div>';
+  $('app').innerHTML='<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a class="new-movement" href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-post.html">📤 الترحيل</a></div><div class="card"><h1>📋 المشتريات المحفوظة</h1><p>الفواتير المحفوظة كمسودات ولم يتم ترحيلها.</p><div id="savedMsg"></div><div class="summary"><div class="box"><b>عدد الفواتير</b><strong id="invCount">0</strong></div><div class="box"><b>الإجمالي بدون الضريبة</b><strong id="subTotal">0.00</strong></div><div class="box"><b>إجمالي الضريبة</b><strong id="taxTotal">0.00</strong></div><div class="box"><b>الإجمالي شامل الضريبة</b><strong id="grandTotal">0.00</strong></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button onclick="loadSaved()">🔄 تحديث</button><button class="ok" onclick="exportExcel()">📊 تصدير Excel</button></div><table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>المورد</th><th>قيمة الفاتورة</th><th>الضريبة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody id="savedBody"></tbody></table></div>';
   await loadSaved();
  }catch(e){
   $('app').innerHTML='<div class="card"><h2>تعذر تحميل المشتريات المحفوظة</h2><div class="msg bad">'+esc(e.message||e)+'</div><a class="btn" href="accounting.html">🏠 العودة للرئيسية</a></div>';
@@ -38,9 +40,36 @@ async function loadSaved(){
   const r=await sb.from('purchases').select('*, suppliers(name)').eq('status','draft').order('purchase_date',{ascending:false});
   if(r.error)throw r.error;
   const rows=r.data||[];
+  const sub=rows.reduce((a,x)=>a+Number(x.subtotal||0),0),tax=rows.reduce((a,x)=>a+Number(x.tax||0),0),grand=rows.reduce((a,x)=>a+Number(x.total||0),0);
+  $('invCount').textContent=rows.length.toLocaleString('en-US');
+  $('subTotal').textContent=sub.toFixed(2);
+  $('taxTotal').textContent=tax.toFixed(2);
+  $('grandTotal').textContent=grand.toFixed(2);
+  window.savedRows=rows;
   $('savedBody').innerHTML=rows.map(x=>'<tr><td>'+esc(x.invoice_no||x.id.slice(0,8))+'</td><td>'+esc(x.purchase_date||'')+'</td><td>'+esc(x.suppliers?.name||'-')+'</td><td>'+Number(x.subtotal||0).toFixed(2)+'</td><td>'+Number(x.tax||0).toFixed(2)+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td><button onclick="openSaved(\''+x.id+'\')">✏️ فتح / تعديل</button> <button onclick="deleteSaved(\''+x.id+'\')">🗑 حذف</button> <button class="ok" onclick="postSaved(\''+x.id+'\')">📤 ترحيل</button></td></tr>').join('')||'<tr><td colspan="7">لا توجد مسودات محفوظة حاليًا.</td></tr>';
  }catch(e){msg(e.message||e,'bad')}
 }
+window.exportExcel=()=>{
+ const rows=window.savedRows||[];
+ if(!rows.length){msg('لا توجد مسودات لتصديرها.','bad');return}
+ const detail=rows.map(x=>({'رقم الفاتورة':x.invoice_no||'','التاريخ':x.purchase_date||'','المورد':x.suppliers?.name||'-','الإجمالي قبل الضريبة':Number(x.subtotal||0),'الضريبة':Number(x.tax||0),'الإجمالي شامل الضريبة':Number(x.total||0)}));
+ const sub=rows.reduce((a,x)=>a+Number(x.subtotal||0),0),tax=rows.reduce((a,x)=>a+Number(x.tax||0),0),grand=rows.reduce((a,x)=>a+Number(x.total||0),0);
+ const summary=[
+  {'البيان':'عدد الفواتير','القيمة':rows.length},
+  {'البيان':'الإجمالي بدون الضريبة','القيمة':sub},
+  {'البيان':'إجمالي الضريبة','القيمة':tax},
+  {'البيان':'الإجمالي شامل الضريبة','القيمة':grand}
+ ];
+ const wb=XLSX.utils.book_new();
+ const ws=XLSX.utils.json_to_sheet(detail);
+ const sm=XLSX.utils.json_to_sheet(summary);
+ ws['!cols']=[{wch:16},{wch:14},{wch:38},{wch:22},{wch:16},{wch:24}];
+ sm['!cols']=[{wch:28},{wch:22}];
+ XLSX.utils.book_append_sheet(wb,ws,'الفواتير');
+ XLSX.utils.book_append_sheet(wb,sm,'الإجماليات');
+ XLSX.writeFile(wb,'مراجعة_المشتريات_المحفوظة_'+new Date().toISOString().slice(0,10)+'.xlsx');
+ msg('تم تصدير '+rows.length+' فاتورة إلى Excel ✓','ok');
+};
 window.openSaved=id=>location.href='purchase-save.html?edit='+encodeURIComponent(id);
 window.postSaved=id=>location.href='purchase-post.html?select='+encodeURIComponent(id);
 window.deleteSaved=async id=>{
