@@ -38,7 +38,15 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <p class="small">إضافة وتعديل بيانات العملاء والموردين من شاشة واحدة. رقم السجل في قاعدة البيانات لا يتغير عند التعديل.</p>
 <div class="tabs"><button id="tabCustomers" class="active" onclick="switchTab('customers')">👤 العملاء</button><button id="tabSuppliers" onclick="switchTab('suppliers')">🚚 الموردون</button></div><div id="quickActions"></div><div id="detail" class="detail"></div>
 
-<section id="customers" class="panel active">
+<div id="customerPicker" class="card" style="margin-bottom:14px">
+<h3 style="margin-top:0">🔎 اختيار عميل</h3>
+<div class="field" style="max-width:560px;position:relative">
+<label>اكتب اسم العميل أو الكود</label>
+<input id="customerSearch" autocomplete="off" placeholder="ابحث عن العميل...">
+<div id="customerResults" style="position:absolute;right:0;left:0;top:100%;background:#fff;border:1px solid #dce2ec;border-radius:9px;box-shadow:0 8px 20px #0002;z-index:30;display:none;max-height:280px;overflow:auto"></div>
+</div>
+<p class="small" style="margin:8px 0 0">بمجرد اختيار العميل سيظهر كشف حسابه وكل حركاته أسفل الجدول.</p>
+</div><section id="customers" class="panel active">
 <div class="row">
 <div class="field"><label>اسم العميل *</label><input id="cName"></div>
 <div class="field"><label>رقم الهاتف</label><input id="cPhone"></div>
@@ -70,6 +78,30 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="row" style="margin-top:12px"><button class="success" id="sSave" onclick="saveSupplier()">➕ إضافة المورد</button><button onclick="clearSupplier()">جديد</button></div>
 <div id="sMsg"></div>
 <table><thead><tr><th>الكود</th><th>اسم المورد</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>الإجراء</th></tr></thead><tbody id="sBody"></tbody></table>
+<section id="customerLedger" class="card" style="display:none">
+<div class="detailTop" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+<div><div class="muted">كشف حساب العميل</div><h2 id="customerLedgerTitle" style="margin:4px 0 0">-</h2></div>
+<div class="detailNav"><button class="btn" onclick="exportCustomerLedgerExcel()">📊 تصدير Excel</button><button class="btn" onclick="closeCustomerLedger()">✖ إغلاق الكشف</button></div>
+</div>
+<div class="statGrid" style="margin-top:16px">
+<div class="stat">الرصيد الافتتاحي<b id="clOpening">0.00</b></div>
+<div class="stat">إجمالي المبيعات<b id="clSales">0.00</b></div>
+<div class="stat">إجمالي المرتجعات<b id="clReturns">0.00</b></div>
+<div class="stat">إجمالي التحصيل<b id="clReceipts">0.00</b></div>
+</div>
+<div class="hint">الكشف يعرض كل حركات العميل المترحلة، ويحسب الرصيد الافتتاحي لكل سطر من الرصيد الختامي للسطر السابق، وصافي القيمة = مدين - دائن، والرصيد الختامي = الافتتاحي + مدين - دائن.</div>
+<div class="statGrid" style="margin-top:12px;grid-template-columns:1fr 1fr">
+<div class="stat">الرصيد الحالي<b id="clBalance">0.00</b></div>
+<div class="stat">عدد الحركات<b id="clCount">0</b></div>
+</div>
+<div id="customerLedgerMsg"></div>
+<div style="overflow:auto;margin-top:16px">
+<table id="customerLedgerTable" style="min-width:980px">
+<thead><tr><th>الرقم المرجعي</th><th>نوع الحركة</th><th>التاريخ</th><th>اسم الحساب</th><th>الرصيد الافتتاحي</th><th>قيمة مدينة</th><th>قيمة دائنة</th><th>صافي القيمة</th><th>الرصيد الختامي</th><th>العملة</th></tr></thead>
+<tbody id="customerLedgerBody"></tbody>
+</table>
+</div>
+</section>
 <section id="supplierLedger" class="card" style="display:none">
 <div class="detailTop" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
 <div><div class="muted">كشف حساب المورد</div><h2 id="supplierLedgerTitle" style="margin:4px 0 0">-</h2></div>
@@ -120,12 +152,12 @@ async function loadAll(){
   sb.from('purchases').select('supplier_id,total').eq('status','posted'),sb.from('purchase_returns').select('supplier_id,total').eq('status','posted')
  ]);
  const bad=[c,s,sa,sr,p,pr].find(x=>x.error);if(bad){$('cMsg').innerHTML='<div class="msg bad">'+esc(bad.error.message)+'</div>';return}
- customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();supplierSearchInit();
+ customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();supplierSearchInit();customerSearchInit();
 }
 function customerBalance(id){return Number(customers.find(x=>x.id===id)?.opening_balance||0)+sales.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-salesReturns.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
 function supplierBalance(id){return Number(suppliers.find(x=>x.id===id)?.opening_balance||0)+purchases.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-purchaseReturns.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
 function renderCustomers(){
- $('cBody').innerHTML=customers.map(x=>{const net=sales.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-salesReturns.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('CUS-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+customerBalance(x.id).toFixed(2)+'</b></td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="primary" onclick="selectParty(&quot;customer&quot;,'+x.id+')">فتح الحساب</button> <button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="9">لا توجد بيانات</td></tr>';
+ $('cBody').innerHTML=customers.map(x=>{const net=sales.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-salesReturns.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('CUS-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+customerBalance(x.id).toFixed(2)+'</b></td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="primary" onclick="selectCustomerForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="9">لا توجد بيانات</td></tr>';
 }
 function renderSuppliers(){
  $('sBody').innerHTML=suppliers.map(x=>{const net=purchases.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-purchaseReturns.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('SUP-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+supplierBalance(x.id).toFixed(2)+'</b></td><td><button class="primary" onclick="selectSupplierForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editSupplier('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="8">لا توجد بيانات</td></tr>';
@@ -152,7 +184,87 @@ function selectParty(type,id){
  $('quickActions').innerHTML='<div class="partySmart"><div class="smartRow">'+buttons.map((a,i)=>'<a class="smart '+(i===0?'active':'')+'" href="'+a[1]+'"><span>'+a[0]+'</span><b>'+a[2]+'</b></a>').join('')+'<div class="moreWrap"><button class="smart moreBtn" onclick="toggleMore(this)">المزيد ▾</button><div class="moreMenu">'+more.map(a=>'<a href="'+a[1]+'">'+a[0]+' <b>'+a[2]+'</b></a>').join('')+'</div></div></div></div>';
  $('detail').innerHTML='<section class="card partyDetail"><div class="detailTop"><div><div class="muted">'+label+' · '+code+'</div><h1 style="margin:4px 0 0">📄 '+esc(x.name)+'</h1></div><div class="detailNav"><button class="btn" onclick="history.back()">↩ رجوع للشاشة السابقة</button><a class="btn" href="parties.html">👥 العملاء والموردون</a><a class="btn" href="accounting.html">🏠 الرئيسية</a></div></div><div class="partyBody"><div class="profileBox"><div class="avatar">👤</div><h3>'+esc(x.name)+'</h3><div>النوع: '+label+'</div><div>الكود: '+code+'</div><div>الهاتف: '+esc(x.phone||'-')+'</div><div>العنوان: '+esc(x.address||'-')+'</div><div>ملاحظات: '+esc(x.notes||'-')+'</div></div><div class="statsArea"><div class="statGrid"><div class="stat">الرصيد الافتتاحي<b>'+Number(x.opening_balance||0).toFixed(2)+'</b></div><div class="stat">صافي الحركة<b>'+net.toFixed(2)+'</b></div><div class="stat">الرصيد الحالي<b>'+balance.toFixed(2)+'</b></div><div class="stat">الحالة<b>نشط</b></div></div><div class="hint">الأزرار بالأعلى تفتح عمليات '+(isC?'العميل':'المورد')+' المختار فقط، ولا تنقلك إلى عمليات باقي '+(isC?'العملاء':'الموردين')+'.</div></div></div></section>';
  $('detail').classList.add('show'); window.scrollTo({top:$('detail').offsetTop-20,behavior:'smooth'});
-}function supplierCode(x){return x.code||("SUP-"+String(x.id).padStart(6,"0"))}
+}function customerCode(x){return x.code||("CUS-"+String(x.id).padStart(6,"0"))}
+function renderCustomerResults(list){
+ const box=$("customerResults");if(!box)return;
+ box.innerHTML=list.slice(0,50).map(x=>"<div class=\"customer-result\" data-id=\""+x.id+"\" style=\"padding:10px 12px;border-bottom:1px solid #edf0f5;cursor:pointer\"><b>"+esc(x.name)+"</b><span class=\"small\" style=\"display:block\">"+esc(customerCode(x))+"</span></div>").join("")||"<div class=\"small\" style=\"padding:10px\">لا توجد نتائج.</div>";
+ box.style.display="block";
+ box.querySelectorAll(".customer-result").forEach(el=>el.addEventListener("click",()=>selectCustomerForLedger(Number(el.dataset.id))));
+}
+function customerSearchInit(){
+ const inp=$("customerSearch");if(!inp)return;
+ inp.addEventListener("input",()=>{const q=inp.value.trim().toLowerCase();if(!q){$("customerResults").style.display="none";return}const list=customers.filter(x=>String(x.name||"").toLowerCase().includes(q)||customerCode(x).toLowerCase().includes(q));renderCustomerResults(list)});
+ inp.addEventListener("focus",()=>{const q=inp.value.trim().toLowerCase();if(q){const list=customers.filter(x=>String(x.name||"").toLowerCase().includes(q)||customerCode(x).toLowerCase().includes(q));renderCustomerResults(list)}});
+ document.addEventListener("click",e=>{if(!e.target.closest("#customerPicker"))$("customerResults").style.display="none"});
+ inp.addEventListener("keydown",e=>{if(e.key==="Enter"){const first=document.querySelector("#customerResults .customer-result");if(first){e.preventDefault();selectCustomerForLedger(Number(first.dataset.id))}}});
+}
+async function selectCustomerForLedger(id){
+ const x=customers.find(a=>a.id===id);if(!x)return;
+ $("customerSearch").value=x.name||"";$("customerResults").style.display="none";await loadCustomerLedger(id);
+}
+function customerMoney(n){return Number(n||0).toLocaleString("ar-EG",{minimumFractionDigits:2,maximumFractionDigits:2})}
+let customerLedgerRows=[],customerLedgerName="";
+async function loadCustomerLedger(id){
+ const x=customers.find(a=>a.id===id);if(!x)return;
+ customerLedgerName=x.name||"";
+ const box=$("customerLedger");box.style.display="block";
+ $("customerLedgerTitle").textContent="📄 "+customerLedgerName;
+ $("customerLedgerMsg").innerHTML="<div class=\"msg\" style=\"background:#eef2f7\">جاري تحميل كل حركات العميل...</div>";
+ const [s,r,ft]=await Promise.all([
+  sb.from("sales").select("id,invoice_no,sale_date,total").eq("customer_id",id).eq("status","posted").order("sale_date"),
+  sb.from("sales_returns").select("id,return_no,return_date,total").eq("customer_id",id).eq("status","posted").order("return_date"),
+  sb.from("finance_transactions").select("id,transaction_no,transaction_date,transaction_type,amount,reference_no,notes,journal_entry_id").eq("customer_id",id).not("journal_entry_id","is",null).order("transaction_date")
+ ]);
+ const bad=[s,r,ft].find(z=>z.error);
+ if(bad){$("customerLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
+ const opening=Number(x.opening_balance||0),moves=[];
+ (s.data||[]).forEach(a=>moves.push({date:a.sale_date,type:"فاتورة بيع",ref:a.invoice_no||"-",debit:Number(a.total||0),credit:0}));
+ (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مرتجع مبيعات",ref:a.return_no||"-",debit:0,credit:Number(a.total||0)}));
+ (ft.data||[]).forEach(a=>{
+   const receipt=a.transaction_type==="receipt";
+   moves.push({date:a.transaction_date,type:receipt?"تحصيل من العميل":"حركة مالية",ref:a.transaction_no||a.reference_no||"-",debit:receipt?0:Number(a.amount||0),credit:receipt?Number(a.amount||0):0});
+ });
+ moves.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||String(a.ref).localeCompare(String(b.ref),"ar",{numeric:true}));
+ let balance=opening,totalSales=0,totalReturns=0,totalReceipts=0;
+ customerLedgerRows=moves.map(m=>{
+   const rowOpening=balance;
+   const debit=Number(m.debit||0),credit=Number(m.credit||0),net=debit-credit;
+   balance=rowOpening+net;
+   if(m.type==="فاتورة بيع")totalSales+=debit;
+   if(m.type==="مرتجع مبيعات")totalReturns+=credit;
+   if(m.type==="تحصيل من العميل")totalReceipts+=credit;
+   return {"الرقم المرجعي":m.ref,"نوع الحركة":m.type,"التاريخ":m.date||"","اسم الحساب":customerLedgerName,"الرصيد الافتتاحي":rowOpening,"قيمة مدينة":debit,"قيمة دائنة":credit,"صافي القيمة":net,"الرصيد الختامي":balance,"العملة":"EGP"};
+ });
+ $("clOpening").textContent=customerMoney(opening);
+ $("clSales").textContent=customerMoney(totalSales);
+ $("clReturns").textContent=customerMoney(totalReturns);
+ $("clReceipts").textContent=customerMoney(totalReceipts);
+ $("clBalance").textContent=customerMoney(balance);
+ $("clCount").textContent=String(customerLedgerRows.length);
+ $("customerLedgerBody").innerHTML=customerLedgerRows.length?customerLedgerRows.map(m=>"<tr><td>"+esc(m["الرقم المرجعي"])+"</td><td>"+esc(m["نوع الحركة"])+"</td><td>"+esc(m["التاريخ"])+"</td><td>"+esc(m["اسم الحساب"])+"</td><td>"+customerMoney(m["الرصيد الافتتاحي"])+"</td><td>"+customerMoney(m["قيمة مدينة"])+"</td><td>"+customerMoney(m["قيمة دائنة"])+"</td><td>"+customerMoney(m["صافي القيمة"])+"</td><td>"+customerMoney(m["الرصيد الختامي"])+"</td><td>EGP</td></tr>").join(""):"<tr><td colspan=\"10\" class=\"empty\">لا توجد حركات لهذا العميل.</td></tr>";
+ $("customerLedgerMsg").innerHTML="<div class=\"msg ok\">تم تحميل كل حركات العميل المترحلة ✓</div>";
+ window.scrollTo({top:box.offsetTop-20,behavior:"smooth"});
+}
+function exportCustomerLedgerExcel(){
+ if(!customerLedgerRows.length){alert("اختر عميلًا أولاً ولا توجد حركات لتصديرها.");return}
+ const headers=["الرقم المرجعي","نوع الحركة","التاريخ","اسم الحساب","الرصيد الافتتاحي","قيمة مدينة","قيمة دائنة","صافي القيمة","الرصيد الختامي","العملة"];
+ const data=[headers];
+ customerLedgerRows.forEach((m,i)=>{
+   const row=i+2;
+   const opening=i===0?Number(m["الرصيد الافتتاحي"]||0):{f:"=I"+(row-1)};
+   const net={f:"=F"+row+"-G"+row};
+   const closing={f:"=E"+row+"+F"+row+"-G"+row};
+   data.push([m["الرقم المرجعي"],m["نوع الحركة"],m["التاريخ"],m["اسم الحساب"],opening,m["قيمة مدينة"],m["قيمة دائنة"],net,closing,m["العملة"]]);
+ });
+ const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(data);
+ ws["!cols"]=[{wch:22},{wch:16},{wch:14},{wch:28},{wch:18},{wch:16},{wch:16},{wch:16},{wch:18},{wch:10}];
+ XLSX.utils.book_append_sheet(wb,ws,"كشف الحساب");
+ const summary=[{"البيان":"العميل","القيمة":customerLedgerName},{"البيان":"الرصيد الافتتاحي","القيمة":Number($("clOpening").textContent.replace(/,/g,""))||0},{"البيان":"إجمالي المبيعات","القيمة":Number($("clSales").textContent.replace(/,/g,""))||0},{"البيان":"إجمالي المرتجعات","القيمة":Number($("clReturns").textContent.replace(/,/g,""))||0},{"البيان":"إجمالي التحصيل","القيمة":Number($("clReceipts").textContent.replace(/,/g,""))||0},{"البيان":"الرصيد الحالي","القيمة":Number($("clBalance").textContent.replace(/,/g,""))||0}];
+ const sm=XLSX.utils.json_to_sheet(summary);sm["!cols"]=[{wch:28},{wch:22}];XLSX.utils.book_append_sheet(wb,sm,"الملخص");
+ XLSX.writeFile(wb,"كشف_حساب_"+customerLedgerName+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+function closeCustomerLedger(){customerLedgerRows=[];customerLedgerName="";$("customerLedger").style.display="none"}
+function supplierCode(x){return x.code||("SUP-"+String(x.id).padStart(6,"0"))}
 function renderSupplierResults(list){
  const box=$("supplierResults");if(!box)return;
  box.innerHTML=list.slice(0,50).map(x=>"<div class=\"supplier-result\" data-id=\""+x.id+"\" style=\"padding:10px 12px;border-bottom:1px solid #edf0f5;cursor:pointer\"><b>"+esc(x.name)+"</b><span class=\"small\" style=\"display:block\">"+esc(supplierCode(x))+"</span></div>").join("")||"<div class=\"small\" style=\"padding:10px\">لا توجد نتائج.</div>";
