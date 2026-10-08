@@ -59,7 +59,7 @@ function start(){if(started)return;started=true;if(typeof window.supabase==='und
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{if(typeof window.supabase!=='undefined')start();else loadFallback()},300));else setTimeout(()=>{if(typeof window.supabase!=='undefined')start();else loadFallback()},300);
 </script>
 <script>
-let sb,items=[],units=[],suppliers=[],sites=[],user=null;
+let sb,items=[],units=[],suppliers=[],sites=[],user=null,editId=null;
 const $=id=>document.getElementById(id);
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function msg(t,bad=false){showMsg(t,bad)}
@@ -90,21 +90,66 @@ async function init(){
   items=I.data||[];units=U.data||[];suppliers=S.data||[];sites=ST.data||[];
   $('supplier').insertAdjacentHTML('beforeend',suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join(''));
   $('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join(''));
-  $('purchase_date').value=new Date().toISOString().slice(0,10);line();calc();
-  msg(items.length?'الشاشة جاهزة. اختر المورد والمخزن ثم أضف الصنف.':'الشاشة جاهزة، لكن لا توجد أصناف مسجلة حاليًا في قاعدة البيانات.');
+  editId=new URLSearchParams(location.search).get('edit');
+  if(editId){
+    await loadEdit(editId);
+  }else{
+    $('purchase_date').value=new Date().toISOString().slice(0,10);
+    line();calc();
+    msg(items.length?'الشاشة جاهزة. اختر المورد والمخزن ثم أضف الصنف.':'الشاشة جاهزة، لكن لا توجد أصناف مسجلة حاليًا في قاعدة البيانات.');
+  }
+ }catch(e){msg(e.message||String(e),true)}
+}
+async function loadEdit(id){
+ try{
+  const h=await sb.from('purchases').select('*').eq('id',id).single();
+  if(h.error)throw h.error;
+  const l=await sb.from('purchase_lines').select('id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount').eq('purchase_id',id).order('id');
+  if(l.error)throw l.error;
+  const p=h.data;
+  if(p.status!=='draft')throw new Error('هذه الفاتورة ليست مسودة ويمكن عرضها فقط.');
+  $('invoice_no').value=p.invoice_no||'';
+  $('purchase_date').value=p.purchase_date||'';
+  $('supplier').value=p.supplier_id||'';
+  $('site').value=p.site_id||'';
+  $('lines').innerHTML='';
+  for(const x of (l.data||[])){
+   const it=items.find(z=>z.id===x.item_id);
+   if(!it)continue;
+   line();
+   const tr=$('lines').lastElementChild;
+   tr.dataset.itemId=it.id;
+   tr.querySelector('.item-search').value=it.name_ar+' — '+(it.sku||'');
+   tr.querySelector('.unit').textContent=units.find(u=>u.id===it.unit_id)?.name_ar||units.find(u=>u.id===it.unit_id)?.name||'-';
+   tr.querySelector('.qty').value=Number(x.qty||0);
+   tr.querySelector('.price').value=Number(x.unit_cost||0);
+   tr.querySelector('.disc').value=Number(x.discount_rate||0);
+   tr.querySelector('.tax').value=Number(x.tax_rate||0);
+  }
+  if(!$('lines').children.length)line();
+  calc();
+  msg('تم تحميل الفاتورة رقم '+(p.invoice_no||'')+' للتعديل ✓');
  }catch(e){msg(e.message||String(e),true)}
 }
 async function save(){
  try{
   const supplier=$('supplier').value,site=$('site').value;
   if(!supplier||!site)return msg('اختر المورد والمخزن أولًا',true);
-  const rs=[...document.querySelectorAll('#lines tr')].map(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,gross=q*p,discount=gross*d/100,subtotal=gross-discount,tax=subtotal*rate/100;return {item_id:tr.dataset.itemId||'',qty:q,unit_cost:p,discount_rate:d,discount_amount:discount,tax_rate:rate,tax_amount:tax,line_total:subtotal+tax}});
+  const rs=[...document.querySelectorAll('#lines tr')].map(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,gross=q*p,discount=gross*d/100,subtotal=gross-discount,tax=subtotal*rate/100;return {item_id:tr.dataset.itemId||'',qty:q,unit_cost:p,discount_rate:d,discount_amount:discount,tax_rate:rate,tax_amount:tax}});
   if(!rs.length||rs.some(x=>!x.item_id||x.qty<=0||x.unit_cost<0))return msg('راجع الأصناف والكميات والأسعار',true);
   const subtotal=rs.reduce((a,x)=>a+x.qty*x.unit_cost-x.discount_amount,0),tax=rs.reduce((a,x)=>a+x.tax_amount,0),total=subtotal+tax;
-  const h=await sb.from('purchases').insert({invoice_no:$('invoice_no').value.trim()||null,supplier_id:supplier,site_id:site,purchase_date:$('purchase_date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:0}).select().single();
-  if(h.error)throw h.error;
-  const l=await sb.from('purchase_lines').insert(rs.map(x=>({...x,purchase_id:h.data.id})));if(l.error)throw l.error;
-  msg('تم حفظ فاتورة الشراء كمسودة ✓ رقم '+(h.data.invoice_no||h.data.id));$('invoice_no').value='';$('lines').innerHTML='';line();calc();
+  if(editId){
+    const h=await sb.from('purchases').update({invoice_no:$('invoice_no').value.trim()||null,supplier_id:supplier,site_id:site,purchase_date:$('purchase_date').value,subtotal,tax,total}).eq('id',editId).eq('status','draft');
+    if(h.error)throw h.error;
+    const d=await sb.from('purchase_lines').delete().eq('purchase_id',editId);if(d.error)throw d.error;
+    const l=await sb.from('purchase_lines').insert(rs.map(x=>({...x,purchase_id:editId})));if(l.error)throw l.error;
+    msg('تم تحديث الفاتورة كمسودة ✓ رقم '+($('invoice_no').value.trim()||''));
+  }else{
+    const h=await sb.from('purchases').insert({invoice_no:$('invoice_no').value.trim()||null,supplier_id:supplier,site_id:site,purchase_date:$('purchase_date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:0}).select().single();
+    if(h.error)throw h.error;
+    const l=await sb.from('purchase_lines').insert(rs.map(x=>({...x,purchase_id:h.data.id})));if(l.error)throw l.error;
+    msg('تم حفظ فاتورة الشراء كمسودة ✓ رقم '+(h.data.invoice_no||h.data.id));$('invoice_no').value='';$('lines').innerHTML='';line();calc();
+  }
  }catch(e){msg(e.message||String(e),true)}
 }
 window.__purchaseLineFactory=line;
