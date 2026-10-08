@@ -19,7 +19,7 @@
 <div class="field"><b>ملف Excel</b><input id="file" type="file" accept=".xlsx,.xls"></div>
 </div>
 <div class="actions" style="margin-top:12px">
-<button class="btn primary" id="templateBtn" type="button">📄 تحميل قالب Excel الجاهز</button>
+<button class="btn primary" id="templateBtn" type="button" onclick="downloadTemplate()">📄 تحميل قالب Excel الجاهز</button>
 </div>
 <div class="msg info" style="margin-top:10px">القالب يحتوي على ورقة لإدخال المشتريات وورقة قوائم النظام للموردين والأصناف والوحدات، بالإضافة إلى ورقة تعليمات.</div>
 <div class="drop">ملف Excel المطلوب يحتوي فقط على: <b>المورد | التاريخ | رقم الفاتورة | الصنف | الوحدة | الكمية | سعر الشراء</b><br><small>لا نحتاج كود الصنف.</small></div>
@@ -80,13 +80,21 @@ function downloadTemplate(){
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المشتريات');XLSX.utils.book_append_sheet(wb,wl,'قوائم النظام');XLSX.utils.book_append_sheet(wb,info,'تعليمات');
  XLSX.writeFile(wb,'قالب_استيراد_المشتريات.xlsx');
 }
-$('templateBtn').onclick=downloadTemplate
 async function init(){
- const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
- const [S,Su,I,U]=await Promise.all([sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),sb.from('suppliers').select('id,name').order('name'),sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,tax_rate').eq('active',true),sb.from('inv_units').select('*').order('name_ar')]);
- for(const r of [S,Su,I,U])if(r.error)throw r.error;
- sites=S.data||[];suppliers=Su.data||[];items=I.data||[];units=U.data||[];
- $('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+x.name_ar+'</option>').join(''));
+ try{
+  if(typeof supabase==='undefined')throw Error('مكتبة الاتصال بقاعدة البيانات لم يتم تحميلها. اعمل تحديث للصفحة.');
+  const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
+  const S=await sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'); if(S.error)throw S.error;
+  sites=S.data||[];$('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+x.name_ar+'</option>').join(''));
+  const [Su,I,U]=await Promise.all([
+   sb.from('suppliers').select('id,name').order('name'),
+   sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,tax_rate').eq('active',true),
+   sb.from('inv_units').select('*').order('name_ar')
+  ]);
+  for(const r of [Su,I,U])if(r.error)throw r.error;
+  suppliers=Su.data||[];items=I.data||[];units=U.data||[];
+  setMsg('النظام جاهز. اختر المخزن وحمّل القالب أو ارفع ملفك.','good');
+ }catch(e){setMsg('تعذر تحميل بيانات النظام: '+(e.message||e),'error')}
 }
 $('file').addEventListener('change',async e=>{
  const f=e.target.files[0];if(!f)return;
@@ -142,6 +150,6 @@ $('importBtn').onclick=async()=>{
  }catch(e){setMsg('حدث خطأ أثناء الاستيراد: '+(e.message||e),'error');$('importBtn').disabled=false}
 };
 $('clearBtn').onclick=()=>{parsed=[];$('file').value='';$('review').style.display='none';setMsg('تم مسح الملف.','info')};
-init().catch(e=>setMsg(e.message||String(e),'error'));
+init();
 </script>
 </body></html>
