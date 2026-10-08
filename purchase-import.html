@@ -150,6 +150,6 @@ $('importBtn').onclick=async()=>{
  }catch(e){setMsg('حدث خطأ أثناء الاستيراد: '+(e.message||e),'error');$('importBtn').disabled=false}
 };
 $('clearBtn').onclick=()=>{parsed=[];$('file').value='';$('review').style.display='none';setMsg('تم مسح الملف.','info')};
-init();
+window.addEventListener('DOMContentLoaded',()=>init());;
 </script>
 </body></html>
