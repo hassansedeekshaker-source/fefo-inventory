@@ -71,4 +71,4 @@ async function logout(){try{const t=token();if(t)await fetch(SB_URL+'/auth/v1/lo
 function init(){const d=new Date().toISOString().slice(0,10);['aDate','aStartDate','cDate','cStart'].forEach(id=>{if($(id)&&!$(id).value)$(id).value=d});$('status').textContent='شاشة الأصول جاهزة للعمل';loadAssets();loadCosts()}
 window.addEventListener('error',e=>{const g=$('globalMsg');if(g)g.innerHTML='<div class="msg bad">خطأ في الشاشة: '+esc(e.message||'خطأ غير معروف')+'</div>'});
 init();
-</script></body></html>
+</script><script src="keyboard-nav.js"></script></body></html>
