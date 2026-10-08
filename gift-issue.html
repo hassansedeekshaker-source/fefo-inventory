@@ -13,9 +13,22 @@ button,a{border:0;border-radius:9px;padding:10px 15px;cursor:pointer;text-decora
 label{font-size:12px;color:#667085}input,select{width:100%;padding:10px;border:1px solid #d6dce8;border-radius:9px;font-family:inherit;font-size:14px;background:#fff}
 .note{font-size:12px;color:#667085;line-height:1.7;margin:8px 0}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .box{background:#f7f9fc;border-radius:10px;padding:13px}.box b{display:block;margin-bottom:5px}.value{font-size:19px;font-weight:bold}
-.table-wrap{overflow:auto;margin-top:14px}table{width:100%;border-collapse:collapse;min-width:1000px}
-th,td{padding:9px;border-bottom:1px solid #edf0f5;text-align:right;white-space:nowrap}th{background:#eef2f7;position:sticky;top:0;z-index:1}
-td input.qty{width:110px;padding:8px;text-align:center}.changed{background:#fffdf0}.zero{color:#667085}.bad{color:#b42318}.ok{color:#087443;font-weight:bold}
+.table-wrap{overflow:auto;border:1px solid #dfe4ea;border-radius:8px;margin-top:14px}
+table{width:100%;min-width:900px;border-collapse:collapse;font-size:13px}
+th{background:#f0f2f5;padding:10px 7px;white-space:nowrap}
+td{padding:7px;border-bottom:1px solid #edf0f4;text-align:center}
+td input,td select{width:100%;padding:7px;border:1px solid #d6dde7;border-radius:5px}
+.item-picker{position:relative;min-width:260px}
+.item-search{width:100%;min-width:240px}
+.item-results{display:none;position:fixed;z-index:99999;background:#fff;border:1px solid #b8c5d6;border-radius:7px;max-height:300px;overflow:auto;box-shadow:0 8px 24px #0003;text-align:right}
+.item-option{display:block;width:100%;border:0;border-bottom:1px solid #eef1f5;background:#fff;text-align:right;padding:9px;cursor:pointer;color:#172033}
+.item-option:hover,.item-option:focus{background:#eaf2ff}
+.item-empty{padding:10px;color:#667085}
+.ro{background:#f5f6f8!important}
+.add{padding:11px;text-align:center;background:#f7f9fc;color:#087fae;cursor:pointer}
+td input.qty{width:110px;padding:7px;text-align:center}
+.changed{background:#fffdf0}
+.zero{color:#667085}.bad{color:#b42318}.ok{color:#087443;font-weight:bold}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.msg{margin-top:12px;padding:12px;border-radius:9px;background:#f5f7fa}
 .small{font-size:12px;color:#667085}
 @media(max-width:800px){.controls{grid-template-columns:1fr 1fr}.summary{grid-template-columns:1fr 1fr}}@media(max-width:550px){.controls,.summary{grid-template-columns:1fr}}
@@ -46,10 +59,71 @@ function n(v){return Number(v||0)} function fmt(v){return n(v).toLocaleString('e
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function msg(s,c){$('msg').className='msg '+(c||'');$('msg').textContent=s}
 async function init(){const ses=await sb.auth.getSession();if(!ses.data.session){location.href='accounting.html';return}user=ses.data.session.user;$('date').value=new Date().toISOString().slice(0,10);const [ir,sr]=await Promise.all([sb.from('inv_items').select('id,sku,name_ar,unit_name,purchase_price').eq('active',true).order('name_ar'),sb.from('inv_sites').select('id,name_ar,code').eq('active',true).order('name_ar')]);if(ir.error)throw ir.error;if(sr.error)throw sr.error;items=ir.data||[];$('site').innerHTML='<option value="">-- اختر المخزن --</option>'+(sr.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+' — '+esc(x.code)+'</option>').join('');addLine();}
-function setupPicker(tr){const input=tr.querySelector('.item-search'),box=tr.querySelector('.item-results');function draw(){const q=input.value.trim().toLocaleLowerCase();if(!q){box.style.display='none';return}const found=items.filter(x=>String(x.name_ar||'').toLocaleLowerCase().includes(q)||String(x.sku||'').toLocaleLowerCase().includes(q)).slice(0,30);box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-id="'+esc(x.id)+'">'+esc(x.name_ar)+' — '+esc(x.sku||'')+'</button>').join(''):'<div class="item-empty">لا توجد أصناف مطابقة</div>';const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(250,r.width)+'px';box.style.top=(r.bottom+2)+'px';box.style.display='block';box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const x=items.find(z=>z.id===b.dataset.id);input.value=x.name_ar+' — '+(x.sku||'');tr.dataset.itemId=x.id;box.style.display='none';itemChanged(tr)})}input.addEventListener('input',draw);input.addEventListener('keydown',e=>{if(e.key==='Enter'){const b=box.querySelector('[data-id]');if(b){e.preventDefault();b.click()}}});document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});}
+function setupPicker(tr){
+ const input=tr.querySelector('.item-search'),box=tr.querySelector('.item-results');
+ function draw(){
+  const q=input.value.trim().toLocaleLowerCase();
+  tr.dataset.itemId='';
+  if(!q){box.style.display='none';box.innerHTML='';return}
+  const found=items.filter(x=>(String(x.name_ar||'').toLocaleLowerCase().includes(q)||String(x.sku||'').toLocaleLowerCase().includes(q))).slice(0,30);
+  box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-id="'+esc(x.id)+'">'+esc(x.name_ar)+' — '+esc(x.sku||'')+'</button>').join(''):'<div class="item-empty">لا توجد أصناف مطابقة</div>';
+  const r=input.getBoundingClientRect();
+  box.style.left=Math.max(8,r.left)+'px';
+  box.style.width=Math.max(260,r.width)+'px';
+  box.style.maxHeight='300px';
+  const h=Math.min(300,found.length*38+8);
+  if(window.innerHeight-r.bottom>=h || window.innerHeight-r.bottom>r.top) box.style.top=(r.bottom+2)+'px';
+  else box.style.top=Math.max(8,r.top-h)+'px';
+  box.style.display='block';
+  box.querySelectorAll('[data-id]').forEach(btn=>btn.onclick=async()=>{
+   const x=items.find(z=>String(z.id)===String(btn.dataset.id));if(!x)return;
+   input.value=x.name_ar+' — '+(x.sku||'');
+   tr.dataset.itemId=x.id;box.style.display='none';
+   await itemChanged(tr);
+  });
+ }
+ input.addEventListener('input',draw);
+ input.addEventListener('focus',()=>{if(input.value.trim()&&!tr.dataset.itemId)draw()});
+ input.addEventListener('keydown',e=>{
+  if(e.key==='Escape')box.style.display='none';
+  if(e.key==='Enter'){const first=box.querySelector('[data-id]');if(first){e.preventDefault();first.click()}}
+ });
+ document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});
+}
 function addLine(){const tr=document.createElement('tr');tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="stock ro" value="0.000" readonly></td><td class="cost">0.00</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td class="lineTotal">0.00</td><td><button class="light" onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';$('lines').appendChild(tr);tr.querySelector('.qty').oninput=calc;setupPicker(tr);}
-async function itemChanged(tr){const x=items.find(i=>i.id===tr.dataset.itemId);tr.querySelector('.unit').textContent=x?.unit_name||'-';await loadStock(tr);calc()}
-async function loadStock(tr){const itemId=tr.dataset.itemId,site=$('site').value;if(!itemId||!site)return;const r=await sb.from('inventory_costs').select('qty_on_hand,weighted_avg_cost').eq('item_id',itemId).eq('site_id',site).maybeSingle();if(r.error)throw r.error;let q=n(r.data?.qty_on_hand),c=n(r.data?.weighted_avg_cost);if(q<=0||c<=0){const lr=await sb.from('inv_lots').select('qty_on_hand,unit_cost').eq('item_id',itemId).eq('site_id',site).gt('qty_on_hand',0);if(!lr.error&&lr.data?.length){q=lr.data.reduce((s,x)=>s+n(x.qty_on_hand),0);const v=lr.data.reduce((s,x)=>s+n(x.qty_on_hand)*n(x.unit_cost),0);c=q?v/q:0}}tr.querySelector('.stock').value=q.toFixed(3);tr.querySelector('.cost').textContent=c.toFixed(2);tr.dataset.cost=c;calc()}
+async function itemChanged(tr){
+ const x=items.find(i=>String(i.id)===String(tr.dataset.itemId));if(!x)return;
+ tr.querySelector('.unit').textContent=x.unit_name||'-';
+ tr.querySelector('.cost').textContent='0.00';
+ tr.querySelector('.stock').value='0.000';
+ await loadStock(tr);
+}
+async function loadStock(tr){
+ const itemId=tr.dataset.itemId,siteId=$('site').value;
+ if(!itemId||!siteId)return;
+ try{
+  const r=await sb.from('inventory_costs').select('qty_on_hand,inventory_value,weighted_avg_cost').eq('item_id',itemId).eq('site_id',siteId).maybeSingle();
+  if(r.error)throw r.error;
+  let d=r.data||{},available=Number(d.qty_on_hand||0),cost=Number(d.weighted_avg_cost||0);
+  if(available<=0 || cost<=0){
+   const lr=await sb.from('inv_lots').select('qty_on_hand,qty_reserved,unit_cost').eq('item_id',itemId).eq('site_id',siteId).gt('qty_on_hand',0);
+   if(!lr.error && (lr.data||[]).length){
+    available=(lr.data||[]).reduce((sum,x)=>sum+Number(x.qty_on_hand||0),0);
+    const value=(lr.data||[]).reduce((sum,x)=>sum+Number(x.qty_on_hand||0)*Number(x.unit_cost||0),0);
+    if(available>0)cost=value/available;
+   }
+  }
+  tr.querySelector('.stock').value=Math.max(0,available).toFixed(3);
+  tr.querySelector('.cost').textContent=Math.max(0,cost).toFixed(2);
+  tr.dataset.cost=cost;
+  calc();
+ }catch(err){
+  tr.querySelector('.stock').value='0.000';
+  tr.querySelector('.cost').textContent='0.00';
+  tr.dataset.cost='0';
+  msg('تعذر قراءة رصيد/تكلفة الصنف: '+(err.message||err),'bad');
+ }
+}
 async function refreshAll(){for(const tr of document.querySelectorAll('#lines tr'))if(tr.dataset.itemId)await loadStock(tr)}
 function calc(){let total=0,count=0;document.querySelectorAll('#lines tr').forEach(tr=>{const q=n(tr.querySelector('.qty')?.value),c=n(tr.dataset.cost),stock=n(tr.querySelector('.stock')?.value);if(tr.dataset.itemId&&q>0){count++;total+=q*c}tr.querySelector('.lineTotal').textContent=fmt(q*c);tr.className=(q>stock&&tr.dataset.itemId)?'badrow':''});$('selected').textContent=count;$('total').textContent=fmt(total)}
 function clearLines(){$('lines').innerHTML='';addLine();calc();msg('تم مسح البنود فقط.','')}
