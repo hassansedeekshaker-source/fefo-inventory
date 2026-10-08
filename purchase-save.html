@@ -71,7 +71,7 @@ function line(){
  const tr=document.createElement('tr');
  tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0"></td><td class="discVal">0.00</td><td class="value">0.00</td><td><input class="tax" type="number" min="0" step=".01" value="0"></td><td class="taxVal">0.00</td><td class="total">0.00</td><td><button class="del">حذف</button></td>';
  $('lines').appendChild(tr);
- setupItemPicker(tr,x=>{tr.dataset.itemId=x.id;tr.querySelector('.unit').textContent=units.find(u=>u.id===x.unit_id)?.name_ar||units.find(u=>u.id===x.unit_id)?.name||'-';tr.querySelector('.price').value=Number(x.purchase_price||0).toFixed(2);tr.querySelector('.tax').value=Number(x.tax_rate||0).toFixed(2);calc()});
+ setupItemPicker(tr,x=>{tr.dataset.itemId=x.id;tr.querySelector('.unit').textContent=units.find(u=>u.id===x.unit_id)?.name_ar||units.find(u=>u.id===x.unit_id)?.name||'-';tr.querySelector('.price').value=Number(x.purchase_price||0).toFixed(2);tr.querySelector('.tax').value=(Number(x.tax_rate||0)*100).toFixed(2);calc()});
  tr.querySelectorAll('input').forEach(x=>x.oninput=calc);tr.querySelector('.del').onclick=()=>{tr.remove();calc()};
 }
 function setupItemPicker(tr,onPick){const input=tr.querySelector('.item-search'),box=tr.querySelector('.item-results');function draw(){const q=input.value.trim().toLocaleLowerCase();tr.dataset.itemId='';if(!q){box.style.display='none';box.innerHTML='';return}const found=items.filter(x=>(String(x.name_ar||'').toLocaleLowerCase().includes(q)||String(x.sku||'').toLocaleLowerCase().includes(q))).slice(0,30);box.innerHTML=found.length?found.map(x=>'<button type="button" class="item-option" data-id="'+esc(x.id)+'">'+esc(x.name_ar)+' — '+esc(x.sku||'')+'</button>').join(''):'<div class="item-empty">لا توجد أصناف مطابقة</div>';const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(220,r.width)+'px';box.style.maxHeight='300px';box.style.top=(window.innerHeight-r.bottom>=Math.min(300,found.length*38+8)||window.innerHeight-r.bottom>r.top?' '+(r.bottom)+'px':' '+Math.max(8,r.top-Math.min(300,found.length*38+8))+'px').trim();if(r.top>window.innerHeight/2&&window.innerHeight-r.bottom<150)box.style.top=Math.max(8,r.top-Math.min(300,found.length*38+8))+'px';box.style.display='block';box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const x=items.find(z=>z.id===b.dataset.id);if(!x)return;input.value=x.name_ar+' — '+(x.sku||'');tr.dataset.itemId=x.id;box.style.display='none';onPick(x)});}input.addEventListener('input',draw);input.addEventListener('focus',()=>{if(input.value.trim()&&!tr.dataset.itemId)draw()});input.addEventListener('keydown',e=>{if(e.key==='Escape')box.style.display='none';if(e.key==='Enter'){const first=box.querySelector('[data-id]');if(first){e.preventDefault();first.click()}}});document.addEventListener('click',e=>{if(!tr.contains(e.target))box.style.display='none'});}
@@ -124,7 +124,7 @@ async function loadEdit(id){
    tr.querySelector('.qty').value=Number(x.qty||0);
    tr.querySelector('.price').value=Number(x.unit_cost||0);
    tr.querySelector('.disc').value=Number(x.discount_rate||0);
-   tr.querySelector('.tax').value=Number(x.tax_rate||0);
+   tr.querySelector('.tax').value=(Number(x.tax_rate||0)*100);
   }
   if(!$('lines').children.length)line();
   calc();
@@ -135,7 +135,7 @@ async function save(){
  try{
   const supplier=$('supplier').value,site=$('site').value;
   if(!supplier||!site)return msg('اختر المورد والمخزن أولًا',true);
-  const rs=[...document.querySelectorAll('#lines tr')].map(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,gross=q*p,discount=gross*d/100,subtotal=gross-discount,tax=subtotal*rate/100;return {item_id:tr.dataset.itemId||'',qty:q,unit_cost:p,discount_rate:d,discount_amount:discount,tax_rate:rate,tax_amount:tax}});
+  const rs=[...document.querySelectorAll('#lines tr')].map(tr=>{const q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,rate=+tr.querySelector('.tax').value||0,gross=q*p,discount=gross*d/100,subtotal=gross-discount,tax=subtotal*rate/100;return {item_id:tr.dataset.itemId||'',qty:q,unit_cost:p,discount_rate:d,discount_amount:discount,tax_rate:rate/100,tax_amount:tax}});
   if(!rs.length||rs.some(x=>!x.item_id||x.qty<=0||x.unit_cost<0))return msg('راجع الأصناف والكميات والأسعار',true);
   const subtotal=rs.reduce((a,x)=>a+x.qty*x.unit_cost-x.discount_amount,0),tax=rs.reduce((a,x)=>a+x.tax_amount,0),total=subtotal+tax;
   if(editId){
