@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>صرف هدايا من المخزون</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#18243a;color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center}
+main{max-width:1100px;margin:20px auto;padding:0 15px}.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:13px;font-weight:bold;color:#475467}input,select,textarea{padding:11px;border:1px solid #d6dce8;border-radius:9px;font-family:inherit;font-size:14px;background:#fff}
+button,a{border:0;border-radius:9px;padding:11px 16px;cursor:pointer;text-decoration:none;font-family:inherit;font-size:14px;display:inline-block}
+.primary{background:#18243a;color:#fff}.success{background:#087443;color:#fff}.light{background:#eef2f7;color:#172033}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.msg{margin-top:14px;padding:12px;border-radius:9px;background:#f5f7fa}
+.ok{color:#087443}.bad{color:#b42318}.note{font-size:12px;color:#667085;line-height:1.7}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.box{background:#f7f9fc;border-radius:10px;padding:14px}.box b{display:block;margin-bottom:6px}.value{font-size:20px;font-weight:bold}
+@media(max-width:750px){.grid,.summary{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><b>🎁 صرف هدايا وعينات مجانية</b><span>المخزون والمحاسبة</span></header>
+<main>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+    <h2 style="margin:0">صرف هدية من المخزون</h2>
+    <a class="light" href="accounting.html">🏠 الرئيسية</a>
+  </div>
+  <p class="note">عند الترحيل يتم خصم الكمية من المخزون بالتكلفة، وتسجيلها على حساب <b>6320 هدايا وعينات مجانية</b>. التكلفة المستخدمة محاسبيًا هي متوسط التكلفة الحالي للصنف.</p>
+  <div class="grid">
+    <div class="field"><label>التاريخ</label><input id="date" type="date"></div>
+    <div class="field"><label>المخزن / الموقع</label><select id="site"></select></div>
+    <div class="field"><label>الصنف</label><select id="item"></select></div>
+    <div class="field"><label>الكمية</label><input id="qty" type="number" min=".001" step=".001" value="1"></div>
+    <div class="field" style="grid-column:span 2"><label>البيان</label><input id="notes" placeholder="مثال: هدية للعميل / عينات تسويقية"></div>
+  </div>
+  <div class="summary">
+    <div class="box"><b>الرصيد الحالي</b><div class="value" id="stock">0.000</div></div>
+    <div class="box"><b>متوسط التكلفة</b><div class="value" id="cost">0.00</div></div>
+    <div class="box"><b>قيمة الهدية</b><div class="value" id="total">0.00</div></div>
+  </div>
+  <div class="actions">
+    <button class="success" onclick="postGift()">📤 ترحيل صرف الهدية</button>
+    <button class="light" onclick="location.reload()">↻ إعادة</button>
+  </div>
+  <div id="msg" class="msg">اختر المخزن والصنف ثم أدخل الكمية.</div>
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb=supabase.createClient('https://fyqyodnboryzaejlhdlk.supabase.co','sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2');
+const $=id=>document.getElementById(id),today=()=>new Date().toISOString().slice(0,10);
+let user,items=[],sites=[];
+function msg(s,c){$('msg').className='msg '+(c||'');$('msg').textContent=s}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function init(){
+  const ses=await sb.auth.getSession();
+  if(!ses.data.session){location.href='accounting.html';return}
+  user=ses.data.session.user;$('date').value=today();
+  const [ir,sr]=await Promise.all([
+    sb.from('inv_items').select('id,sku,name_ar,unit_name,purchase_price').eq('active',true).order('name_ar'),
+    sb.from('inv_sites').select('id,name_ar,code').eq('active',true).order('name_ar')
+  ]);
+  if(ir.error)throw ir.error;if(sr.error)throw sr.error;
+  items=ir.data||[];sites=sr.data||[];
+  $('site').innerHTML=sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+' — '+esc(x.code)+'</option>').join('');
+  $('item').innerHTML='<option value="">-- اختر الصنف --</option>'+items.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+' — '+esc(x.sku)+'</option>').join('');
+  $('site').onchange=refresh;$('item').onchange=refresh;$('qty').oninput=refresh;refresh();
+}
+async function getCost(){
+  const item=$('item').value,site=$('site').value;
+  if(!item||!site)return {q:0,c:0};
+  const r=await sb.from('inventory_costs').select('qty_on_hand,weighted_avg_cost').eq('item_id',item).eq('site_id',site).maybeSingle();
+  if(r.error)throw r.error;
+  if(r.data)return {q:Number(r.data.qty_on_hand||0),c:Number(r.data.weighted_avg_cost||0)};
+  return {q:0,c:Number(items.find(x=>x.id===item)?.purchase_price||0)};
+}
+async function refresh(){
+  try{const x=await getCost();$('stock').textContent=x.q.toFixed(3);$('cost').textContent=x.c.toFixed(2);$('total').textContent=(x.c*Number($('qty').value||0)).toFixed(2)}catch(e){msg(e.message||e,'bad')}
+}
+async function postGift(){
+ try{
+  const site=$('site').value,item=$('item').value,qty=Number($('qty').value||0),date=$('date').value,notes=$('notes').value.trim();
+  if(!site||!item||qty<=0) return msg('اختر المخزن والصنف وأدخل كمية صحيحة.','bad');
+  const ic=await getCost(); if(qty>ic.q) return msg('الرصيد غير كافٍ للصرف.','bad');
+  if(ic.c<0) return msg('متوسط التكلفة غير صحيح.','bad');
+  const docId=crypto.randomUUID(), value=qty*ic.c;
+  const lotsR=await sb.from('inv_lots').select('id,qty_on_hand,unit_cost,expiry_date').eq('item_id',item).eq('site_id',site).gt('qty_on_hand',0).order('expiry_date',{ascending:true});
+  if(lotsR.error)throw lotsR.error;
+  let remaining=qty;
+  for(const lot of (lotsR.data||[])){
+    if(remaining<=0)break;
+    const take=Math.min(remaining,Number(lot.qty_on_hand||0));
+    const u=await sb.from('inv_lots').update({qty_on_hand:Number(lot.qty_on_hand)-take}).eq('id',lot.id);
+    if(u.error)throw u.error;
+    const m=await sb.from('inv_movements').insert({item_id:item,site_id:site,lot_id:lot.id,movement_type:'issue',qty:take,unit_cost:ic.c,reference_type:'gift',reference_id:docId,notes:notes||'صرف هدية من المخزون',created_by:user.id});
+    if(m.error)throw m.error;
+    remaining-=take;
+  }
+  if(remaining>0)throw Error('تعذر استكمال خصم الكمية من التشغيلات.');
+  const oldR=await sb.from('inventory_costs').select('qty_on_hand,inventory_value').eq('item_id',item).eq('site_id',site).maybeSingle();
+  if(oldR.error)throw oldR.error;
+  const old=oldR.data||{},newQ=Number(old.qty_on_hand||0)-qty,newV=Math.max(0,Number(old.inventory_value||0)-value);
+  const cu=await sb.from('inventory_costs').upsert({item_id:item,site_id:site,qty_on_hand:newQ,inventory_value:newV,weighted_avg_cost:newQ?newV/newQ:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});
+  if(cu.error)throw cu.error;
+  const acc=await sb.from('coa_accounts').select('id').eq('code','6320').single();if(acc.error)throw acc.error;
+  const inv=await sb.from('coa_accounts').select('id').eq('code','1310').single();if(inv.error)throw inv.error;
+  const je=await sb.from('journal_entries').insert({entry_date:date,source_type:'inventory_gift',source_id:docId,description:'صرف هدية من المخزون',posted:true,created_by:user.id}).select().single();
+  if(je.error)throw je.error;
+  const jl=await sb.from('journal_lines').insert([
+    {entry_id:je.data.id,account_id:acc.data.id,debit:value,credit:0,description:notes||'هدايا وعينات مجانية',site_id:site},
+    {entry_id:je.data.id,account_id:inv.data.id,debit:0,credit:value,description:'خروج هدية من المخزون',site_id:site}
+  ]);
+  if(jl.error)throw jl.error;
+  msg('تم ترحيل صرف الهدية ✓ — تم خصم المخزون بالتكلفة وتسجيل القيد المحاسبي.','ok');
+  $('qty').value=1;$('notes').value='';await refresh();
+ }catch(e){msg(e.message||e,'bad')}
+}
+init().catch(e=>msg(e.message||e,'bad'));
+</script></body></html>
