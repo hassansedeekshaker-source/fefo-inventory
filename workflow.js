@@ -67,6 +67,7 @@ function buildSaleSave(){
 }
 function buildSave(t){
  const isP=t.startsWith('purchase'), isR=t.includes('return');
+ if(t==='purchase-return-save' && new URLSearchParams(location.search).get('edit')){ return buildPurchaseReturnDateEdit(new URLSearchParams(location.search).get('edit')); }
  if(t==='sale-return-save'){ return buildSaleReturn(); }
  const partyParam=new URLSearchParams(location.search).get(isP?'supplier_id':'customer_id');
  let party=isP?'<label>المورد<select id="party">'+opts(suppliers,x=>x.name)+'</select></label>':'<label>العميل<select id="party">'+opts(customers,x=>x.name)+'</select></label>';
@@ -79,6 +80,26 @@ function buildSave(t){
  window.calcPurchaseLine=el=>{const tr=el.closest('tr');const q=Number(tr.querySelector('.qty')?.value||0),p=Number(tr.querySelector('.price')?.value||0),tax=Number(tr.querySelector('.tax')?.value||0);tr.querySelector('.lineTotal').textContent=(q*p+q*p*tax/100).toFixed(2);updateInvoiceSummary()};
  let editingId=new URLSearchParams(location.search).get('edit');
  window.saveDraft=async()=>{try{const party=$('party').value,site=$('site').value;if(!party||!site)return msg('اختر الطرف والموقع','bad');const rs=[...document.querySelectorAll('#lines tr')].map(r=>({item_id:r.querySelector('.item').value,qty:+r.querySelector('.qty').value,price:+r.querySelector('.price').value,tax:+r.querySelector('.tax').value}));if(!rs.length||rs.some(x=>!x.item_id||x.qty<=0))return msg('راجع الأصناف والكميات','bad');const subtotal=rs.reduce((s,x)=>s+x.qty*x.price,0),taxTotal=rs.reduce((s,x)=>s+x.qty*x.price*x.tax/100,0),total=subtotal+taxTotal;let h,l;if(isP){h=await sb.from('purchases').insert({supplier_id:+party,site_id:site,purchase_date:$('date').value,subtotal,tax:taxTotal,total,status:'draft',created_by:user.id}).select().single();if(h.error)throw h.error;l=await sb.from('purchase_lines').insert(rs.map(x=>({purchase_id:h.data.id,item_id:x.item_id,qty:x.qty,unit_cost:x.price,tax_rate:x.tax/100,tax_amount:x.qty*x.price*x.tax/100})));}if(l?.error)throw l.error;msg('تم الحفظ كمسودة ✓','ok')}catch(e){msg(e.message||e,'bad')}};
+}
+async function buildPurchaseReturnDateEdit(id){
+ shell('<div class="card"><h1>✏️ تعديل مسودة مردود مشتريات</h1><p>يمكن تعديل تاريخ المسودة فقط من هذه الشاشة، مع الحفاظ على رقم المرتجع وبنوده وقيمه كما هي.</p><div id="editInfo">جاري تحميل المسودة...</div><label style="display:block;margin:18px 0">تاريخ المرتجع <input id="date" type="date" style="display:block;margin-top:8px;padding:12px;max-width:260px;width:100%"></label><button class="ok" id="saveReturnDate">💾 حفظ التاريخ</button><a class="btn" href="purchase-return-saved.html">رجوع للمسودات</a><div id="msg"></div></div>');
+ try{
+  const h=await sb.from('purchase_returns').select('id,return_no,return_date,total,status,supplier_id,site_id,suppliers(name)').eq('id',id).eq('status','draft').single();
+  if(h.error||!h.data)throw Error('المسودة غير موجودة أو تم ترحيلها؛ لا يمكن تعديلها.');
+  const x=h.data;$('date').value=x.return_date||today();
+  $('editInfo').textContent='مرتجع رقم '+x.return_no+' | المورد: '+(x.suppliers?.name||'—')+' | الإجمالي: '+Number(x.total||0).toFixed(2)+' جنيه | الحالة: مسودة';
+  $('saveReturnDate').onclick=async()=>{
+   const date=$('date').value;
+   if(!date)return msg('اختر تاريخ المرتجع أولًا.','bad');
+   $('saveReturnDate').disabled=true;
+   try{
+    const u=await sb.from('purchase_returns').update({return_date:date}).eq('id',id).eq('status','draft').select('id,return_no,return_date').single();
+    if(u.error||!u.data)throw (u.error||Error('لم يتم حفظ التاريخ. قد تكون حالة المستند تغيرت.'));
+    msg('تم حفظ تاريخ مرتجع رقم '+u.data.return_no+' بنجاح: '+u.data.return_date,'ok');
+   }catch(e){msg(e.message||String(e),'bad')}
+   finally{$('saveReturnDate').disabled=false}
+  };
+ }catch(e){$('editInfo').textContent=e.message||String(e)}
 }
 function buildSaleReturn(){
  const partyParam=new URLSearchParams(location.search).get('customer_id');
