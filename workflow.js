@@ -56,7 +56,7 @@ function buildSaleSave(){
  '<div class="total-box"><b>قيمة الضريبة</b><div class="total-value" id="invoiceTax">0.00</div></div>'+
  '<div class="total-box net"><b>صافي الفاتورة</b><div class="total-value" id="invoiceTotal">0.00</div></div>'+
  '</div>'+
- '<div class="actions"><button class="save" onclick="saveSaleDraft()">💾 حفظ مسودة</button><button class="approve" onclick="location.href=&#39;sale-post.html&#39;">📤 الترحيل</button><button onclick="window.print()">🖨 طباعة</button><button onclick="location.href=\'sale-save.html\'">📄 فاتورة جديدة</button></div><div id="msg"></div></div>');
+ '<div class="actions"><button class="save" onclick="saveSaleDraft()">💾 حفظ مسودة</button><button class="approve" onclick="location.href=&#39;sale-post.html&#39;">📤 الترحيل</button><button onclick="window.print()">🖨 طباعة</button><button onclick="location.href=\'sale-save.html\'">📄 فاتورة جديدة</button></div><div id="msg"></div></div><div id="returnPreview" style="display:none;position:fixed;inset:0;background:#0008;z-index:99999;padding:4vh 3vw;overflow:auto"><div style="max-width:1100px;margin:auto;background:#fff;border-radius:14px;padding:22px;direction:rtl;color:#17233b"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 id="previewTitle">معاينة المرتجع</h2><button id="closeReturnPreview">✖ إغلاق</button></div><div id="previewInfo">جاري تحميل تفاصيل المستند...</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;margin-top:14px"><thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الشراء</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead><tbody id="previewLines"></tbody></table></div><div id="previewTotals" style="text-align:left;font-weight:bold;margin-top:14px"></div></div></div>');
  if(partyParam){const ps=$('party');if(ps&&[...ps.options].some(o=>o.value===partyParam)){ps.value=partyParam;}}
  window.saleRow=()=>'<tr><td><select class="item" onchange="saleItemChanged(this)">'+opts(items,x=>x.name_ar)+'</select></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1" oninput="calcSale()"></td><td><input class="price" type="number" min="0" step=".01" value="0" oninput="calcSale()"></td><td><input class="stock readonly" value="0.00" readonly></td><td><input class="cost readonly" value="0.00" readonly></td><td class="lineCost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0" oninput="calcSale()"></td><td class="discValue">0.00</td><td class="value">0.00</td><td><input class="tax readonly" value="0.00" readonly></td><td class="taxValue">0.00</td><td class="lineTotal">0.00</td><td><button onclick="this.parentElement.parentElement.remove();calcSale()">🗑</button></td></tr>';
  window.addSaleLine=()=>{$('lines').insertAdjacentHTML('beforeend',saleRow());const s=$('lines').lastElementChild.querySelector('.item');saleItemChanged(s);s.focus();};
@@ -234,6 +234,7 @@ function buildPost(t){
     vals.forEach((v,i)=>{const td=document.createElement('td');td.textContent=String(v??'');tr.appendChild(td)});
     const action=document.createElement('td');
     if(isP&&isR){
+     const eye=document.createElement('button');eye.type='button';eye.textContent='👁️ عرض الفاتورة';eye.title='عرض تفاصيل المرتجع قبل الترحيل';eye.style.cssText='padding:6px 9px;margin-left:6px;border:1px solid #d7dee8;border-radius:7px;background:#eef6ff;cursor:pointer';eye.onclick=()=>previewPurchaseReturn(x);action.appendChild(eye);
      const cancel=document.createElement('button');cancel.textContent='إلغاء مسودة فارغة';cancel.title='يظهر الإلغاء فقط للمسودة التي لا تحتوي على أي بنود';cancel.disabled=true;cancel.style.cssText='padding:6px 9px;border:1px solid #d7dee8;border-radius:7px;background:#fff;cursor:pointer';
      const lr=await sb.from(lineTable).select('id').eq(fk,x.id).limit(1);
      if(lr.error)throw lr.error;
@@ -262,6 +263,41 @@ function buildPost(t){
   if(!ids.length)return msg('حدد مستندًا واحدًا على الأقل','bad');
   try{for(const id of ids){if(t==='purchase-post')await postPurchase(id);else if(t==='sale-post')await postSale(id);else if(t==='purchase-return-post')await postPurchaseReturn(id);else await postSaleReturn(id)}msg('تم ترحيل المستندات المحددة وتحديث المخزون والقيود المحاسبية ✓','ok');await loadDrafts()}catch(e){msg(e.message||e,'bad')}
  };
+ async function previewPurchaseReturn(h){
+  const modal=$('returnPreview'),info=$('previewInfo'),linesBox=$('previewLines'),totals=$('previewTotals');
+  modal.style.display='block';linesBox.innerHTML='';totals.textContent='';info.textContent='جاري تحميل تفاصيل المرتجع...';
+  try{
+   const lr=await sb.from('purchase_return_lines').select('*').eq('return_id',h.id);
+   if(lr.error)throw lr.error;
+   const lines=lr.data||[];
+   const itemIds=[...new Set(lines.map(z=>z.item_id).filter(Boolean))];
+   let itemMap={};
+   if(itemIds.length){const ir=await sb.from('inv_items').select('id,name_ar,unit_name').in('id',itemIds);if(ir.error)throw ir.error;for(const it of ir.data||[])itemMap[it.id]=it}
+   const sourceIds=[...new Set(lines.map(z=>z.source_purchase_line_id||z.purchase_line_id).filter(Boolean))];
+   let invoiceLabel='غير محددة';
+   if(sourceIds.length){
+    const pl=await sb.from('purchase_lines').select('id,purchase_id').in('id',sourceIds);
+    if(pl.error)throw pl.error;
+    const purchaseIds=[...new Set((pl.data||[]).map(z=>z.purchase_id).filter(Boolean))];
+    if(purchaseIds.length===1){const ph=await sb.from('purchases').select('invoice_no,purchase_date').eq('id',purchaseIds[0]).maybeSingle();if(ph.error)throw ph.error;if(ph.data)invoiceLabel=String(ph.data.invoice_no||'')+' — '+String(ph.data.purchase_date||'')}
+    else if(purchaseIds.length>1)invoiceLabel='تنبيه: البنود مرتبطة بأكثر من فاتورة شراء';
+   }
+   info.textContent='رقم المرتجع: '+String(h.return_no||h.id)+' | التاريخ: '+String(h.return_date||'')+' | فاتورة الشراء الأصلية: '+invoiceLabel+' | الحالة: مسودة';
+   let subtotal=0,tax=0,discount=0,total=0;
+   for(const line of lines){
+    const item=itemMap[line.item_id]||{},tr=document.createElement('tr');
+    const vals=[item.name_ar||String(line.item_id||'—'),String(line.qty??0)+(item.unit_name?' '+item.unit_name:''),Number(line.unit_cost||0).toFixed(2),Number(line.discount_amount||0).toFixed(2),Number(line.tax_amount||0).toFixed(2),Number(line.line_total||0).toFixed(2)];
+    vals.forEach(v=>{const td=document.createElement('td');td.textContent=v;td.style.cssText='padding:9px;border-bottom:1px solid #e5e9f0;text-align:right';tr.appendChild(td)});
+    linesBox.appendChild(tr);subtotal+=Number(line.qty||0)*Number(line.unit_cost||0)-Number(line.discount_amount||0);discount+=Number(line.discount_amount||0);tax+=Number(line.tax_amount||0);total+=Number(line.line_total||0);
+   }
+   if(!lines.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.textContent='لا توجد بنود في هذا المستند.';tr.appendChild(td);linesBox.appendChild(tr)}
+   totals.textContent='قيمة الأصناف بعد الخصم: '+subtotal.toFixed(2)+' | إجمالي الخصم: '+discount.toFixed(2)+' | إجمالي الضريبة: '+tax.toFixed(2)+' | مجموع البنود: '+total.toFixed(2)+' | إجمالي رأس المستند: '+Number(h.total||0).toFixed(2);
+   if(Math.abs(total-Number(h.total||0))>0.02){totals.style.color='#b42318';totals.textContent+=' — تحذير: إجمالي البنود لا يطابق إجمالي المستند'}
+   else totals.style.color='#087f4f';
+  }catch(e){info.textContent='تعذر تحميل تفاصيل المرتجع: '+(e.message||String(e))}
+ }
+ $('closeReturnPreview').onclick=()=>{$('returnPreview').style.display='none'};
+ $('returnPreview').addEventListener('click',e=>{if(e.target===$('returnPreview'))$('returnPreview').style.display='none'});
  $('refreshDrafts').onclick=loadDrafts;$('postSelectedBtn').onclick=postSelected;loadDrafts();
 }
 
