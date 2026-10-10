@@ -163,8 +163,8 @@ async function postPurchaseReturn(id){
  const supplierTotal=Number(h.total||ls.reduce((sum,x)=>sum+Number(x.line_total||0),0));
  const taxTotal=ls.reduce((sum,x)=>sum+Number(x.tax_amount||0),0);
  const supplierNet=supplierTotal-taxTotal;
- const stockCost=Object.values(costInfo).reduce((sum,x)=>sum+x.returnCost,0);
- const variance=supplierNet-stockCost;
+ const stockCost=roundMoney(Object.values(costInfo).reduce((sum,x)=>sum+x.returnCost,0));
+ const variance=roundMoney(supplierNet-stockCost);
  const sup=await acct('2120','الموردون','liability'),inv=await acct('1310','مخزون بضائع','asset');
  const journalLines=[
   {account_id:sup.id,debit:supplierTotal,credit:0,description:'خفض مستحق المورد بسعر فاتورة المرتجع',site_id:h.site_id},
