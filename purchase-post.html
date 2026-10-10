@@ -17,7 +17,7 @@ table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:10px 8px
 </head>
 <body>
 <main id="app">
-<div class="top"><a href="accounting.html">🏠 الرئيسية</a><a href="purchase-save.html">➕ فاتورة شراء جديدة</a><a href="purchase-save.html?saved=1">📋 المشتريات المحفوظة</a><a class="primary" href="purchase-post.html">📤 الترحيل</a></div>
+<div class="top"><a href="accounting.html">🏠 الرئيسية</a><button type="button" id="backToPrevious">↩ رجوع للشاشة السابقة</button></div>
 <div class="card"><h1>📤 ترحيل المشتريات</h1><p class="muted">هذه الشاشة تعرض المسودات فقط. لا يؤثر المستند على المخزون أو الحسابات حتى يتم ترحيله.</p>
 <div id="msg" class="msg info">جاري تحميل المسودات...</div>
 <div class="actions"><button onclick="loadDrafts()">🔄 تحديث</button><button class="ok" onclick="postSelected()">📤 ترحيل المحدد</button><button onclick="selectInvoice959()">اختبار فاتورة 959</button></div>
@@ -101,4 +101,4 @@ async function postSelected(){
 }
 init();
 </script>
-</body></html>
+<script>(function(){const b=document.getElementById("backToPrevious");if(b)b.onclick=function(){if(history.length>1)history.back();else location.href="purchases.html"}})();</script></body></html>
