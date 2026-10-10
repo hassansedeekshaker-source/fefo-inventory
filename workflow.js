@@ -211,7 +211,59 @@ async function buildSaved(t){
  $('refreshSaved').onclick=window.loadSaved;
  await window.loadSaved();
 }
-function buildPost(t){const isP=t.startsWith('purchase'),isR=t.includes('return'),table=isP?(isR?'purchase_returns':'purchases'):(isR?'sales_returns':'sales');shell('<div class="card"><h1 id="title"></h1><p>هذه شاشة الترحيل فقط. المستندات هنا محفوظة كمسودات ولا تؤثر على المخزون أو الحسابات حتى يتم ترحيلها.</p><button onclick="loadDrafts()">🔄 تحديث</button><a class="btn" href="'+(isP?(isR?'purchase-return-save.html':'purchase-save.html'):(isR?'sale-return-save.html':'sale-save.html'))+'">💾 شاشة الحفظ</a><table><thead><tr><th>تحديد</th><th>رقم</th><th>التاريخ</th><th>الطرف</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody id="drafts"></tbody></table><button class="ok" onclick="postSelected()">📤 ترحيل المحدد</button><div id="msg"></div></div>');window.loadDrafts=async()=>{let q=sb.from(table).select('*').eq('status','draft');const partyParam=new URLSearchParams(location.search).get(isP?'supplier_id':'customer_id');if(partyParam)q=q.eq(isP?'supplier_id':'customer_id',partyParam);const r=await q.order(isR?'return_date':isP?'purchase_date':'sale_date',{ascending:false});if(r.error)return msg(r.error.message,'bad');$('drafts').innerHTML=(r.data||[]).map(x=>'<tr><td><input type="checkbox" class="ck" value="'+x.id+'"></td><td>'+esc(x.invoice_no||x.return_no||x.id.slice(0,8))+'</td><td>'+esc(x.purchase_date||x.sale_date||x.return_date)+'</td><td>'+(isR?(isP?'مورد':'عميل'):(isP?'مورد':'عميل'))+'</td><td>'+Number(x.total||0).toFixed(2)+'</td><td>مسودة</td></tr>').join('')||'<tr><td colspan="6">لا توجد مستندات محفوظة.</td></tr>';const wanted=new URLSearchParams(location.search).get('select');if(wanted){const ck=document.querySelector('.ck[value="'+CSS.escape(wanted)+'"]');if(ck)ck.checked=true;}};window.postSelected=async()=>{const ids=[...document.querySelectorAll('.ck:checked')].map(x=>x.value);if(!ids.length)return msg('حدد مستندًا واحدًا على الأقل','bad');try{for(const id of ids){if(t==='purchase-post')await postPurchase(id);else if(t==='sale-post')await postSale(id);else if(t==='purchase-return-post')await postPurchaseReturn(id);else await postSaleReturn(id)}msg('تم ترحيل المستندات المحددة وتحديث المخزون والقيود المحاسبية ✓','ok');await loadDrafts()}catch(e){msg(e.message||e,'bad')}};loadDrafts()}
+function buildPost(t){
+ const isP=t.startsWith('purchase'),isR=t.includes('return'),table=isP?(isR?'purchase_returns':'purchases'):(isR?'sales_returns':'sales');
+ const lineTable=isP?'purchase_return_lines':'sales_return_lines',fk='return_id';
+ shell('<div class="card"><h1 id="title"></h1><p>هذه شاشة الترحيل فقط. المستندات هنا محفوظة كمسودات ولا تؤثر على المخزون أو الحسابات حتى يتم ترحيلها.</p><button id="refreshDrafts">🔄 تحديث</button><a class="btn" href="'+(isP?(isR?'purchase-return-save.html?saved=1':'purchase-save.html'):(isR?'sale-return-save.html':'sale-save.html'))+'">💾 شاشة الحفظ</a><table><thead><tr><th>تحديد</th><th>رقم</th><th>التاريخ</th><th>الطرف</th><th>المبلغ</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="drafts"></tbody></table><button class="ok" id="postSelectedBtn">📤 ترحيل المحدد</button><div id="msg"></div></div>');
+ $('title').textContent=isR?(isP?'ترحيل مردودات المشتريات':'ترحيل مرتجعات المبيعات'):(isP?'ترحيل المشتريات':'ترحيل المبيعات');
+ window.loadDrafts=async()=>{
+  const body=$('drafts');body.innerHTML='<tr><td colspan="7">جاري تحميل المستندات...</td></tr>';
+  try{
+   let q=sb.from(table).select('*').eq('status','draft');
+   const partyParam=new URLSearchParams(location.search).get(isP?'supplier_id':'customer_id');
+   if(partyParam)q=q.eq(isP?'supplier_id':'customer_id',partyParam);
+   const result=await q.order(isR?'return_date':isP?'purchase_date':'sale_date',{ascending:false});
+   if(result.error)throw result.error;
+   const rows=result.data||[];
+   body.innerHTML='';
+   if(!rows.length){body.innerHTML='<tr><td colspan="7">لا توجد مستندات محفوظة.</td></tr>';return}
+   for(const x of rows){
+    const tr=document.createElement('tr');
+    const ckTd=document.createElement('td'),ck=document.createElement('input');ck.type='checkbox';ck.className='ck';ck.value=x.id;ckTd.appendChild(ck);tr.appendChild(ckTd);
+    const vals=[x.invoice_no||x.return_no||String(x.id).slice(0,8),x.purchase_date||x.sale_date||x.return_date||'',isR?(isP?'مورد':'عميل'):(isP?'مورد':'عميل'),Number(x.total||0).toFixed(2),'مسودة'];
+    vals.forEach((v,i)=>{const td=document.createElement('td');td.textContent=String(v??'');tr.appendChild(td)});
+    const action=document.createElement('td');
+    if(isP&&isR){
+     const cancel=document.createElement('button');cancel.textContent='إلغاء مسودة فارغة';cancel.title='يظهر الإلغاء فقط للمسودة التي لا تحتوي على أي بنود';cancel.disabled=true;cancel.style.cssText='padding:6px 9px;border:1px solid #d7dee8;border-radius:7px;background:#fff;cursor:pointer';
+     const lr=await sb.from(lineTable).select('id').eq(fk,x.id).limit(1);
+     if(lr.error)throw lr.error;
+     if((lr.data||[]).length===0){cancel.disabled=false;cancel.style.background='#fdecec';cancel.onclick=async()=>{
+       if(!confirm('تأكيد إلغاء المسودة الفارغة رقم '+(x.return_no||x.id.slice(0,8))+'؟ لن يتم حذف أي مستند مرحّل.'))return;
+       cancel.disabled=true;
+       try{
+        const check=await sb.from(lineTable).select('id').eq(fk,x.id).limit(1);if(check.error)throw check.error;
+        if((check.data||[]).length){throw new Error('المسودة لم تعد فارغة؛ تم إيقاف الإلغاء لحماية البيانات.')}
+        const upd=await sb.from(table).update({status:'cancelled'}).eq('id',x.id).eq('status','draft').select('id');
+        if(upd.error)throw upd.error;
+        if(!upd.data||!upd.data.length)throw new Error('لم يتم إلغاء المسودة؛ ربما تغيرت حالتها.');
+        msg('تم إلغاء المسودة الفارغة رقم '+(x.return_no||x.id.slice(0,8)),'ok');await loadDrafts();
+       }catch(e){msg(e.message||String(e),'bad');cancel.disabled=false}
+      }}else{cancel.textContent='تحتوي على بنود';cancel.title='لا يمكن إلغاء هذا المستند من هنا لأنه يحتوي على بنود';}
+     action.appendChild(cancel);
+    }else{action.textContent='—'}
+    tr.appendChild(action);body.appendChild(tr);
+   }
+   const wanted=new URLSearchParams(location.search).get('select');
+   if(wanted){const ck=[...document.querySelectorAll('.ck')].find(el=>el.value===wanted);if(ck)ck.checked=true}
+  }catch(e){body.innerHTML='<tr><td colspan="7">تعذر تحميل المستندات.</td></tr>';msg(e.message||String(e),'bad')}
+ };
+ window.postSelected=async()=>{
+  const ids=[...document.querySelectorAll('.ck:checked')].map(x=>x.value);
+  if(!ids.length)return msg('حدد مستندًا واحدًا على الأقل','bad');
+  try{for(const id of ids){if(t==='purchase-post')await postPurchase(id);else if(t==='sale-post')await postSale(id);else if(t==='purchase-return-post')await postPurchaseReturn(id);else await postSaleReturn(id)}msg('تم ترحيل المستندات المحددة وتحديث المخزون والقيود المحاسبية ✓','ok');await loadDrafts()}catch(e){msg(e.message||e,'bad')}
+ };
+ $('refreshDrafts').onclick=loadDrafts;$('postSelectedBtn').onclick=postSelected;loadDrafts();
+}
 
 /* زر رجوع موحّد لكل شاشات سير العمل. يتم تركيبه بعد بناء الشاشة حتى لا يحذفه render. */
 (function(){
