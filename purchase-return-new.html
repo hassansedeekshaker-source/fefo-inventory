@@ -38,7 +38,7 @@
 <div class="grid">
 <div class="field"><label>رقم المرتجع</label><input id="docno" placeholder="يُنشأ تلقائيًا"></div>
 <div class="field"><label>التاريخ</label><input id="date" type="date"></div>
-<div class="field"><label>المورد</label><select id="supplier"><option value="">-- اختر المورد --</option></select></div>
+<div class="field"><label for="supplierSearch">المورد — بحث اختياري</label><input id="supplierSearch" type="search" placeholder="اكتب اسم المورد للبحث..." autocomplete="off"><select id="supplier"><option value="">-- اختر المورد --</option></select></div>
 <div class="field"><label>المخزن</label><select id="site"><option value="">-- اختر المخزن --</option></select></div>
 <div class="field"><label>فاتورة الشراء الأصلية</label><select id="purchase"><option value="">-- اختر المورد والمخزن أولًا --</option></select></div>
 </div>
@@ -85,10 +85,11 @@ async function init(){
 
   suppliers=S.data||[];
   sites=ST.data||[];
-  $('supplier').innerHTML='<option value="">-- اختر المورد --</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+  renderSuppliers();
   $('site').innerHTML='<option value="">-- اختر المخزن --</option>'+sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join('');
   $('date').value=today();
 
+  $('supplierSearch').oninput=filterSuppliers;
   $('supplier').onchange=loadPurchases;
   $('site').onchange=loadPurchases;
   $('purchase').onchange=loadPurchaseLines;
@@ -117,6 +118,15 @@ async function init(){
   msg(e.message||String(e),true);
  }
 }
+function renderSuppliers(){
+ const query=($('supplierSearch')?.value||'').trim().toLocaleLowerCase('ar');
+ const current=$('supplier')?.value||'';
+ const matches=suppliers.filter(x=>String(x.name||'').toLocaleLowerCase('ar').includes(query));
+ $('supplier').innerHTML='<option value="">-- اختر المورد --</option>'+matches.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
+ if(current && matches.some(x=>String(x.id)===String(current))) $('supplier').value=current;
+ else if(current){$('supplier').value='';loadPurchases();}
+}
+function filterSuppliers(){renderSuppliers();}
 function loadPurchases(){
  const s=$('supplier').value,site=$('site').value;
  $('purchase').innerHTML='<option value="">-- اختر فاتورة الشراء --</option>';
