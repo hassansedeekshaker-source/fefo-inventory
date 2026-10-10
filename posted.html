@@ -1,7 +1,7 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>المستندات المترحلة</title>
 <style>*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}header{background:#18243a;color:#fff;padding:18px 24px;display:flex;justify-content:space-between}main{max-width:1350px;margin:20px auto;padding:0 15px}.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.top a,.btn{display:inline-block;border-radius:9px;padding:10px 15px;text-decoration:none;background:#fff;color:#18243a;border:1px solid #dce2ec}.primary{background:#18243a!important;color:#fff!important}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0001;margin-bottom:16px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:right}th{background:#eef2f7}.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.filters label{display:flex;flex-direction:column;gap:5px}input,select,button{padding:10px;border:1px solid #d6dce8;border-radius:9px;font-size:14px}button{cursor:pointer;background:#18243a;color:#fff;border:0}.msg{padding:10px;border-radius:9px;margin:10px 0}.bad{background:#fee2e2}.ok{background:#dcfce7}.muted{color:#667085;font-size:12px}.num{font-weight:bold}.empty{text-align:center;color:#667085}.purchase-detail{background:#fafbfd}.purchase-detail table{margin:0}.purchase-detail th{background:#e6ebf2}.detail-toggle{background:#18243a!important;color:#fff!important;padding:7px 10px!important}.detail-wrap{padding:10px;background:#f8fafc;border-top:1px solid #e5e9f0}.detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}.detail-box{border:1px solid #dce3ed;border-radius:8px;padding:8px;text-align:center;background:#fff}.detail-box b{display:block;color:#667085;font-size:11px}.detail-box span{font-weight:700}@media(max-width:900px){.detail-summary{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){table{font-size:12px}th,td{padding:7px}}</style></head>
 <body><header><b>📋 المستندات المترحلة</b><span id="status">جاري الاتصال...</span></header><main id="app" style="display:none">
-<div class="top"><a class="primary" href="accounting.html">🏠 الرئيسية</a><a href="sales.html">💰 المبيعات</a><a href="purchases.html">🛒 المشتريات</a><a href="reports.html">📊 التقارير والحسابات</a></div>
+<div class="top"><a class="primary" href="accounting.html">🏠 الرئيسية</a><button type="button" class="btn" id="backToPrevious">↩ رجوع للشاشة السابقة</button></div>
 <section class="card"><h1>📋 المستندات المترحلة</h1><p class="muted">هنا تظهر المستندات التي تم ترحيلها فقط. المستندات الملغاة أو المسودات لا تظهر، ورقم القيد المحاسبي لا يُنشأ إلا لحظة الترحيل.</p>
 <div class="filters"><label>النوع<select id="type"><option value="">كل الأنواع</option><option value="sale">مبيعات</option><option value="purchase">مشتريات</option><option value="sale_return">مرتجع مبيعات</option><option value="purchase_return">مردود مشتريات</option><option value="expense">مصروفات</option></select></label><label>من<input id="from" type="date"></label><label>إلى<input id="to" type="date"></label><button onclick="load()">🔄 تحديث</button></div><div id="msg"></div></section>
 <section class="card"><h2>القيود المحاسبية المترحلة</h2><table><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>نوع العملية</th><th>البيان</th><th>المصدر</th></tr></thead><tbody id="journal"></tbody></table></section>
@@ -117,23 +117,7 @@ async function load(){try{
  }catch(e){err(e.message||e)}}sb.auth.getSession().then(r=>r.data.session?start():location.href='accounting.html');
 </script><script>
 (function(){
-  function addBack(){
-    const exists=[...document.querySelectorAll('button,a')].some(el=>el.textContent.includes('رجوع للشاشة السابقة'));
-    if(exists)return;
-    const b=document.createElement('button');
-    b.type='button';
-    b.textContent='↩ رجوع للشاشة السابقة';
-    b.className='btn';
-    b.style.cssText='margin-left:8px;cursor:pointer;';
-    b.onclick=function(){
-      if(window.history.length>1){window.history.back();}
-      else{window.location.href='accounting.html';}
-    };
-    const main=document.querySelector('main')||document.body;
-    const top=main.querySelector('.top');
-    if(top) top.prepend(b);
-    else main.insertBefore(b,main.firstChild);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBack);else addBack();
+ const b=document.getElementById('backToPrevious');
+ if(b)b.onclick=function(){if(window.history.length>1)window.history.back();else window.location.href='accounting.html';};
 })();
 </script></body></html>
