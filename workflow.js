@@ -114,10 +114,12 @@ async function postPurchaseReturn(id){
  const mv=await sb.from('inv_movements').select('reference_id,item_id,qty,site_id').eq('movement_type','receipt').eq('reference_type','purchase').eq('site_id',h.site_id).in('reference_id',purchaseIds);
  if(mv.error)throw Error('تعذر التحقق من الاستلام الفعلي للمشتريات: '+mv.error.message);
  const received={};for(const m of mv.data||[]){const k=m.reference_id+'|'+m.item_id;received[k]=(received[k]||0)+Number(m.qty||0)}
- const postedHeaders=await sb.from('purchase_returns').select('id').eq('status','posted');if(postedHeaders.error)throw postedHeaders.error;
- const postedIds=new Set((postedHeaders.data||[]).map(x=>x.id));
  const priorLines=allSourceIds.length?await sb.from('purchase_return_lines').select('return_id,source_purchase_line_id,qty').in('source_purchase_line_id',allSourceIds):{data:[],error:null};
  if(priorLines.error)throw priorLines.error;
+ const priorReturnIds=[...new Set((priorLines.data||[]).map(x=>x.return_id))];
+ const postedHeaders=priorReturnIds.length?await sb.from('purchase_returns').select('id').eq('status','posted').in('id',priorReturnIds):{data:[],error:null};
+ if(postedHeaders.error)throw postedHeaders.error;
+ const postedIds=new Set((postedHeaders.data||[]).map(x=>x.id));
  const sourceMap=new Map(allSourceLines.map(x=>[x.id,x])),returned={};
  for(const r of priorLines.data||[]){if(!postedIds.has(r.return_id))continue;const source=sourceMap.get(r.source_purchase_line_id);if(!source)continue;const k=source.purchase_id+'|'+source.item_id;returned[k]=(returned[k]||0)+Number(r.qty||0)}
  const current={};
