@@ -152,28 +152,10 @@ async function postPurchaseReturn(id){
   if(lotsQty<qty||q<qty)throw Error('الرصيد المخزني غير كافٍ لترحيل المردود. المتاح للصنف '+Math.min(lotsQty,q).toFixed(3)+'.');
   costInfo[itemId]={qty:q,value:v,avg,returnCost:qty*avg};
  }
- // إخراج الكميات من التشغيلات، مع تقييم حركة المردود بمتوسط التكلفة المرجح.
- for(const [itemId,qty] of Object.entries(required)){
-  let rem=qty;
-  const lotsResult=await sb.from('inv_lots').select('*').eq('item_id',itemId).eq('site_id',h.site_id).gt('qty_on_hand',0).order('expiry_date',{ascending:true});if(lotsResult.error)throw lotsResult.error;
-  for(const l of lotsResult.data||[]){if(rem<=0)break;const take=Math.min(rem,Number(l.qty_on_hand||0));const upd=await sb.from('inv_lots').update({qty_on_hand:Number(l.qty_on_hand||0)-take}).eq('id',l.id);if(upd.error)throw upd.error;const movement=await sb.from('inv_movements').insert({item_id:itemId,site_id:h.site_id,lot_id:l.id,movement_type:'supplier_return',qty:take,unit_cost:costInfo[itemId].avg,reference_type:'purchase_return',reference_id:id,notes:'ترحيل مردود مشتريات — متوسط التكلفة المرجح',created_by:user.id});if(movement.error)throw movement.error;rem-=take}
-  const old=costInfo[itemId],nq=old.qty-qty,nv=Math.max(0,old.value-old.returnCost);
-  const costUpdate=await sb.from('inventory_costs').upsert({item_id:itemId,site_id:h.site_id,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'});if(costUpdate.error)throw costUpdate.error;
- }
- const supplierTotal=Number(h.total||ls.reduce((sum,x)=>sum+Number(x.line_total||0),0));
- const taxTotal=ls.reduce((sum,x)=>sum+Number(x.tax_amount||0),0);
- const supplierNet=supplierTotal-taxTotal;
- const stockCost=roundMoney(Object.values(costInfo).reduce((sum,x)=>sum+x.returnCost,0));
- const variance=roundMoney(supplierNet-stockCost);
- const sup=await acct('2120','الموردون','liability'),inv=await acct('1310','مخزون بضائع','asset');
- const journalLines=[
-  {account_id:sup.id,debit:supplierTotal,credit:0,description:'خفض مستحق المورد بسعر فاتورة المرتجع',site_id:h.site_id},
-  {account_id:inv.id,debit:0,credit:stockCost,description:'تخفيض المخزون بمتوسط التكلفة المرجح',site_id:h.site_id}
- ];
- if(taxTotal>0){const vat=await acct('1230','ضريبة القيمة المضافة - مدخلات','asset');journalLines.push({account_id:vat.id,debit:0,credit:taxTotal,description:'عكس ضريبة مدخلات المشتريات المرتجعة',site_id:h.site_id})}
- if(Math.abs(variance)>0.005){const varAcct=await acct('5310','فروق أسعار مردودات المشتريات','expense');journalLines.push({account_id:varAcct.id,debit:variance<0?Math.abs(variance):0,credit:variance>0?variance:0,description:'فرق سعر مردود المشتريات عن متوسط التكلفة',site_id:h.site_id})}
- await journal('purchase_return',id,h.return_date,'مردود مشتريات',journalLines);
- const update=await sb.from('purchase_returns').update({status:'posted'}).eq('id',id).eq('status','draft');if(update.error)throw update.error;
+ // تنفيذ المخزون والقيد وتغيير الحالة داخل معاملة واحدة في قاعدة البيانات.
+ const atomic=await sb.rpc('post_purchase_return_atomic',{p_return_id:id,p_created_by:user.id});
+ if(atomic.error)throw atomic.error;
+ if(!atomic.data||atomic.data.success!==true)throw Error('لم يؤكد النظام اكتمال الترحيل الذري؛ راجع حالة المستند قبل إعادة المحاولة.');
 }async function postSaleReturn(id){const h=(await sb.from('sales_returns').select('*').eq('id',id).single()).data,ls=(await sb.from('sales_return_lines').select('*').eq('return_id',id)).data||[];if(!h||h.status!=='draft')throw Error('المستند غير موجود أو مرحل');let cost=0;for(const x of ls){cost+=x.qty*x.unit_cost;const lot=await sb.from('inv_lots').insert({item_id:x.item_id,site_id:h.site_id,qty_on_hand:x.qty,unit_cost:x.unit_cost,received_at:new Date().toISOString()}).select().single();if(lot.error)throw lot.error;await sb.from('inv_movements').insert({item_id:x.item_id,site_id:h.site_id,lot_id:lot.data.id,movement_type:'receipt',qty:x.qty,unit_cost:x.unit_cost,reference_type:'sale_return',reference_id:id,notes:'ترحيل مرتجع مبيعات',created_by:user.id});const old=(await sb.from('inventory_costs').select('*').eq('item_id',x.item_id).eq('site_id',h.site_id).maybeSingle()).data,q=+(old?.qty_on_hand||0),v=+(old?.inventory_value||0),nq=q+x.qty,nv=v+x.qty*x.unit_cost;await sb.from('inventory_costs').upsert({item_id:x.item_id,site_id:h.site_id,qty_on_hand:nq,inventory_value:nv,weighted_avg_cost:nq?nv/nq:0,updated_at:new Date().toISOString()},{onConflict:'item_id,site_id'})}const cust=await acct('1320','العملاء','asset'),ret=await acct('4200','مرتجعات المبيعات','revenue'),inv=await acct('1310','مخزون بضائع','asset'),cg=await acct('5100','تكلفة البضاعة المباعة','expense'),vat=await acct('2200','ضريبة القيمة المضافة','liability'),wh=await acct('1350','ضريبة خصم من المنبع','asset');const netReceivable=Number(h.total||0)-Number(h.withholding_tax||0);const lines=[{account_id:ret.id,debit:Number(h.subtotal||h.total||0),credit:0,description:'مرتجع مبيعات',site_id:h.site_id},{account_id:cust.id,debit:0,credit:netReceivable,description:'خفض مستحق العميل',site_id:h.site_id},{account_id:inv.id,debit:cost,credit:0,description:'إعادة المخزون',site_id:h.site_id},{account_id:cg.id,debit:0,credit:cost,description:'عكس تكلفة المبيعات',site_id:h.site_id}];if(Number(h.tax||0)>0)lines.push({account_id:vat.id,debit:Number(h.tax||0),credit:0,description:'عكس ضريبة المبيعات',site_id:h.site_id});if(Number(h.withholding_tax||0)>0)lines.push({account_id:wh.id,debit:0,credit:Number(h.withholding_tax||0),description:'عكس خصم من المنبع',site_id:h.site_id});await journal('sale_return',id,h.return_date,'مرتجع مبيعات',lines);await sb.from('sales_returns').update({status:'posted'}).eq('id',id)}
 async function buildSaved(t){
  const isR=t.includes('-return-saved'),isP=t.startsWith('purchase'),table=isR?(isP?'purchase_returns':'sales_returns'):(isP?'purchases':'sales'),lineTable=isR?(isP?'purchase_return_lines':'sales_return_lines'):(isP?'purchase_lines':'sale_lines'),dateCol=isR?'return_date':(isP?'purchase_date':'sale_date'),rel=isP?'suppliers(name)':'customers(name)',savePage=isR?(isP?'purchase-return-save.html':'sale-return-save.html'):(isP?'purchase-save.html':'sale-save.html'),postPage=isR?(isP?'purchase-return-post.html':'sale-return-post.html'):(isP?'purchase-post.html':'sale-post.html'),title=isR?(isP?'مردودات المشتريات المحفوظة':'مرتجعات المبيعات المحفوظة'):(isP?'المشتريات المحفوظة':'المبيعات المحفوظة');
