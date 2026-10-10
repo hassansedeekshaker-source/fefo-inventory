@@ -27,7 +27,7 @@
  table{page-break-inside:auto}
  tr{page-break-inside:avoid}
 }
-</style></head>
+.supplier-picker{position:relative}.supplier-options{position:absolute;top:calc(100% + 3px);right:0;left:0;z-index:50;max-height:240px;overflow:auto;background:#fff;border:1px solid #ccd5e3;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.12)}.supplier-option{display:block;width:100%;padding:9px 10px;text-align:right;border:0;border-bottom:1px solid #eef1f5;background:#fff;cursor:pointer;font:inherit}.supplier-option:hover,.supplier-option[aria-selected=true]{background:#eef5ff}.supplier-empty{padding:10px;color:#64748b;font-size:13px}</style></head>
 <body><div class="print-header"><div class="print-header-main"><div class="print-empty"></div><div class="print-company"><b>شركة الطائر الحر</b><span>لتعبئة وتوريد المواد الغذائية</span><small>بولارس الدولية - بوصلة 3 - قطعة 127 - السادس من أكتوبر</small></div><div class="print-partner">شريكك الأمثل<br>في عالم الأغذية</div></div><div class="print-contact">☎ 01065606565 - 01066833110 - 01005400590 &nbsp;&nbsp; | &nbsp;&nbsp; السجل التجاري: 37697</div></div>
 <div class="wrap">
 <div class="top">
@@ -38,7 +38,7 @@
 <div class="grid">
 <div class="field"><label>رقم المرتجع</label><input id="docno" placeholder="يُنشأ تلقائيًا"></div>
 <div class="field"><label>التاريخ</label><input id="date" type="date"></div>
-<div class="field"><label for="supplierSearch">المورد — بحث اختياري</label><input id="supplierSearch" type="search" placeholder="اكتب اسم المورد للبحث..." autocomplete="off"><select id="supplier"><option value="">-- اختر المورد --</option></select></div>
+<div class="field supplier-field"><label for="supplierSearch">المورد</label><div class="supplier-picker"><input id="supplierSearch" type="search" placeholder="اختر المورد أو اكتب اسمه للبحث..." autocomplete="off" aria-controls="supplierOptions" aria-expanded="false"><select id="supplier" hidden><option value="">-- اختر المورد --</option></select><div id="supplierOptions" class="supplier-options" hidden></div></div></div>
 <div class="field"><label>المخزن</label><select id="site"><option value="">-- اختر المخزن --</option></select></div>
 <div class="field"><label>فاتورة الشراء الأصلية</label><select id="purchase"><option value="">-- اختر المورد والمخزن أولًا --</option></select></div>
 </div>
@@ -89,8 +89,10 @@ async function init(){
   $('site').innerHTML='<option value="">-- اختر المخزن --</option>'+sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join('');
   $('date').value=today();
 
+  $('supplierSearch').onfocus=filterSuppliers;
   $('supplierSearch').oninput=filterSuppliers;
   $('supplier').onchange=loadPurchases;
+  document.addEventListener('click',e=>{if(!$('supplierSearch').parentElement.contains(e.target))$('supplierOptions').hidden=true;});
   $('site').onchange=loadPurchases;
   $('purchase').onchange=loadPurchaseLines;
   $('add').onclick=addLine;
@@ -119,14 +121,32 @@ async function init(){
  }
 }
 function renderSuppliers(){
- const query=($('supplierSearch')?.value||'').trim().toLocaleLowerCase('ar');
- const current=$('supplier')?.value||'';
+ const query=($('supplierSearch').value||'').trim().toLocaleLowerCase('ar');
+ const selectedId=$('supplier').value;
  const matches=suppliers.filter(x=>String(x.name||'').toLocaleLowerCase('ar').includes(query));
- $('supplier').innerHTML='<option value="">-- اختر المورد --</option>'+matches.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
- if(current && matches.some(x=>String(x.id)===String(current))) $('supplier').value=current;
- else if(current){$('supplier').value='';loadPurchases();}
+ const list=$('supplierOptions');
+ list.innerHTML='';
+ if(!matches.length){
+  const empty=document.createElement('div');empty.className='supplier-empty';empty.textContent='لا توجد نتائج مطابقة';list.appendChild(empty);
+ }else{
+  matches.slice(0,100).forEach(x=>{
+   const option=document.createElement('button');option.type='button';option.className='supplier-option';option.textContent=x.name;
+   option.setAttribute('role','option');option.setAttribute('aria-selected',String(String(x.id)===String(selectedId)));
+   option.addEventListener('click',()=>{
+    $('supplier').innerHTML='<option value="">-- اختر المورد --</option>'+suppliers.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join('');
+    $('supplier').value=String(x.id);$('supplierSearch').value=x.name;list.hidden=true;$('supplierSearch').setAttribute('aria-expanded','false');loadPurchases();
+   });
+   list.appendChild(option);
+  });
+ }
+ list.hidden=false;$('supplierSearch').setAttribute('aria-expanded','true');
 }
-function filterSuppliers(){renderSuppliers();}
+function filterSuppliers(){
+ const text=($('supplierSearch').value||'').trim();
+ const selected=suppliers.find(x=>String(x.id)===String($('supplier').value));
+ if(selected && text!==selected.name){$('supplier').value='';$('purchase').innerHTML='<option value="">-- اختر المورد والمخزن أولًا --</option>';}
+ renderSuppliers();
+}
 function loadPurchases(){
  const s=$('supplier').value,site=$('site').value;
  $('purchase').innerHTML='<option value="">-- اختر فاتورة الشراء --</option>';
