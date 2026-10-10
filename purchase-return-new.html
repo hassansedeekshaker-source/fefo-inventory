@@ -67,25 +67,51 @@ function today(){return new Date().toISOString().slice(0,10)}
 function opt(arr,label){return '<option value="">-- اختر --</option>'+arr.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 async function init(){
  try{
-  const ss=await sb.auth.getSession();if(!ss.data.session){location.href='accounting.html';return}user=ss.data.session.user;
-  const [S,ST,P,U,R,RL]=await Promise.all([
+  const ss=await sb.auth.getSession();
+  if(!ss.data.session){location.href='accounting.html';return}
+  user=ss.data.session.user;
+
+  // حمّل الموردين والمخازن أولًا حتى لا يمنع خطأ في جدول جانبي ظهور القوائم الأساسية.
+  const [S,ST]=await Promise.all([
    sb.from('suppliers').select('id,name').order('name'),
-   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
+   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar')
+  ]);
+  if(S.error)throw new Error('تعذر تحميل الموردين: '+S.error.message);
+  if(ST.error)throw new Error('تعذر تحميل المخازن: '+ST.error.message);
+
+  suppliers=S.data||[];
+  sites=ST.data||[];
+  $('supplier').innerHTML='<option value="">-- اختر المورد --</option>'+suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+  $('site').innerHTML='<option value="">-- اختر المخزن --</option>'+sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join('');
+  $('date').value=today();
+
+  $('supplier').onchange=loadPurchases;
+  $('site').onchange=loadPurchases;
+  $('purchase').onchange=loadPurchaseLines;
+  $('add').onclick=addLine;
+  $('save').onclick=()=>save(false);
+  $('post').onclick=()=>save(true);
+
+  // تحميل البيانات المساندة بشكل منفصل؛ لا تُفرغ قوائم الموردين والمخازن إذا فشل استعلام ثانوي.
+  const [P,U,R,RL]=await Promise.all([
    sb.from('purchases').select('id,invoice_no,purchase_date,supplier_id,site_id').eq('status','posted').order('purchase_date',{ascending:false}),
    sb.from('inv_units').select('*').order('name_ar'),
    sb.from('purchase_returns').select('id,status'),
    sb.from('purchase_return_lines').select('id,return_id,source_purchase_line_id,qty')
   ]);
-  for(const r of [S,ST,P,U,R,RL])if(r.error)throw r.error;
-  suppliers=S.data||[];sites=ST.data||[];purchases=P.data||[];units=U.data||[];returns=R.data||[];returnLines=RL.data||[];
-  $('supplier').insertAdjacentHTML('beforeend',suppliers.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join(''));
-  $('site').insertAdjacentHTML('beforeend',sites.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join(''));
-  $('date').value=today();
-  $('supplier').onchange=loadPurchases;$('site').onchange=loadPurchases;
-  $('purchase').onchange=loadPurchaseLines;
-  $('add').onclick=addLine;$('save').onclick=()=>save(false);$('post').onclick=()=>save(true);
+  if(P.error)throw new Error('تم تحميل الموردين والمخازن، لكن تعذر تحميل فواتير الشراء: '+P.error.message);
+  if(U.error)throw new Error('تم تحميل الموردين والمخازن، لكن تعذر تحميل الوحدات: '+U.error.message);
+  if(R.error)throw new Error('تم تحميل الموردين والمخازن، لكن تعذر قراءة المرتجعات السابقة: '+R.error.message);
+  if(RL.error)throw new Error('تم تحميل الموردين والمخازن، لكن تعذر قراءة بنود المرتجعات: '+RL.error.message);
+  purchases=P.data||[];
+  units=U.data||[];
+  returns=R.data||[];
+  returnLines=RL.data||[];
   msg('الشاشة جاهزة. اختر المورد والمخزن ثم فاتورة الشراء الأصلية.');
- }catch(e){msg(e.message||String(e),true)}
+ }catch(e){
+  console.error('Purchase return initialization failed:',e);
+  msg(e.message||String(e),true);
+ }
 }
 function loadPurchases(){
  const s=$('supplier').value,site=$('site').value;
