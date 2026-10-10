@@ -229,7 +229,7 @@ async function save(post){
   const byItem={};for(const x of rows){const pl=purchaseLines.find(p=>p.id===x.source_purchase_line_id);if(!pl)return msg('تعذر تحديد بند فاتورة الشراء الأصلية.',true);if(x.qty>Number(pl.qty||0))return msg('الكمية المرتجعة أكبر من كمية بند الفاتورة الأصلية.',true);byItem[pl.item_id]=(byItem[pl.item_id]||0)+x.qty}
   for(const [itemId,qty] of Object.entries(byItem)){const available=availableForItem(itemId);if(available<=0||qty>available)return msg('الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. المتاح لهذا الصنف هو '+available.toFixed(3)+'.',true)}
   const total=rows.reduce((a,x)=>a+x.line_total,0);
-  const h=await sb.from('purchase_returns').insert({return_no:$('docno').value.trim()?+$('docno').value.trim():null,supplier_id:supplier,site_id:site,return_date:$('date').value,total,status:'draft',created_by:user.id}).select().single();
+  const h=await sb.from('purchase_returns').insert({supplier_id:supplier,site_id:site,return_date:$('date').value,total,status:'draft',created_by:user.id}).select().single();
   if(h.error)throw h.error;
   const l=await sb.from('purchase_return_lines').insert(rows.map(x=>({...x,return_id:h.data.id})));if(l.error)throw l.error;
   if(post){location.href='purchase-return-post.html?select='+h.data.id}else{msg('تم حفظ مردود المشتريات كمسودة ✓ رقم '+(h.data.return_no||h.data.id.slice(0,8)));}
