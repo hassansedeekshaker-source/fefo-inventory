@@ -4,16 +4,17 @@
  function attachSearch(input){
   if(input.dataset.kbAttached)return; input.dataset.kbAttached='1';
   input.addEventListener('keydown',function(e){
-   const box=input.closest('.item-picker,.party-search,.field')?.querySelector('.item-results,.party-results,[role="listbox"]');
+   const box=input.closest('.item-picker,.party-search,.supplier-picker,.field')?.querySelector('.item-results,.party-results,.supplier-options,[role="listbox"]');
    if(!box)return;
    const opts=optsFor(box);
+   if(e.key==='Escape'&&box&&!box.hidden){box.hidden=true;input.setAttribute('aria-expanded','false');input.dataset.kbIndex='-1';return;}
    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
     if(!opts.length)return;
     e.preventDefault();
     let idx=Number(input.dataset.kbIndex??-1);
     idx=e.key==='ArrowDown'?Math.min(idx+1,opts.length-1):Math.max(idx-1,0);
     input.dataset.kbIndex=idx;
-    opts.forEach((o,i)=>o.style.background=i===idx?'#eaf2ff':'');
+    opts.forEach((o,i)=>{o.style.background=i===idx?'#eaf2ff':'';if(o.setAttribute)o.setAttribute('aria-selected',String(i===idx));});
     opts[idx].scrollIntoView({block:'nearest'}); return;
    }
    if(e.key==='Enter'){
@@ -46,12 +47,13 @@
   if(e.defaultPrevented||e.key!=='Enter'||e.ctrlKey||e.altKey||e.shiftKey)return;
   if(t.tagName==='TEXTAREA')return;
   if(t.matches('.item-search,.party-search input'))return;
+  if(t.matches('#supplierSearch')&&!document.getElementById('supplierOptions')?.hidden&&document.querySelectorAll('#supplierOptions .supplier-option').length)return;
   const n=nextFor(t);
   if(n){e.preventDefault();n.focus();if(n.select&&n.tagName==='INPUT')n.select();}
  });
  document.addEventListener('focusin',e=>{
   const t=e.target;
-  if(t instanceof HTMLInputElement&&(t.classList.contains('item-search')||t.closest('.party-search')))attachSearch(t);
+  if(t instanceof HTMLInputElement&&(t.classList.contains('item-search')||t.closest('.party-search')||t.id==='supplierSearch'))attachSearch(t);
  });
- document.querySelectorAll('.item-search,.party-search input').forEach(attachSearch);
+ document.querySelectorAll('.item-search,.party-search input,#supplierSearch').forEach(attachSearch);
 })();
