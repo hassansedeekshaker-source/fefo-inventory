@@ -200,20 +200,31 @@ function addLine(pl){
  q.oninput=()=>{if(+q.value>remaining){q.value=remaining;msg('الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. المتاح لهذا البند '+remaining.toFixed(3)+'.',true)}if(+q.value<0)q.value=0;validateItemQty(pl.item_id,q);calcLine(tr,pl);calcTotals()};
  tr.querySelector('.del').onclick=()=>{tr.remove();calcTotals()};
 }
+function money(n){return Math.round((Number(n)||0)*100)/100}
+function returnAmounts(pl,q){
+ const sourceQty=Number(pl.qty)||0,unitCost=Number(pl.unit_cost)||0;
+ const gross=money(q*unitCost);
+ const sourceDiscount=Number(pl.discount_amount)||0;
+ const discount=sourceQty>0?money(sourceDiscount*q/sourceQty):money(gross*(Number(pl.discount_rate)||0)/100);
+ const net=money(gross-discount);
+ const sourceTax=Number(pl.tax_amount)||0;
+ const tax=sourceQty>0?money(sourceTax*q/sourceQty):money(net*(Number(pl.tax_rate)||0));
+ return {gross,discount,net,tax,total:money(net+tax)};
+}
 function calcLine(tr,pl){
- const q=+tr.querySelector('.qty').value||0,p=+pl.unit_cost||0,dr=+pl.discount_rate||0,trr=+pl.tax_rate||0,gross=q*p,disc=gross*dr/100,value=gross-disc,tax=value*trr/100;
- tr.querySelector('.discVal').textContent=disc.toFixed(2);tr.querySelector('.value').textContent=value.toFixed(2);tr.querySelector('.taxVal').textContent=tax.toFixed(2);tr.querySelector('.lineTotal').textContent=(value+tax).toFixed(2);
+ const q=Number(tr.querySelector('.qty').value)||0,a=returnAmounts(pl,q);
+ tr.querySelector('.discVal').textContent=a.discount.toFixed(2);tr.querySelector('.value').textContent=a.net.toFixed(2);tr.querySelector('.taxVal').textContent=a.tax.toFixed(2);tr.querySelector('.lineTotal').textContent=a.total.toFixed(2);
 }
 function calcTotals(){
- let cost=disc=value=tax=grand=0;
- [...document.querySelectorAll('#lines tr')].forEach(tr=>{const pl=purchaseLines.find(x=>x.id===tr.dataset.source);if(!pl)return;calcLine(tr,pl);const q=+tr.querySelector('.qty').value||0,p=+pl.unit_cost||0,dr=+pl.discount_rate||0,trr=+pl.tax_rate||0,g=q*p,d=g*dr/100,v=g-d,t=v*trr/100;cost+=g;disc+=d;value+=v;tax+=t;grand+=v+t});
+ let cost=0,disc=0,value=0,tax=0,grand=0;
+ [...document.querySelectorAll('#lines tr')].forEach(tr=>{const pl=purchaseLines.find(x=>x.id===tr.dataset.source);if(!pl)return;const q=Number(tr.querySelector('.qty').value)||0,a=returnAmounts(pl,q);calcLine(tr,pl);cost+=a.gross;disc+=a.discount;value+=a.net;tax+=a.tax;grand+=a.total});
  $('costTotal').textContent=cost.toFixed(2);$('discountTotal').textContent=disc.toFixed(2);$('valueTotal').textContent=value.toFixed(2);$('taxTotal').textContent=tax.toFixed(2);$('grandTotal').textContent=grand.toFixed(2);
 }
 async function save(post){
  try{
   const supplier=$('supplier').value,site=$('site').value,pid=$('purchase').value;
   if(!supplier||!site||!pid)return msg('اختر المورد والمخزن وفاتورة الشراء الأصلية أولًا.',true);
-  const rows=[...document.querySelectorAll('#lines tr')].map(tr=>{const pl=purchaseLines.find(x=>x.id===tr.dataset.source);const q=+tr.querySelector('.qty').value||0;const gross=q*(+pl.unit_cost||0),disc=gross*(+pl.discount_rate||0)/100,value=gross-disc,tax=value*(+pl.tax_rate||0)/100;return {source_purchase_line_id:pl.id,purchase_line_id:pl.id,item_id:pl.item_id,qty:q,unit_cost:+pl.unit_cost||0,discount_rate:+pl.discount_rate||0,discount_amount:disc,tax_rate:+pl.tax_rate||0,tax_amount:tax,line_total:value+tax}}).filter(x=>x.qty>0);
+  const rows=[...document.querySelectorAll('#lines tr')].map(tr=>{const pl=purchaseLines.find(x=>x.id===tr.dataset.source);if(!pl)throw new Error('تعذر تحديد بند فاتورة الشراء الأصلية.');const q=Number(tr.querySelector('.qty').value)||0,a=returnAmounts(pl,q);return {source_purchase_line_id:pl.id,purchase_line_id:pl.id,item_id:pl.item_id,qty:q,unit_cost:Number(pl.unit_cost)||0,discount_rate:Number(pl.discount_rate)||0,discount_amount:a.discount,tax_rate:Number(pl.tax_rate)||0,tax_amount:a.tax,line_total:a.total}}).filter(x=>x.qty>0);
   if(!rows.length)return msg('حدد كمية مرتجعة لصنف واحد على الأقل.',true);
   const byItem={};for(const x of rows){const pl=purchaseLines.find(p=>p.id===x.source_purchase_line_id);if(!pl)return msg('تعذر تحديد بند فاتورة الشراء الأصلية.',true);if(x.qty>Number(pl.qty||0))return msg('الكمية المرتجعة أكبر من كمية بند الفاتورة الأصلية.',true);byItem[pl.item_id]=(byItem[pl.item_id]||0)+x.qty}
   for(const [itemId,qty] of Object.entries(byItem)){const available=availableForItem(itemId);if(available<=0||qty>available)return msg('الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. المتاح لهذا الصنف هو '+available.toFixed(3)+'.',true)}
