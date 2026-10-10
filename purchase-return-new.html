@@ -130,6 +130,13 @@ async function loadPurchaseLines(){
  const r=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount,line_total').eq('purchase_id',pid);
  if(r.error)return msg(r.error.message,true);
  purchaseLines=r.data||[];
+ const sourceLineIds=purchaseLines.map(x=>x.id);
+ const prior=sourceLineIds.length?await sb.from('purchase_return_lines').select('id,return_id,source_purchase_line_id,qty').in('source_purchase_line_id',sourceLineIds):{data:[],error:null};
+ if(prior.error)return msg('تعذر التحقق من المرتجعات السابقة: '+prior.error.message,true);
+ const priorReturnIds=[...new Set((prior.data||[]).map(x=>x.return_id))];
+ const priorHeads=priorReturnIds.length?await sb.from('purchase_returns').select('id,status').in('id',priorReturnIds):{data:[],error:null};
+ if(priorHeads.error)return msg('تعذر التحقق من حالات المرتجعات السابقة: '+priorHeads.error.message,true);
+ returnLines=prior.data||[];returns=priorHeads.data||[];
  const mv=await sb.from('inv_movements').select('item_id,qty').eq('reference_type','purchase').eq('reference_id',pid).eq('site_id',$('site').value).eq('movement_type','receipt');
  if(mv.error)return msg('تعذر التحقق من الكمية المستلمة فعليًا: '+mv.error.message,true);
  receivedByItem={};(mv.data||[]).forEach(m=>{receivedByItem[m.item_id]=(receivedByItem[m.item_id]||0)+Number(m.qty||0)});
