@@ -53,7 +53,7 @@
 <div class="total"><b>قيمة الضريبة</b><div class="num" id="taxTotal">0.00</div></div>
 <div class="total net"><b>إجمالي المرتجع</b><div class="num" id="grandTotal">0.00</div></div>
 </div>
-<div class="actions"><button class="save" id="save">💾 حفظ مسودة</button><button class="post" id="post">📤 حفظ وترحيل</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='purchase-return-new.html'">📄 مردود جديد</button></div>
+<div class="actions"><button class="save" id="save">💾 حفظ ومتابعة الترحيل</button><button class="post" id="post">📝 حفظ مسودة فقط</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='purchase-return-new.html'">📄 مردود جديد</button></div>
 <div id="msg"></div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -96,8 +96,8 @@ async function init(){
   $('site').onchange=loadPurchases;
   $('purchase').onchange=loadPurchaseLines;
   $('add').onclick=addLine;
-  $('save').onclick=()=>save(false);
-  $('post').onclick=()=>save(true);
+  $('save').onclick=()=>save(true);
+  $('post').onclick=()=>save(false);
 
   // تحميل البيانات المساندة بشكل منفصل؛ لا تُفرغ قوائم الموردين والمخازن إذا فشل استعلام ثانوي.
   const [P,U,R,RL]=await Promise.all([
@@ -221,6 +221,9 @@ function calcTotals(){
  $('costTotal').textContent=cost.toFixed(2);$('discountTotal').textContent=disc.toFixed(2);$('valueTotal').textContent=value.toFixed(2);$('taxTotal').textContent=tax.toFixed(2);$('grandTotal').textContent=grand.toFixed(2);
 }
 async function save(post){
+ const saveBtn=$('save'),draftBtn=$('post');
+ if(saveBtn.disabled||draftBtn.disabled)return;
+ saveBtn.disabled=true;draftBtn.disabled=true;
  try{
   const supplier=$('supplier').value,site=$('site').value,pid=$('purchase').value;
   if(!supplier||!site||!pid)return msg('اختر المورد والمخزن وفاتورة الشراء الأصلية أولًا.',true);
@@ -233,7 +236,7 @@ async function save(post){
   if(h.error)throw h.error;
   const l=await sb.from('purchase_return_lines').insert(rows.map(x=>({...x,return_id:h.data.id})));if(l.error)throw l.error;
   if(post){location.href='purchase-return-post.html?select='+h.data.id}else{msg('تم حفظ مردود المشتريات كمسودة ✓ رقم '+(h.data.return_no||h.data.id.slice(0,8)));}
- }catch(e){msg(e.message||String(e),true)}
+ }catch(e){msg(e.message||String(e),true)}finally{saveBtn.disabled=false;draftBtn.disabled=false}
 }
 init();
 </script>
