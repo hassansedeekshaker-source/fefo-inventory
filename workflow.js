@@ -103,13 +103,13 @@ async function postPurchaseReturn(id){
  const ls=lr.data||[];if(!ls.length)throw Error('مردود المشتريات لا يحتوي على بنود.');
  const sourceIds=[...new Set(ls.map(x=>x.source_purchase_line_id||x.purchase_line_id).filter(Boolean))];
  if(sourceIds.length!==ls.length)throw Error('لا يمكن ترحيل المردود: يوجد بند غير مرتبط ببند من فاتورة الشراء الأصلية.');
- const sr=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty').in('id',sourceIds);if(sr.error)throw sr.error;
+ const sr=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount,line_total').in('id',sourceIds);if(sr.error)throw sr.error;
  const selectedLines=sr.data||[];if(selectedLines.length!==sourceIds.length)throw Error('تعذر العثور على بند من فاتورة الشراء الأصلية.');
  const purchaseIds=[...new Set(selectedLines.map(x=>x.purchase_id))];
  const phr=await sb.from('purchases').select('id,status,site_id,supplier_id,invoice_no').in('id',purchaseIds);if(phr.error)throw phr.error;
  const purchaseMap=new Map((phr.data||[]).map(x=>[x.id,x]));
  for(const p of selectedLines){const ph=purchaseMap.get(p.purchase_id);if(!ph||ph.status!=='posted')throw Error('لا يمكن ترحيل المرتجع إلا على فاتورة شراء أصلية مُرحّلة.');if(ph.site_id!==h.site_id||String(ph.supplier_id)!==String(h.supplier_id))throw Error('المورد أو المخزن لا يطابق فاتورة الشراء الأصلية.');}
- const allLinesResult=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty').in('purchase_id',purchaseIds);if(allLinesResult.error)throw allLinesResult.error;
+ const allLinesResult=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount,line_total').in('purchase_id',purchaseIds);if(allLinesResult.error)throw allLinesResult.error;
  const allSourceLines=allLinesResult.data||[],allSourceIds=allSourceLines.map(x=>x.id);
  const mv=await sb.from('inv_movements').select('reference_id,item_id,qty,site_id').eq('movement_type','receipt').eq('reference_type','purchase').eq('site_id',h.site_id).in('reference_id',purchaseIds);
  if(mv.error)throw Error('تعذر التحقق من الاستلام الفعلي للمشتريات: '+mv.error.message);
@@ -122,8 +122,24 @@ async function postPurchaseReturn(id){
  const postedIds=new Set((postedHeaders.data||[]).map(x=>x.id));
  const sourceMap=new Map(allSourceLines.map(x=>[x.id,x])),returned={};
  for(const r of priorLines.data||[]){if(!postedIds.has(r.return_id))continue;const source=sourceMap.get(r.source_purchase_line_id);if(!source)continue;const k=source.purchase_id+'|'+source.item_id;returned[k]=(returned[k]||0)+Number(r.qty||0)}
- const current={};
- for(const x of ls){const source=sourceMap.get(x.source_purchase_line_id||x.purchase_line_id);if(!source)throw Error('يوجد بند مرتجع غير مرتبط بالفاتورة الأصلية.');if(Number(x.qty||0)>Number(source.qty||0))throw Error('الكمية المرتجعة أكبر من كمية بند الفاتورة الأصلية.');const k=source.purchase_id+'|'+source.item_id;current[k]=(current[k]||0)+Number(x.qty||0)}
+ const current={},currentBySource={};let calculatedTotal=0;
+ const roundMoney=n=>Math.round((Number(n)||0)*100)/100;
+ for(const x of ls){
+  const source=sourceMap.get(x.source_purchase_line_id||x.purchase_line_id);if(!source)throw Error('يوجد بند مرتجع غير مرتبط بالفاتورة الأصلية.');
+  const qty=Number(x.qty||0),sourceQty=Number(source.qty||0);if(qty<=0)throw Error('كمية بند المرتجع يجب أن تكون أكبر من صفر.');
+  const sourceKey=source.id;currentBySource[sourceKey]=(currentBySource[sourceKey]||0)+qty;
+  const gross=roundMoney(qty*Number(source.unit_cost||0));
+  const discount=sourceQty>0?roundMoney(Number(source.discount_amount||0)*qty/sourceQty):roundMoney(gross*Number(source.discount_rate||0)/100);
+  const net=roundMoney(gross-discount);
+  const tax=sourceQty>0?roundMoney(Number(source.tax_amount||0)*qty/sourceQty):roundMoney(net*Number(source.tax_rate||0));
+  const lineTotal=roundMoney(net+tax);
+  if(Math.abs(Number(x.discount_amount||0)-discount)>0.02||Math.abs(Number(x.tax_amount||0)-tax)>0.02||Math.abs(Number(x.line_total||0)-lineTotal)>0.02||Math.abs(Number(x.unit_cost||0)-Number(source.unit_cost||0))>0.001)
+   throw Error('تم إيقاف الترحيل: قيم الخصم أو الضريبة أو الإجمالي لا تطابق فاتورة الشراء الأصلية. احفظ المرتجع من جديد بعد تحديث الشاشة.');
+  calculatedTotal+=lineTotal;
+  const k=source.purchase_id+'|'+source.item_id;current[k]=(current[k]||0)+qty;
+ }
+ for(const [sourceId,qty] of Object.entries(currentBySource)){const source=sourceMap.get(sourceId);if(qty>Number(source.qty||0))throw Error('إجمالي الكمية المرتجعة من بند الفاتورة الأصلية أكبر من الكمية المشتراة.');}
+ if(Math.abs(Number(h.total||0)-roundMoney(calculatedTotal))>0.02)throw Error('تم إيقاف الترحيل: إجمالي رأس المرتجع لا يساوي مجموع البنود.');
  for(const [k,qty] of Object.entries(current)){const available=Math.max(0,(received[k]||0)-(returned[k]||0));if(available<=0||qty>available)throw Error('تم إيقاف الترحيل: الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. المتاح لهذا الصنف من الفاتورة الأصلية '+available.toFixed(3)+'.')}
  const required={};for(const x of ls)required[x.item_id]=(required[x.item_id]||0)+Number(x.qty||0);
  const costInfo={};
