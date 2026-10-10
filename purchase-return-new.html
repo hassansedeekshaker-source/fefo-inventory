@@ -56,17 +56,11 @@
 <div class="actions"><button class="save" id="save">💾 حفظ مسودة</button><button class="post" id="post">📤 حفظ وترحيل</button><button class="btn" onclick="window.print()">🖨 طباعة</button><button class="btn" onclick="location.href='purchase-return-new.html'">📄 مردود جديد</button></div>
 <div id="msg"></div>
 </div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const URL='https://fyqyodnboryzaejlhdlk.supabase.co',KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
+const SUPABASE_URL='https://fyqyodnboryzaejlhdlk.supabase.co';
+const SUPABASE_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
 let sb;
-async function ensureSupabaseSdk(){
- if(window.supabase&&typeof window.supabase.createClient==='function')return;
- const load=url=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(new Error('فشل تحميل مكتبة الاتصال'));document.head.appendChild(s)});
- try{await load('https://unpkg.com/@supabase/supabase-js@2')}
- catch(e){await load('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')}
- if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('مكتبة الاتصال بقاعدة البيانات غير متاحة');
-}
 const $=id=>document.getElementById(id);
 let suppliers=[],sites=[],purchases=[],purchaseLines=[],returns=[],returnLines=[],units=[],user=null;
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -75,8 +69,8 @@ function today(){return new Date().toISOString().slice(0,10)}
 function opt(arr,label){return '<option value="">-- اختر --</option>'+arr.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 async function init(){
  try{
-  await ensureSupabaseSdk();
-  sb=window.supabase.createClient(URL,KEY);
+  if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('مكتبة الاتصال لم تُحمّل. حدّث الصفحة أو تحقق من اتصال الإنترنت.');
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const ss=await sb.auth.getSession();
   if(!ss.data.session){location.href='accounting.html';return}
   user=ss.data.session.user;
