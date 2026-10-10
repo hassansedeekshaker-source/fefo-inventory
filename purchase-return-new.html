@@ -43,11 +43,11 @@
 <div class="field"><label>فاتورة الشراء الأصلية</label><select id="purchase"><option value="">-- اختر المورد والمخزن أولًا --</option></select></div>
 </div>
 <div class="table-wrap"><table><thead><tr>
-<th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الشراء</th><th>الرصيد القابل للمرتجع</th><th>التكلفة</th><th>إجمالي التكلفة</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th>
+<th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الشراء</th><th>الرصيد القابل للمرتجع</th><th>نسبة الخصم</th><th>قيمة الخصم</th><th>القيمة</th><th>نسبة الضريبة</th><th>قيمة الضريبة</th><th>الإجمالي</th><th>حذف</th>
 </tr></thead><tbody id="lines"></tbody></table></div>
 <button class="add" id="add">＋ إضافة بند من الفاتورة الأصلية</button>
 <div class="totals">
-<div class="total"><b>تكلفة المرتجع</b><div class="num" id="costTotal">0.00</div></div>
+<div class="total"><b>قيمة البضاعة قبل الخصم</b><div class="num" id="costTotal">0.00</div></div>
 <div class="total"><b>قيمة الخصم</b><div class="num" id="discountTotal">0.00</div></div>
 <div class="total"><b>قيمة المرتجع</b><div class="num" id="valueTotal">0.00</div></div>
 <div class="total"><b>قيمة الضريبة</b><div class="num" id="taxTotal">0.00</div></div>
@@ -62,7 +62,7 @@ const SUPABASE_URL='https://fyqyodnboryzaejlhdlk.supabase.co';
 const SUPABASE_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
 let sb;
 const $=id=>document.getElementById(id);
-let suppliers=[],sites=[],purchases=[],purchaseLines=[],returns=[],returnLines=[],units=[],user=null;
+let suppliers=[],sites=[],purchases=[],purchaseLines=[],returns=[],returnLines=[],units=[],user=null,receivedByItem={};
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function msg(t,bad=false){$('msg').className='msg '+(bad?'badmsg':'okmsg');$('msg').textContent=t}
 function today(){return new Date().toISOString().slice(0,10)}
@@ -127,9 +127,12 @@ function loadPurchases(){
 }
 async function loadPurchaseLines(){
  const pid=$('purchase').value;$('lines').innerHTML='';if(!pid)return;
- const r=await sb.from('purchase_lines').select('id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount,line_total').eq('purchase_id',pid);
+ const r=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount,line_total').eq('purchase_id',pid);
  if(r.error)return msg(r.error.message,true);
  purchaseLines=r.data||[];
+ const mv=await sb.from('inv_movements').select('item_id,qty').eq('reference_type','purchase').eq('reference_id',pid).eq('site_id',$('site').value).eq('movement_type','receipt');
+ if(mv.error)return msg('تعذر التحقق من الكمية المستلمة فعليًا: '+mv.error.message,true);
+ receivedByItem={};(mv.data||[]).forEach(m=>{receivedByItem[m.item_id]=(receivedByItem[m.item_id]||0)+Number(m.qty||0)});
  const ids=purchaseLines.map(x=>x.item_id);
  if(!ids.length){msg('الفاتورة الأصلية لا تحتوي على أصناف.',true);return}
  const [I,U]=await Promise.all([
@@ -145,20 +148,24 @@ async function loadPurchaseLines(){
 function alreadyReturned(sourceId){
  return returnLines.filter(r=>r.source_purchase_line_id===sourceId && returns.find(h=>h.id===r.return_id)?.status==='posted').reduce((a,r)=>a+(+r.qty||0),0);
 }
+function sourceIdsForItem(itemId){return purchaseLines.filter(p=>p.item_id===itemId).map(p=>p.id)}
+function alreadyReturnedForItem(itemId){const ids=new Set(sourceIdsForItem(itemId));return returnLines.filter(r=>ids.has(r.source_purchase_line_id)&&returns.find(h=>h.id===r.return_id)?.status==='posted').reduce((sum,r)=>sum+(Number(r.qty)||0),0)}
+function availableForItem(itemId){return Math.max(0,(Number(receivedByItem[itemId])||0)-alreadyReturnedForItem(itemId))}
+function validateItemQty(itemId,changedInput){const rows=[...document.querySelectorAll('#lines tr')].filter(tr=>tr.dataset.item===itemId);const available=availableForItem(itemId);const others=rows.filter(tr=>tr.querySelector('.qty')!==changedInput).reduce((sum,tr)=>sum+(Number(tr.querySelector('.qty').value)||0),0);if((Number(changedInput.value)||0)+others>available){changedInput.value=Math.max(0,available-others);msg('الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. الكمية المتاحة للمرتجع لهذا الصنف هي '+available.toFixed(3)+'.',true);return false}return true}
 function addLine(pl){
  const tr=document.createElement('tr'),item=(window.items||[]).find(x=>x.id===pl.item_id);
- const original=+pl.qty||0,used=alreadyReturned(pl.id),remaining=Math.max(0,original-used);
+ const original=+pl.qty||0,received=Number(receivedByItem[pl.item_id])||0,used=alreadyReturnedForItem(pl.item_id),remaining=Math.max(0,Math.min(original,received-used));
  const unit=units.find(u=>u.id===item?.unit_id);
- tr.dataset.source=pl.id;
- tr.innerHTML='<td>'+esc(item?.name_ar||'')+(item?.sku?' — '+esc(item.sku):'')+'</td><td>'+esc(unit?.name_ar||unit?.name||'-')+'</td><td><input class="qty" type="number" min="0" max="'+remaining+'" step=".001" value="0"></td><td><input class="price readonly" readonly value="'+(+pl.unit_cost||0).toFixed(2)+'"></td><td class="remain">'+remaining.toFixed(3)+'</td><td class="cost">'+(+pl.unit_cost||0).toFixed(2)+'</td><td class="costTotalLine">0.00</td><td class="discRate">'+(+pl.discount_rate||0).toFixed(2)+'</td><td class="discVal">0.00</td><td class="value">0.00</td><td class="taxRate">'+((+pl.tax_rate||0)*100).toFixed(2)+'</td><td class="taxVal">0.00</td><td class="lineTotal">0.00</td><td><button type="button" class="del">🗑</button></td>';
+ tr.dataset.source=pl.id;tr.dataset.item=pl.item_id;
+ tr.innerHTML='<td>'+esc(item?.name_ar||'')+(item?.sku?' — '+esc(item.sku):'')+'</td><td>'+esc(unit?.name_ar||unit?.name||'-')+'</td><td><input class="qty" type="number" min="0" max="'+remaining+'" step=".001" value="0"></td><td><input class="price readonly" readonly value="'+(+pl.unit_cost||0).toFixed(2)+'"></td><td class="remain">'+remaining.toFixed(3)+'</td><td class="discRate">'+(+pl.discount_rate||0).toFixed(2)+'</td><td class="discVal">0.00</td><td class="value">0.00</td><td class="taxRate">'+((+pl.tax_rate||0)*100).toFixed(2)+'</td><td class="taxVal">0.00</td><td class="lineTotal">0.00</td><td><button type="button" class="del">🗑</button></td>';
  $('lines').appendChild(tr);
  const q=tr.querySelector('.qty');
- q.oninput=()=>{if(+q.value>remaining)q.value=remaining;if(+q.value<0)q.value=0;calcLine(tr,pl);calcTotals()};
+ q.oninput=()=>{if(+q.value>remaining){q.value=remaining;msg('الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. المتاح لهذا البند '+remaining.toFixed(3)+'.',true)}if(+q.value<0)q.value=0;validateItemQty(pl.item_id,q);calcLine(tr,pl);calcTotals()};
  tr.querySelector('.del').onclick=()=>{tr.remove();calcTotals()};
 }
 function calcLine(tr,pl){
  const q=+tr.querySelector('.qty').value||0,p=+pl.unit_cost||0,dr=+pl.discount_rate||0,trr=+pl.tax_rate||0,gross=q*p,disc=gross*dr/100,value=gross-disc,tax=value*trr/100;
- tr.querySelector('.costTotalLine').textContent=gross.toFixed(2);tr.querySelector('.discVal').textContent=disc.toFixed(2);tr.querySelector('.value').textContent=value.toFixed(2);tr.querySelector('.taxVal').textContent=tax.toFixed(2);tr.querySelector('.lineTotal').textContent=(value+tax).toFixed(2);
+ tr.querySelector('.discVal').textContent=disc.toFixed(2);tr.querySelector('.value').textContent=value.toFixed(2);tr.querySelector('.taxVal').textContent=tax.toFixed(2);tr.querySelector('.lineTotal').textContent=(value+tax).toFixed(2);
 }
 function calcTotals(){
  let cost=disc=value=tax=grand=0;
@@ -171,7 +178,8 @@ async function save(post){
   if(!supplier||!site||!pid)return msg('اختر المورد والمخزن وفاتورة الشراء الأصلية أولًا.',true);
   const rows=[...document.querySelectorAll('#lines tr')].map(tr=>{const pl=purchaseLines.find(x=>x.id===tr.dataset.source);const q=+tr.querySelector('.qty').value||0;const gross=q*(+pl.unit_cost||0),disc=gross*(+pl.discount_rate||0)/100,value=gross-disc,tax=value*(+pl.tax_rate||0)/100;return {source_purchase_line_id:pl.id,purchase_line_id:pl.id,item_id:pl.item_id,qty:q,unit_cost:+pl.unit_cost||0,discount_rate:+pl.discount_rate||0,discount_amount:disc,tax_rate:+pl.tax_rate||0,tax_amount:tax,line_total:value+tax}}).filter(x=>x.qty>0);
   if(!rows.length)return msg('حدد كمية مرتجعة لصنف واحد على الأقل.',true);
-  for(const x of rows){const pl=purchaseLines.find(p=>p.id===x.source_purchase_line_id);const max=Math.max(0,(+pl.qty||0)-alreadyReturned(pl.id));if(x.qty>max)return msg('الكمية المرتجعة أكبر من الرصيد المتاح للصنف.',true)}
+  const byItem={};for(const x of rows){const pl=purchaseLines.find(p=>p.id===x.source_purchase_line_id);if(!pl)return msg('تعذر تحديد بند فاتورة الشراء الأصلية.',true);if(x.qty>Number(pl.qty||0))return msg('الكمية المرتجعة أكبر من كمية بند الفاتورة الأصلية.',true);byItem[pl.item_id]=(byItem[pl.item_id]||0)+x.qty}
+  for(const [itemId,qty] of Object.entries(byItem)){const available=availableForItem(itemId);if(available<=0||qty>available)return msg('الكمية المرتجعة أكبر من الكمية المستلمة فعليًا. المتاح لهذا الصنف هو '+available.toFixed(3)+'.',true)}
   const total=rows.reduce((a,x)=>a+x.line_total,0);
   const h=await sb.from('purchase_returns').insert({return_no:$('docno').value.trim()?+$('docno').value.trim():null,supplier_id:supplier,site_id:site,return_date:$('date').value,total,status:'draft',created_by:user.id}).select().single();
   if(h.error)throw h.error;
