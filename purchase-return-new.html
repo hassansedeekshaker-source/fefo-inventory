@@ -62,7 +62,7 @@ const SUPABASE_URL='https://fyqyodnboryzaejlhdlk.supabase.co';
 const SUPABASE_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2';
 let sb;
 const $=id=>document.getElementById(id);
-let suppliers=[],sites=[],purchases=[],purchaseLines=[],returns=[],returnLines=[],units=[],user=null,receivedByItem={};
+let suppliers=[],sites=[],purchases=[],purchaseLines=[],returns=[],returnLines=[],units=[],user=null,receivedByItem={},editingReturnId=new URLSearchParams(location.search).get('edit'),originalReturnLineIds=[];
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function msg(t,bad=false){$('msg').className='msg '+(bad?'badmsg':'okmsg');$('msg').textContent=t}
 function today(){return new Date().toISOString().slice(0,10)}
@@ -114,11 +114,51 @@ async function init(){
   units=U.data||[];
   returns=R.data||[];
   returnLines=RL.data||[];
-  msg('الشاشة جاهزة. اختر المورد والمخزن ثم فاتورة الشراء الأصلية.');
+  if(editingReturnId) await loadEditReturn(editingReturnId); else msg('الشاشة جاهزة. اختر المورد والمخزن ثم فاتورة الشراء الأصلية.');
  }catch(e){
   console.error('Purchase return initialization failed:',e);
   msg(e.message||String(e),true);
  }
+}
+async function loadEditReturn(id){
+ try{
+  msg('جاري فتح المسودة للتعديل...');
+  const h=await sb.from('purchase_returns').select('id,return_no,return_date,supplier_id,site_id,total,status').eq('id',id).eq('status','draft').single();
+  if(h.error||!h.data)throw new Error('المسودة غير موجودة أو تم ترحيلها؛ لا يمكن تعديلها.');
+  const lr=await sb.from('purchase_return_lines').select('*').eq('return_id',id);
+  if(lr.error)throw lr.error;
+  const savedLines=lr.data||[];originalReturnLineIds=savedLines.map(x=>x.id);
+  if(!savedLines.length)throw new Error('المسودة لا تحتوي على بنود يمكن تعديلها.');
+  const sourceIds=[...new Set(savedLines.map(x=>x.source_purchase_line_id||x.purchase_line_id).filter(Boolean))];
+  const src=await sb.from('purchase_lines').select('id,purchase_id,item_id,qty,unit_cost,discount_rate,discount_amount,tax_rate,tax_amount,line_total').in('id',sourceIds);
+  if(src.error)throw src.error;
+  const sourceRows=src.data||[];
+  if(!sourceRows.length)throw new Error('تعذر العثور على بنود فاتورة الشراء الأصلية.');
+  const purchaseId=sourceRows[0].purchase_id;
+  const purchase=purchases.find(x=>String(x.id)===String(purchaseId));
+  if(!purchase)throw new Error('فاتورة الشراء الأصلية غير موجودة ضمن الفواتير المرحلة.');
+  $('docno').value=h.data.return_no||'';
+  $('date').value=h.data.return_date||today();
+  $('supplier').innerHTML='<option value="">-- اختر المورد --</option>'+suppliers.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
+  $('supplier').value=String(h.data.supplier_id||purchase.supplier_id||'');
+  $('supplierSearch').value=(suppliers.find(x=>String(x.id)===String($('supplier').value))||{}).name||'';
+  $('site').value=String(h.data.site_id||purchase.site_id||'');
+  loadPurchases();
+  $('purchase').value=String(purchaseId);
+  await loadPurchaseLines();
+  for(const saved of savedLines){
+   const sid=saved.source_purchase_line_id||saved.purchase_line_id;
+   const tr=[...document.querySelectorAll('#lines tr')].find(row=>String(row.dataset.source)===String(sid));
+   if(!tr)continue;
+   tr.dataset.returnLineId=saved.id;
+   tr.querySelector('.qty').value=Number(saved.qty||0);
+  }
+  calcTotals();
+  document.querySelector('.title h1').textContent='تعديل مردود مشتريات رقم '+(h.data.return_no||String(id).slice(0,8));
+  $('save').textContent='💾 حفظ التعديلات';
+  $('post').textContent='💾 حفظ التعديلات فقط';
+  msg('المسودة مفتوحة للتعديل. عدّل الكميات ثم اضغط «حفظ التعديلات».');
+ }catch(e){msg(e.message||String(e),true)}
 }
 function renderSuppliers(){
  const query=($('supplierSearch').value||'').trim().toLocaleLowerCase('ar');
