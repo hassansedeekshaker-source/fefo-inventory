@@ -198,7 +198,7 @@ async function buildSaved(t){
     const vals=[x.return_no||x.invoice_no||String(x.id).slice(0,8),x[dateCol]||'',(isP?x.suppliers?.name:x.customers?.name)||'-',Number(isR?x.total:(x.subtotal||0)).toFixed(2),Number(isR?0:(x.tax||0)).toFixed(2),Number(x.total||0).toFixed(2)];
     vals.forEach(function(v){const td=document.createElement('td');td.textContent=String(v??'');tr.appendChild(td)});
     const td=document.createElement('td');
-    const open=document.createElement('button');open.textContent='فتح';open.onclick=function(){location.href=savePage+'?edit='+encodeURIComponent(x.id)};
+    const open=document.createElement('button');open.textContent='فتح';open.onclick=function(){location.href=(t==='purchase-return-saved'?'purchase-return-new.html':savePage)+'?edit='+encodeURIComponent(x.id)};
     const post=document.createElement('button');post.textContent='ترحيل';post.className='ok';post.onclick=function(){location.href=postPage+'?select='+encodeURIComponent(x.id)};
     const del=document.createElement('button');del.textContent='حذف';del.onclick=async function(){
      if(!confirm('هل تريد إلغاء هذه المسودة؟'))return;
