@@ -297,7 +297,7 @@ async function save(post){
    returnId=h.data.id;returnNo=h.data.return_no;
    const l=await sb.from('purchase_return_lines').insert(rows.map(x=>({...x,return_id:returnId})));if(l.error)throw l.error;
   }
-  if(post){location.href='purchase-return-post.html?select='+returnId}else{msg((editingReturnId?'تم حفظ تعديلات مردود المشتريات':'تم حفظ مردود المشتريات كمسودة')+' ✓ رقم '+(returnNo||returnId.slice(0,8)));}
+  if(post&&!editingReturnId){location.href='purchase-return-post.html?select='+returnId}else{msg((editingReturnId?'تم حفظ تعديلات مردود المشتريات بنجاح، وما زالت المسودة غير مُرحّلة':'تم حفظ مردود المشتريات كمسودة')+' ✓ رقم '+(returnNo||returnId.slice(0,8)));}
  }catch(e){msg(e.message||String(e),true)}finally{saveBtn.disabled=false;draftBtn.disabled=false}
 }
 init();
