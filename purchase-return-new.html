@@ -249,8 +249,7 @@ async function save(post){
     }else newRows.push({...row,return_id:returnId});
    }
    if(newRows.length){const ins=await sb.from('purchase_return_lines').insert(newRows).select('id');if(ins.error)throw ins.error;(ins.data||[]).forEach(x=>keepIds.push(x.id))}
-   const oldIds=[...document.querySelectorAll('#lines tr')].map(tr=>tr.dataset.returnLineId).filter(Boolean);
-   const removed=oldIds.filter(id=>!keepIds.includes(id));
+   const removed=originalReturnLineIds.filter(id=>!keepIds.includes(id));
    if(removed.length){const del=await sb.from('purchase_return_lines').delete().in('id',removed).eq('return_id',returnId);if(del.error)throw del.error}
   }else{
    const h=await sb.from('purchase_returns').insert({supplier_id:supplier,site_id:site,return_date:$('date').value,total,status:'draft',created_by:user.id}).select().single();
