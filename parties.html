@@ -310,6 +310,7 @@ async function loadSupplierLedger(id){
  const bad=[p,r,ft].find(z=>z.error);
  if(bad){$("supplierLedgerMsg").innerHTML="<div class=\"msg bad\">"+esc(bad.error.message)+"</div>";return}
  const opening=Number(x.opening_balance||0),moves=[];
+ moves.push({date:"",type:"رصيد أول المدة",ref:"رصيد أول المدة",debit:0,credit:opening,isOpening:true});
  (p.data||[]).forEach(a=>moves.push({date:a.purchase_date,type:"فاتورة شراء",ref:a.invoice_no||"-",debit:0,credit:Number(a.total||0)}));
  (r.data||[]).forEach(a=>moves.push({date:a.return_date,type:"مردود مشتريات",ref:a.return_no||"-",debit:Number(a.total||0),credit:0}));
  (ft.data||[]).forEach(a=>{
@@ -318,10 +319,10 @@ async function loadSupplierLedger(id){
  });
  moves.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||String(a.ref).localeCompare(String(b.ref),"ar",{numeric:true}));
 
- let balance=opening,totalPurch=0,totalRet=0,totalPay=0;
+ let balance=0,totalPurch=0,totalRet=0,totalPay=0;
  supplierLedgerRows=moves.map((m,index)=>{
    const openingRow=balance;
-   const debit=Number(m.debit||0),credit=Number(m.credit||0),net=debit-credit;
+   const debit=Number(m.debit||0),credit=Number(m.credit||0),net=credit-debit;
    balance=openingRow+net;
    if(m.type==="فاتورة شراء")totalPurch+=credit;
    if(m.type==="مردود مشتريات")totalRet+=debit;
@@ -356,8 +357,8 @@ function exportSupplierLedgerExcel(){
  supplierLedgerRows.forEach((m,i)=>{
    const row=i+2;
    const opening=i===0?Number(m["الرصيد الافتتاحي"]||0):{f:`=I${row-1}`};
-   const net={f:`=F${row}-G${row}`};
-   const closing={f:`=E${row}+F${row}-G${row}`};
+   const net={f:`=G${row}-F${row}`};
+   const closing={f:`=E${row}+G${row}-F${row}`};
    data.push([m["الرقم المرجعي"],m["نوع الحركة"],m["التاريخ"],m["اسم الحساب"],opening,m["قيمة مدينة"],m["قيمة دائنة"],net,closing,m["العملة"]]);
  });
  const wb=XLSX.utils.book_new();
