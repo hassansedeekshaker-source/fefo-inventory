@@ -154,16 +154,17 @@ function switchTab(tab){
 }
 
 async function loadAll(){
- const [c,s,sa,sr,p,pr]=await Promise.all([
+ const [c,s,sa,sr,p,pr,fr,fp]=await Promise.all([
   sb.from('customers').select('*').order('id'),sb.from('suppliers').select('*').order('id'),
   sb.from('sales').select('customer_id,total').eq('status','posted'),sb.from('sales_returns').select('customer_id,total').eq('status','posted'),
-  sb.from('purchases').select('supplier_id,total').eq('status','posted'),sb.from('purchase_returns').select('supplier_id,total').eq('status','posted')
+  sb.from('purchases').select('supplier_id,total').eq('status','posted'),sb.from('purchase_returns').select('supplier_id,total').eq('status','posted'),
+  sb.from('finance_transactions').select('customer_id,amount').eq('transaction_type','receipt').eq('status','posted'),sb.from('finance_transactions').select('supplier_id,amount').eq('transaction_type','payment').eq('status','posted')
  ]);
- const bad=[c,s,sa,sr,p,pr].find(x=>x.error);if(bad){$('cMsg').innerHTML='<div class="msg bad">'+esc(bad.error.message)+'</div>';return}
- customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];renderCustomers();renderSuppliers();supplierSearchInit();customerSearchInit();switchTab("customers");
+ const bad=[c,s,sa,sr,p,pr,fr,fp].find(x=>x.error);if(bad){$('cMsg').innerHTML='<div class="msg bad">'+esc(bad.error.message)+'</div>';return}
+ customers=c.data||[];suppliers=s.data||[];sales=sa.data||[];salesReturns=sr.data||[];purchases=p.data||[];purchaseReturns=pr.data||[];customerReceipts=fr.data||[];supplierPayments=fp.data||[];renderCustomers();renderSuppliers();supplierSearchInit();customerSearchInit();switchTab("customers");
 }
-function customerBalance(id){return Number(customers.find(x=>x.id===id)?.opening_balance||0)+sales.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-salesReturns.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
-function supplierBalance(id){return Number(suppliers.find(x=>x.id===id)?.opening_balance||0)+purchases.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-purchaseReturns.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)}
+function customerBalance(id){return Number(customers.find(x=>x.id===id)?.opening_balance||0)+sales.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-salesReturns.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-customerReceipts.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.amount||0),0)}
+function supplierBalance(id){return Number(suppliers.find(x=>x.id===id)?.opening_balance||0)+purchases.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-purchaseReturns.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-supplierPayments.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.amount||0),0)}
 function renderCustomers(){
  $('cBody').innerHTML=customers.map(x=>{const net=sales.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-salesReturns.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('CUS-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+customerBalance(x.id).toFixed(2)+'</b></td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="primary" onclick="selectCustomerForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="9">لا توجد بيانات</td></tr>';
 }
