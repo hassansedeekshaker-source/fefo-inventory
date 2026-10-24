@@ -264,7 +264,7 @@ async function loadCustomerBalance(){
   const [s,r,f]=await Promise.all([
    sb.from('sales').select('total,withholding_tax').eq('customer_id',id).eq('status','posted'),
    sb.from('sales_returns').select('total').eq('customer_id',id).eq('status','posted'),
-   sb.from('finance_transactions').select('amount').eq('customer_id',id).eq('transaction_type','receipt')
+   sb.from('finance_transactions').select('amount').eq('customer_id',id).eq('transaction_type','receipt').eq('status','posted')
   ]);
   if(s.error||r.error||f.error){console.error('balance query',s.error,r.error,f.error);return;}
   const sales=(s.data||[]).reduce((a,x)=>a+Number(x.total||0)-Number(x.withholding_tax||0),0);
