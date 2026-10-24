@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الخزائن والبنوك | شاشة موحدة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#18243a;color:#fff;padding:17px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+main{max-width:1350px;margin:20px auto;padding:0 15px}.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px #0001;margin-bottom:14px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{border:1px solid #dce2ec;border-radius:9px;padding:11px 15px;background:#fff;color:#18243a;cursor:pointer;font:inherit}.tab.active{background:#18243a;color:#fff}
+.frame-wrap{padding:0;overflow:hidden}iframe{display:block;width:100%;height:calc(100vh - 230px);min-height:650px;border:0;background:#f4f6fa}
+a.back{color:#fff;text-decoration:none;border:1px solid #ffffff55;border-radius:8px;padding:8px 12px}
+.note{font-size:13px;color:#667085;margin:0 0 12px}
+@media(max-width:600px){header{padding:14px}iframe{height:calc(100vh - 270px);min-height:650px}.tab{flex:1}}
+</style></head>
+<body>
+<header><b>🏦 الخزائن والبنوك</b><a class="back" href="accounting.html">← الرئيسية</a></header>
+<main>
+<section class="card"><h2 style="margin:0 0 12px">إدارة الخزائن والبنوك</h2><p class="note">كل الوظائف المالية في مكان واحد. اختر الوظيفة من التبويبات التالية؛ الحركات والقيود تظل محفوظة في شاشاتها الحالية.</p>
+<nav class="tabs" aria-label="وظائف الخزائن والبنوك">
+<button class="tab active" data-page="cash-banks.html">الأرصدة</button>
+<button class="tab" data-page="finance-statement.html">كشف الحساب</button>
+<button class="tab" data-page="finance-transfers.html">التحويلات</button>
+<button class="tab" data-page="finance-vouchers.html">القبض والصرف</button>
+</nav></section>
+<section class="card frame-wrap"><iframe id="work" title="وظيفة الخزائن والبنوك" src="cash-banks.html"></iframe></section>
+</main>
+<script>
+const frame=document.getElementById('work'),tabs=[...document.querySelectorAll('.tab')];
+tabs.forEach(tab=>tab.addEventListener('click',()=>{tabs.forEach(t=>t.classList.toggle('active',t===tab));frame.src=tab.dataset.page;}));
+</script>
+</body></html>
