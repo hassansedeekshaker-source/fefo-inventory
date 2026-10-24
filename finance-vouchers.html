@@ -11,7 +11,7 @@
 <div class="field" style="grid-column:span 2"><label>البيان</label><input id="notes" placeholder="مثال: تحصيل فاتورة / سداد مورد"></div>
 </div>
 <div class="note">رقم الحركة يُنشأ تلقائيًا عند الحفظ، ولا يؤثر على الأرصدة إلا بعد الترحيل.</div>
-<div class="actions"><button class="primary" onclick="save()">💾 حفظ كمسودة</button><a href="cash-banks.html">🏦 الخزائن والبنوك</a><a href="accounting.html">← الرئيسية</a></div>
+<div class="actions"><button class="primary" onclick="save()">💾 حفظ كمسودة</button><a href="accounting.html">← الرئيسية</a></div>
 <div id="msg" class="msg">الحركات المحفوظة هنا مسودات، ولن تؤثر على الأرصدة أو الحسابات حتى يتم ترحيلها.</div></div>
 <div class="card"><h3 style="margin-top:0">آخر الحركات</h3><div class="table-wrap"><table><thead><tr><th>رقم الحركة</th><th>التاريخ</th><th>النوع</th><th>الحساب</th><th>الطرف</th><th>المبلغ</th><th>الحالة</th><th>البيان / الإجراء</th></tr></thead><tbody id="list"></tbody></table></div></div>
 </main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
