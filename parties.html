@@ -183,9 +183,12 @@ function selectParty(type,id){
   : purchases.filter(a=>a.supplier_id===id).reduce((z,a)=>z+Number(a.total||0),0)-purchaseReturns.filter(a=>a.supplier_id===id).reduce((z,a)=>z+Number(a.total||0),0);
  const qp=isC?'customer_id='+encodeURIComponent(id):'supplier_id='+encodeURIComponent(id);
  const base='posted.html?'+qp+'&';
+ const financeAction=isC
+  ? 'finance-vouchers.html?type=receipt&party_type=customer&customer_id='+encodeURIComponent(id)+'&return_to=parties.html'
+  : 'finance-vouchers.html?type=payment&party_type=supplier&supplier_id='+encodeURIComponent(id)+'&return_to=parties.html';
  const buttons=isC
-  ? [['📒 كشف حساب','accounts.html?'+qp, ''],['💰 مبيعات',base+'type=sale',salesN],['💎 تحصيلات',base+'type=receipt',receiptsN],['🧾 سداد',base+'type=payment',paymentsN]]
-  : [['📒 كشف حساب','accounts.html?'+qp, ''],['🛒 مشتريات',base+'type=purchase',purN],['💎 سداد',base+'type=payment',paymentsN],['🧾 تحصيلات',base+'type=receipt',receiptsN]];
+  ? [['📒 كشف حساب','accounts.html?'+qp, ''],['💰 تسجيل تحصيل',financeAction,''],['🧾 المبيعات',base+'type=sale',salesN]]
+  : [['📒 كشف حساب','accounts.html?'+qp, ''],['💸 تسجيل سداد',financeAction,''],['🛒 المشتريات',base+'type=purchase',purN]];
  const more=isC
   ? [['خصومات مبيعات',base+'type=sale_return',saleRetN],['ترحيل المبيعات',base+'type=sale',salesN],['فواتير محفوظة',base+'type=sale',0]]
   : [['خصومات مشتريات',base+'type=purchase_return',purRetN],['ترحيل المشتريات',base+'type=purchase',purN],['فواتير محفوظة',base+'type=purchase',0]];
