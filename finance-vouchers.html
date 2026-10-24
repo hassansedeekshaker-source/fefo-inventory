@@ -22,7 +22,7 @@ const requestedType=params.get('type');
 const requestedPartyType=params.get('party_type');
 const requestedCustomerId=params.get('customer_id');
 const requestedSupplierId=params.get('supplier_id');
-const returnTo=['parties.html','sales-invoice-v19.html','purchase-save.html','accounting.html'].includes(params.get('return_to'))?params.get('return_to'):'accounting.html';
+const returnTo=['parties.html','sales-invoice-v19.html','purchase-save.html','sales.html','purchases.html','accounting.html'].includes(params.get('return_to'))?params.get('return_to'):'accounting.html';
 $('date').value=new Date().toISOString().slice(0,10);let accounts=[],customers=[],suppliers=[],partyMap={},selectedPartyId='';
 async function init(){let [a,c,s]=await Promise.all([sb.from('finance_accounts').select('id,name_ar,code').eq('active',true).order('code'),sb.from('customers').select('id,name').order('name'),sb.from('suppliers').select('id,name').order('name')]);if(a.error||c.error||s.error){$('msg').textContent='تعذر تحميل البيانات: '+(a.error||c.error||s.error).message;return}accounts=a.data||[];customers=c.data||[];suppliers=s.data||[];$('account').innerHTML=accounts.map(x=>'<option value="'+x.id+'">'+esc(x.name_ar)+'</option>').join('');
  if(requestedType==='receipt'||requestedType==='payment')$('type').value=requestedType;
