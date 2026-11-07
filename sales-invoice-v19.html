@@ -155,21 +155,44 @@ function printItemsOnly(){document.body.classList.add('print-items');closePrintC
 function msg(t,c){$('msg').className='msg '+c;$('msg').textContent=t}
 function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 async function start(){
+ const editMode=!!editingSaleId;
+ if(editMode){
+  document.querySelector('.title h1').textContent='جارٍ تحميل الفاتورة المحفوظة...';
+  document.querySelector('.save').textContent='💾 حفظ التعديلات';
+  $('invoiceNo').value='جارٍ التحميل...';
+  msg('جارٍ تحميل بيانات المسودة، انتظر لحظة...','ok');
+ }
  try{
-  const s=await sb.auth.getSession();if(!s.data.session){location.href='accounting.html';return}user=s.data.session.user;
+  const sessionResult=await sb.auth.getSession();
+  if(sessionResult.error)throw sessionResult.error;
+  if(!sessionResult.data.session){if(editMode)throw new Error('انتهت جلسة الدخول؛ سجّل الدخول ثم افتح المسودة مرة أخرى.');location.href='accounting.html';return}
+  user=sessionResult.data.session.user;
   const [a,b,c,d]=await Promise.all([
    sb.from('inv_items').select('id,sku,egs_code,name_ar,unit_id,purchase_price,sale_price,tax_rate,tax_treatment,eta_tax_type,eta_tax_subtype').eq('active',true).order('name_ar'),
    sb.from('inv_units').select('id,name_ar').order('name_ar'),
    sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
    sb.from('customers').select('id,name,code,opening_balance,withholding_enabled,withholding_rate,customer_type,tax_registered,tax_registration_number').order('name')
   ]);
+  if(a.error)throw new Error('تعذر تحميل دليل الأصناف: '+a.error.message);
+  if(b.error)throw new Error('تعذر تحميل الوحدات: '+b.error.message);
+  if(c.error)throw new Error('تعذر تحميل المخازن: '+c.error.message);
+  if(d.error)throw new Error('تعذر تحميل العملاء: '+d.error.message);
   items=a.data||[];units=b.data||[];sites=c.data||[];customers=d.data||[];
   $('date').value=new Date().toISOString().slice(0,10);
   $('site').innerHTML=opt(sites,x=>x.name_ar);if(sites.length===1)$('site').value=sites[0].id;$('customer').innerHTML=opt(customers,x=>x.name);
   setupCustomerPicker();
-  if(editingSaleId){await loadDraftForEdit(editingSaleId);document.querySelector('.title h1').textContent='تعديل فاتورة مبيعات محفوظة';document.querySelector('.save').textContent='💾 حفظ التعديلات';}
-  else {addLine();calc();}
- }catch(e){msg(e.message||String(e),'bad')}
+  if(editMode){
+   await loadDraftForEdit(editingSaleId);
+   document.querySelector('.title h1').textContent='تعديل فاتورة مبيعات محفوظة';
+   document.querySelector('.save').textContent='💾 حفظ التعديلات';
+   msg('تم تحميل المسودة. يمكنك تعديلها وحفظ التعديلات.','ok');
+  } else {addLine();calc();}
+ }catch(e){
+  console.error('Sales invoice initialization failed',e);
+  const message='تعذر فتح الفاتورة: '+(e.message||String(e));
+  const box=$('msg');if(box){box.className='msg bad';box.textContent=message;box.style.display='block';}
+  else alert(message);
+ }
 }
 async function loadDraftForEdit(id){
  const h=await sb.from('sales').select('*').eq('id',id).eq('status','draft').maybeSingle();
