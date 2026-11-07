@@ -88,7 +88,7 @@ h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:s
 <script>
 const COMPANY_LOGO='https://hassansedeekshaker-source.github.io/fefo-inventory/company-logo.svg?v=1';
 const SB_URL='https://fyqyodnboryzaejlhdlk.supabase.co',SB_KEY='sb_publishable_7-Gz455HgXsWpS_5jrJ71A_VwHCEho2',sb=supabase.createClient(SB_URL,SB_KEY);
-let user,items=[],units=[],sites=[],customers=[];
+let user,items=[],units=[],sites=[],customers=[],editingSaleId=new URLSearchParams(location.search).get('edit');
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 let printMode='full';
 function showPrintChoice(){$('printChoice').style.display='flex'}
@@ -167,8 +167,35 @@ async function start(){
   $('date').value=new Date().toISOString().slice(0,10);
   $('site').innerHTML=opt(sites,x=>x.name_ar);if(sites.length===1)$('site').value=sites[0].id;$('customer').innerHTML=opt(customers,x=>x.name);
   setupCustomerPicker();
-  addLine();calc();
+  if(editingSaleId){await loadDraftForEdit(editingSaleId);document.querySelector('.title h1').textContent='تعديل فاتورة مبيعات محفوظة';document.querySelector('.save').textContent='💾 حفظ التعديلات';}
+  else {addLine();calc();}
  }catch(e){msg(e.message||String(e),'bad')}
+}
+async function loadDraftForEdit(id){
+ const h=await sb.from('sales').select('*').eq('id',id).eq('status','draft').maybeSingle();
+ if(h.error)throw h.error;if(!h.data)throw new Error('المسودة غير موجودة أو لم تعد في حالة مسودة.');
+ const sale=h.data;
+ $('invoiceNo').value=sale.invoice_no||sale.id.slice(0,8);$('date').value=sale.sale_date||new Date().toISOString().slice(0,10);$('site').value=sale.site_id||'';
+ $('customer').value=String(sale.customer_id||'');const cust=customers.find(x=>String(x.id)===String(sale.customer_id));$('customerSearch').value=cust?.name||sale.eta_customer_name||'';
+ updateEtaCustomerInfo();await loadCustomerBalance();
+ const lr=await sb.from('sale_lines').select('*').eq('sale_id',id);
+ if(lr.error)throw lr.error;$('lines').innerHTML='';
+ for(const line of (lr.data||[])){
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="stock ro" value="0.00" readonly></td><td><input class="cost ro" value="0.00" readonly></td><td class="lineCost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0"></td><td class="discValue">0.00</td><td class="lineValue">0.00</td><td><input class="tax ro" value="0.00" readonly></td><td class="taxValue">0.00</td><td class="lineTotal">0.00</td><td><button onclick="this.closest(\\'tr\\').remove();calc()">🗑</button></td>';
+  $('lines').appendChild(tr);tr.dataset.itemId=line.item_id;
+  const item=items.find(x=>String(x.id)===String(line.item_id));
+  tr.querySelector('.item-search').value=item?(item.name_ar+' — '+(item.sku||'')):'صنف غير موجود في دليل الأصناف';
+  tr.querySelector('.unit').textContent=units.find(u=>u.id===item?.unit_id)?.name_ar||'-';
+  tr.querySelector('.qty').value=Number(line.qty||0);tr.querySelector('.price').value=Number(line.unit_price||0);
+  tr.querySelector('.disc').value=Number(line.discount_rate||0);tr.querySelector('.tax').value=(Number(line.tax_rate||0)*100).toFixed(2);
+  tr.dataset.taxTreatment=line.tax_treatment||item?.tax_treatment||((Number(line.tax_rate||0)>0)?'taxable':'');
+  tr.dataset.etaTaxType=line.eta_tax_type||item?.eta_tax_type||'';tr.dataset.etaTaxSubtype=line.eta_tax_subtype||item?.eta_tax_subtype||'';
+  tr.querySelectorAll('input:not(.item-search)').forEach(x=>x.oninput=calc);
+  tr.querySelector('.qty').addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();let next=tr.nextElementSibling;if(!next){addLine();next=tr.nextElementSibling}next?.querySelector('.item-search')?.focus()});
+  setupItemPicker(tr,()=>itemChanged(tr));await loadStock(tr);
+ }
+ if(!(lr.data||[]).length)addLine();calc();
 }
 function setupCustomerPicker(){
  const input=$('customerSearch'),box=$('customerResults');
@@ -312,11 +339,18 @@ async function saveDraft(){
   const customer=customers.find(x=>String(x.id)===String($('customer').value));
   if(!customer) return msg('تعذر قراءة بيانات العميل؛ أعد اختياره.','bad');
   if(customer.tax_registered&&!String(customer.tax_registration_number||'').trim()) return msg('العميل محدد كمسجل ضريبيًا لكن رقم التسجيل غير موجود. راجع بطاقة العميل.','bad');
-  const h=await sb.from('sales').insert({invoice_no:$('invoiceNo').value==='New'?null:$('invoiceNo').value||null,customer_id:+$('customer').value,site_id:$('site').value,sale_date:$('date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:withholdingTax,eta_customer_name:customer.name,eta_customer_type:customer.customer_type||null,eta_customer_tax_registered:!!customer.tax_registered,eta_customer_tax_number:customer.tax_registration_number||null}).select().single();
-  if(h.error)throw h.error;
-  const l=await sb.from('sale_lines').insert(lines.map(x=>({sale_id:h.data.id,item_id:x.item_id,eta_item_code:x.eta_item_code,tax_treatment:x.tax_treatment,eta_tax_type:x.eta_tax_type,eta_tax_subtype:x.eta_tax_subtype,qty:x.qty,unit_price:x.price,unit_cost:x.unit_cost,discount_rate:x.discount_rate,discount_amount:x.discount_amount,tax_rate:x.tax_rate,tax_amount:x.tax_amount})));
+  let saleId=editingSaleId;
+  if(editingSaleId){
+   const u=await sb.from('sales').update({customer_id:+$('customer').value,site_id:$('site').value,sale_date:$('date').value,subtotal,tax,total,withholding_tax:withholdingTax,eta_customer_name:customer.name,eta_customer_type:customer.customer_type||null,eta_customer_tax_registered:!!customer.tax_registered,eta_customer_tax_number:customer.tax_registration_number||null}).eq('id',editingSaleId).eq('status','draft').select('id').maybeSingle();
+   if(u.error)throw u.error;if(!u.data)throw new Error('لم يتم تحديث الفاتورة؛ تأكد أنها ما زالت مسودة.');
+   const del=await sb.from('sale_lines').delete().eq('sale_id',editingSaleId);if(del.error)throw del.error;
+  }else{
+   const h=await sb.from('sales').insert({invoice_no:$('invoiceNo').value==='New'?null:$('invoiceNo').value||null,customer_id:+$('customer').value,site_id:$('site').value,sale_date:$('date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:withholdingTax,eta_customer_name:customer.name,eta_customer_type:customer.customer_type||null,eta_customer_tax_registered:!!customer.tax_registered,eta_customer_tax_number:customer.tax_registration_number||null}).select().single();
+   if(h.error)throw h.error;saleId=h.data.id;
+  }
+  const l=await sb.from('sale_lines').insert(lines.map(x=>({sale_id:saleId,item_id:x.item_id,eta_item_code:x.eta_item_code,tax_treatment:x.tax_treatment,eta_tax_type:x.eta_tax_type,eta_tax_subtype:x.eta_tax_subtype,qty:x.qty,unit_price:x.price,unit_cost:x.unit_cost,discount_rate:x.discount_rate,discount_amount:x.discount_amount,tax_rate:x.tax_rate,tax_amount:x.tax_amount})));
   if(l.error)throw l.error;
-  $('invoiceNo').value=h.data.invoice_no||h.data.id.slice(0,8);msg('تم حفظ الفاتورة كمسودة ✓ — لم يتم خصم المخزون حتى الترحيل','ok');
+  $('invoiceNo').value=$('invoiceNo').value==='New'?saleId.slice(0,8):$('invoiceNo').value;msg(editingSaleId?'تم حفظ تعديلات المسودة ✓ — لم يتم خصم المخزون':'تم حفظ الفاتورة كمسودة ✓ — لم يتم خصم المخزون حتى الترحيل','ok');
  }catch(e){msg(e.message||String(e),'bad')}
 }
 start();
