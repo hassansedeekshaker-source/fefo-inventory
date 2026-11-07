@@ -51,13 +51,16 @@ table{width:100%;border-collapse:collapse;margin-top:15px}th,td{padding:10px;bor
 <div class="field"><label>اسم العميل *</label><input id="cName"></div>
 <div class="field"><label>رقم الهاتف</label><input id="cPhone"></div>
 <div class="field"><label>العنوان</label><input id="cAddress"></div>
+<div class="field"><label>نوع العميل</label><select id="cType"><option value="">-- اختر --</option><option value="company">شركة / منشأة</option><option value="person">فرد</option></select></div>
+<div class="field"><label>مسجل ضريبيًا؟</label><select id="cTaxRegistered"><option value="no">غير مسجل / غير محدد</option><option value="yes">مسجل ضريبيًا</option></select></div>
+<div class="field"><label>رقم التسجيل الضريبي</label><input id="cTaxNumber" inputmode="numeric" placeholder="أدخل الرقم كما هو مسجل"></div>
 <div class="field"><label>معفى من خصم المنبع؟</label><select id="cWithhold"><option value="no">لا</option><option value="yes">نعم</option></select></div>
 <div class="field"><label>نسبة خصم المنبع %</label><input id="cRate" type="number" min="0" max="100" step=".01" value="0"></div>
 <div class="field"><label>الرصيد الافتتاحي</label><input id="cOpening" type="number" min="0" step=".01" value="0"></div><div class="field"><label>ملاحظات</label><textarea id="cNotes"></textarea></div>
 </div>
 <div class="row" style="margin-top:12px"><button class="success" id="cSave" onclick="saveCustomer()">➕ إضافة العميل</button><button onclick="clearCustomer()">جديد</button></div>
 <div id="cMsg"></div>
-<table><thead><tr><th>الكود</th><th>اسم العميل</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>خصم المنبع</th><th>الإجراء</th></tr></thead><tbody id="cBody"></tbody></table>
+<table><thead><tr><th>الكود</th><th>اسم العميل</th><th>الهاتف</th><th>العنوان</th><th>الرصيد الافتتاحي</th><th>صافي الفواتير المرحلة</th><th>الرصيد الحالي</th><th>التسجيل الضريبي</th><th>رقم التسجيل الضريبي</th><th>خصم المنبع</th><th>الإجراء</th></tr></thead><tbody id="cBody"></tbody></table>
 </section>
 
 <section id="suppliers" class="panel"><div id="supplierPicker" class="card" style="margin-bottom:14px">
@@ -166,7 +169,7 @@ async function loadAll(){
 function customerBalance(id){return Number(customers.find(x=>x.id===id)?.opening_balance||0)+sales.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-salesReturns.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.total||0),0)-customerReceipts.filter(x=>x.customer_id===id).reduce((a,x)=>a+Number(x.amount||0),0)}
 function supplierBalance(id){return Number(suppliers.find(x=>x.id===id)?.opening_balance||0)+purchases.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-purchaseReturns.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.total||0),0)-supplierPayments.filter(x=>x.supplier_id===id).reduce((a,x)=>a+Number(x.amount||0),0)}
 function renderCustomers(){
- $('cBody').innerHTML=customers.map(x=>{const net=sales.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-salesReturns.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('CUS-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+customerBalance(x.id).toFixed(2)+'</b></td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="primary" onclick="selectCustomerForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="9">لا توجد بيانات</td></tr>';
+ $('cBody').innerHTML=customers.map(x=>{const net=sales.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-salesReturns.filter(y=>y.customer_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('CUS-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+customerBalance(x.id).toFixed(2)+'</b></td><td>'+(x.tax_registered?'مسجل':'غير مسجل')+'</td><td>'+esc(x.tax_registration_number||'-')+'</td><td>'+((x.withholding_enabled?'نعم':'لا')+(x.withholding_enabled&&Number(x.withholding_rate)>0?' — '+Number(x.withholding_rate).toFixed(2)+'%':''))+'</td><td><button class="primary" onclick="selectCustomerForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editCustomer('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="11">لا توجد بيانات</td></tr>';
 }
 function renderSuppliers(){
  $('sBody').innerHTML=suppliers.map(x=>{const net=purchases.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0)-purchaseReturns.filter(y=>y.supplier_id===x.id).reduce((a,y)=>a+Number(y.total||0),0);return '<tr><td>'+esc(x.code||('SUP-'+String(x.id).padStart(6,'0')))+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.phone||'-')+'</td><td>'+esc(x.address||'-')+'</td><td>'+Number(x.opening_balance||0).toFixed(2)+'</td><td>'+net.toFixed(2)+'</td><td><b>'+supplierBalance(x.id).toFixed(2)+'</b></td><td><button class="primary" onclick="selectSupplierForLedger('+x.id+')">فتح الحساب</button> <button class="edit" onclick="editSupplier('+x.id+')">✏️ تعديل</button></td></tr>'}).join('')||'<tr><td colspan="8">لا توجد بيانات</td></tr>';
@@ -383,7 +386,11 @@ function exportSupplierLedgerExcel(){
 function closeSupplierLedger(){supplierLedgerRows=[];supplierLedgerName="";$("supplierLedger").dataset.open="0";$("supplierLedger").style.display="none"}
 async function saveCustomer(){
  const name=$('cName').value.trim();if(!name){$('cMsg').innerHTML='<div class="msg bad">اكتب اسم العميل.</div>';return}
- const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,opening_balance:Number($('cOpening').value||0),withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0)};
+ const taxRegistered=$('cTaxRegistered').value==='yes';
+ const taxNumber=$('cTaxNumber').value.trim();
+ const customerType=$('cType').value||null;
+ if(taxRegistered&&(!taxNumber||!customerType)){$('cMsg').innerHTML='<div class="msg bad">للعميل المسجل ضريبيًا، أدخل نوع العميل ورقم التسجيل الضريبي.</div>';return}
+ const payload={name,phone:$('cPhone').value.trim()||null,address:$('cAddress').value.trim()||null,notes:$('cNotes').value.trim()||null,opening_balance:Number($('cOpening').value||0),withholding_enabled:$('cWithhold').value==='yes',withholding_rate:Number($('cRate').value||0),customer_type:customerType,tax_registered:taxRegistered,tax_registration_number:taxNumber||null};
  let r=editingCustomer?await sb.from('customers').update(payload).eq('id',editingCustomer):await sb.from('customers').insert(payload);
  if(r.error){$('cMsg').innerHTML='<div class="msg bad">'+esc(r.error.message)+'</div>';return}
  $('cMsg').innerHTML='<div class="msg ok">'+(editingCustomer?'تم تعديل بيانات العميل.':'تم إضافة العميل بنجاح.')+'</div>';clearCustomer();await loadCustomers();
@@ -397,13 +404,13 @@ async function saveSupplier(){
 }
 async function editCustomer(id){
  const r=await sb.from('customers').select('*').eq('id',id).single();if(r.error){alert(r.error.message);return}
- const x=r.data;editingCustomer=id;$('cName').value=x.name||'';$('cPhone').value=x.phone||'';$('cAddress').value=x.address||'';$('cNotes').value=x.notes||'';$('cOpening').value=Number(x.opening_balance||0);$('cWithhold').value=x.withholding_enabled?'yes':'no';$('cRate').value=Number(x.withholding_rate||0);$('cSave').textContent='💾 حفظ تعديل العميل';switchTab('customers');window.scrollTo({top:0,behavior:'smooth'});
+ const x=r.data;editingCustomer=id;$('cName').value=x.name||'';$('cPhone').value=x.phone||'';$('cAddress').value=x.address||'';$('cType').value=x.customer_type||'';$('cTaxRegistered').value=x.tax_registered?'yes':'no';$('cTaxNumber').value=x.tax_registration_number||'';$('cNotes').value=x.notes||'';$('cOpening').value=Number(x.opening_balance||0);$('cWithhold').value=x.withholding_enabled?'yes':'no';$('cRate').value=Number(x.withholding_rate||0);$('cSave').textContent='💾 حفظ تعديل العميل';switchTab('customers');window.scrollTo({top:0,behavior:'smooth'});
 }
 async function editSupplier(id){
  const r=await sb.from('suppliers').select('*').eq('id',id).single();if(r.error){alert(r.error.message);return}
  const x=r.data;editingSupplier=id;$('sName').value=x.name||'';$('sPhone').value=x.phone||'';$('sAddress').value=x.address||'';$('sNotes').value=x.notes||'';$('sOpening').value=Number(x.opening_balance||0);$('sSave').textContent='💾 حفظ تعديل المورد';switchTab('suppliers');window.scrollTo({top:0,behavior:'smooth'});
 }
-function clearCustomer(){$('cName').value='';$('cPhone').value='';$('cAddress').value='';$('cOpening').value='0';$('cNotes').value='';$('cWithhold').value='no';$('cRate').value='0';editingCustomer=null;$('cSave').textContent='➕ إضافة العميل'}
+function clearCustomer(){$('cName').value='';$('cPhone').value='';$('cAddress').value='';$('cType').value='';$('cTaxRegistered').value='no';$('cTaxNumber').value='';$('cOpening').value='0';$('cNotes').value='';$('cWithhold').value='no';$('cRate').value='0';editingCustomer=null;$('cSave').textContent='➕ إضافة العميل'}
 function clearSupplier(){$('sName').value='';$('sPhone').value='';$('sAddress').value='';$('sOpening').value='0';$('sNotes').value='';editingSupplier=null;$('sSave').textContent='➕ إضافة المورد'}
 sb.auth.getSession().then(r=>r.data.session?start():$('status').textContent='غير مسجل الدخول');
 </script>
