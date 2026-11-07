@@ -156,69 +156,116 @@ function msg(t,c){$('msg').className='msg '+c;$('msg').textContent=t}
 function opt(a,label){return '<option value="">-- اختر --</option>'+a.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('')}
 async function start(){
  const editMode=!!editingSaleId;
+ const heading=document.querySelector('.title h1');
  if(editMode){
-  document.querySelector('.title h1').textContent='جارٍ تحميل الفاتورة المحفوظة...';
+  heading.textContent='جارٍ تحميل الفاتورة المحفوظة...';
   document.querySelector('.save').textContent='💾 حفظ التعديلات';
   $('invoiceNo').value='جارٍ التحميل...';
-  msg('جارٍ تحميل بيانات المسودة، انتظر لحظة...','ok');
+  msg('جارٍ تحميل بيانات المسودة...','ok');
  }
  try{
   const sessionResult=await sb.auth.getSession();
   if(sessionResult.error)throw sessionResult.error;
-  if(!sessionResult.data.session){if(editMode)throw new Error('انتهت جلسة الدخول؛ سجّل الدخول ثم افتح المسودة مرة أخرى.');location.href='accounting.html';return}
+  if(!sessionResult.data.session)throw new Error('انتهت جلسة الدخول. سجّل الدخول ثم افتح الفاتورة مرة أخرى.');
   user=sessionResult.data.session.user;
-  const [a,b,c,d]=await Promise.all([
+
+  // In edit mode, load the saved header and its lines first. Catalog lookups must
+  // never prevent an existing draft from being displayed.
+  let savedSale=null, savedLines=[];
+  if(editMode){
+   const h=await sb.from('sales').select('*').eq('id',editingSaleId).eq('status','draft').maybeSingle();
+   if(h.error)throw new Error('تعذر قراءة رأس الفاتورة: '+h.error.message);
+   if(!h.data)throw new Error('الفاتورة غير موجودة أو لم تعد مسودة.');
+   savedSale=h.data;
+   const lr=await sb.from('sale_lines').select('*').eq('sale_id',editingSaleId);
+   if(lr.error)throw new Error('تعذر قراءة بنود الفاتورة: '+lr.error.message);
+   savedLines=lr.data||[];
+  }
+
+  const [a,b,d,cx]=await Promise.all([
    sb.from('inv_items').select('id,sku,egs_code,name_ar,unit_id,purchase_price,sale_price,tax_rate,tax_treatment,eta_tax_type,eta_tax_subtype').eq('active',true).order('name_ar'),
    sb.from('inv_units').select('id,name_ar').order('name_ar'),
-   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
-   sb.from('customers').select('id,name,code,opening_balance,withholding_enabled,withholding_rate,customer_type,tax_registered,tax_registration_number').order('name')
+   sb.from('customers').select('id,name,code,opening_balance,withholding_enabled,withholding_rate,customer_type,tax_registered,tax_registration_number').order('name'),
+   sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar')
   ]);
-  if(a.error)throw new Error('تعذر تحميل دليل الأصناف: '+a.error.message);
-  if(b.error)throw new Error('تعذر تحميل الوحدات: '+b.error.message);
-  if(c.error)throw new Error('تعذر تحميل المخازن: '+c.error.message);
+  // Catalog errors are reported, but they do not blank out a saved draft.
+  items=a.error?[]:(a.data||[]);
+  units=b.error?[]:(b.data||[]);
+  customers=d.error?[]:(d.data||[]);
+  sites=cx.error?[]:(cx.data||[]);
   if(d.error)throw new Error('تعذر تحميل العملاء: '+d.error.message);
-  items=a.data||[];units=b.data||[];sites=c.data||[];customers=d.data||[];
+  if(cx.error && !editMode)throw new Error('تعذر تحميل المخازن: '+cx.error.message);
   $('date').value=new Date().toISOString().slice(0,10);
-  $('site').innerHTML=opt(sites,x=>x.name_ar);if(sites.length===1)$('site').value=sites[0].id;$('customer').innerHTML=opt(customers,x=>x.name);
+  $('site').innerHTML=opt(sites,x=>x.name_ar);
+  if(sites.length===1)$('site').value=sites[0].id;
+  $('customer').innerHTML=opt(customers,x=>x.name);
   setupCustomerPicker();
+
   if(editMode){
-   await loadDraftForEdit(editingSaleId);
-   document.querySelector('.title h1').textContent='تعديل فاتورة مبيعات محفوظة';
+   await renderSavedDraft(savedSale,savedLines);
+   heading.textContent='تعديل فاتورة مبيعات محفوظة';
    document.querySelector('.save').textContent='💾 حفظ التعديلات';
-   msg('تم تحميل المسودة. يمكنك تعديلها وحفظ التعديلات.','ok');
-  } else {addLine();calc();}
+   const warnings=[];
+   if(a.error)warnings.push('دليل الأصناف لم يكتمل: '+a.error.message);
+   if(b.error)warnings.push('الوحدات لم تكتمل: '+b.error.message);
+   if(cx.error)warnings.push('تعذر تحميل قائمة المخازن: '+cx.error.message);
+   msg(warnings.length?'تم تحميل بيانات الفاتورة، مع تنبيه: '+warnings.join(' | '):'تم تحميل المسودة وبنودها. يمكنك تعديلها وحفظ التعديلات.','ok');
+  }else{addLine();calc();}
  }catch(e){
   console.error('Sales invoice initialization failed',e);
-  const message='تعذر فتح الفاتورة: '+(e.message||String(e));
-  const box=$('msg');if(box){box.className='msg bad';box.textContent=message;box.style.display='block';}
-  else alert(message);
+  heading.textContent=editMode?'تعذر تحميل الفاتورة':'فاتورة مبيعات';
+  const box=$('msg');box.className='msg bad';box.textContent='تعذر فتح الفاتورة: '+(e.message||String(e));box.style.display='block';
  }
 }
-async function loadDraftForEdit(id){
- const h=await sb.from('sales').select('*').eq('id',id).eq('status','draft').maybeSingle();
- if(h.error)throw h.error;if(!h.data)throw new Error('المسودة غير موجودة أو لم تعد في حالة مسودة.');
- const sale=h.data;
- $('invoiceNo').value=sale.invoice_no||sale.id.slice(0,8);$('date').value=sale.sale_date||new Date().toISOString().slice(0,10);$('site').value=sale.site_id||'';
- $('customer').value=String(sale.customer_id||'');const cust=customers.find(x=>String(x.id)===String(sale.customer_id));$('customerSearch').value=cust?.name||sale.eta_customer_name||'';
- updateEtaCustomerInfo();await loadCustomerBalance();
- const lr=await sb.from('sale_lines').select('*').eq('sale_id',id);
- if(lr.error)throw lr.error;$('lines').innerHTML='';
- for(const line of (lr.data||[])){
+async function renderSavedDraft(sale,lines){
+ $('invoiceNo').value=sale.invoice_no||sale.id.slice(0,8);
+ $('date').value=sale.sale_date||new Date().toISOString().slice(0,10);
+ if(sale.site_id && !$('site').querySelector('option[value="'+CSS.escape(String(sale.site_id))+'"]')){
+  $('site').add(new Option('المخزن المرتبط بالفاتورة',sale.site_id));
+ }
+ $('site').value=sale.site_id||'';
+ $('customer').value=String(sale.customer_id||'');
+ const cust=customers.find(x=>String(x.id)===String(sale.customer_id));
+ $('customerSearch').value=cust?.name||sale.eta_customer_name||'';
+ updateEtaCustomerInfo();
+ $('lines').innerHTML='';
+ for(const line of lines){
+  let item=items.find(x=>String(x.id)===String(line.item_id));
+  if(!item && line.item_id){
+   const ir=await sb.from('inv_items').select('id,sku,egs_code,name_ar,unit_id,purchase_price,sale_price,tax_rate,tax_treatment,eta_tax_type,eta_tax_subtype').eq('id',line.item_id).maybeSingle();
+   if(!ir.error)item=ir.data||null;
+   if(item && !items.some(x=>String(x.id)===String(item.id)))items.push(item);
+  }
   const tr=document.createElement('tr');
-  tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="stock ro" value="0.00" readonly></td><td><input class="cost ro" value="0.00" readonly></td><td class="lineCost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0"></td><td class="discValue">0.00</td><td class="lineValue">0.00</td><td><input class="tax ro" value="0.00" readonly></td><td class="taxValue">0.00</td><td class="lineTotal">0.00</td><td><button onclick="this.closest(\\'tr\\').remove();calc()">🗑</button></td>';
-  $('lines').appendChild(tr);tr.dataset.itemId=line.item_id;
-  const item=items.find(x=>String(x.id)===String(line.item_id));
-  tr.querySelector('.item-search').value=item?(item.name_ar+' — '+(item.sku||'')):'صنف غير موجود في دليل الأصناف';
-  tr.querySelector('.unit').textContent=units.find(u=>u.id===item?.unit_id)?.name_ar||'-';
-  tr.querySelector('.qty').value=Number(line.qty||0);tr.querySelector('.price').value=Number(line.unit_price||0);
-  tr.querySelector('.disc').value=Number(line.discount_rate||0);tr.querySelector('.tax').value=(Number(line.tax_rate||0)*100).toFixed(2);
+  tr.innerHTML='<td><div class="item-picker"><input class="item-search" type="text" placeholder="ابحث بالكود أو الاسم" autocomplete="off"><div class="item-results"></div></div></td><td class="unit">-</td><td><input class="qty" type="number" min=".001" step=".001" value="1"></td><td><input class="price" type="number" min="0" step=".01" value="0"></td><td><input class="stock ro" value="0.00" readonly></td><td><input class="cost ro" value="0.00" readonly></td><td class="lineCost">0.00</td><td><input class="disc" type="number" min="0" max="100" step=".01" value="0"></td><td class="discValue">0.00</td><td class="lineValue">0.00</td><td><input class="tax ro" value="0.00" readonly></td><td class="taxValue">0.00</td><td class="lineTotal">0.00</td><td><button type="button" onclick="this.closest(\'tr\').remove();calc()">🗑</button></td>';
+  $('lines').appendChild(tr);
+  tr.dataset.itemId=line.item_id||'';
+  tr.querySelector('.item-search').value=item?(item.name_ar+' — '+(item.sku||'')):'الصنف المرتبط بالفاتورة (تعذر تحميل بطاقة الصنف)';
+  tr.querySelector('.unit').textContent=units.find(u=>String(u.id)===String(item?.unit_id))?.name_ar||'-';
+  tr.querySelector('.qty').value=Number(line.qty||0);
+  tr.querySelector('.price').value=Number(line.unit_price||0);
+  tr.querySelector('.disc').value=Number(line.discount_rate||0);
+  tr.querySelector('.tax').value=(Number(line.tax_rate||0)*100).toFixed(2);
   tr.dataset.taxTreatment=line.tax_treatment||item?.tax_treatment||((Number(line.tax_rate||0)>0)?'taxable':'');
-  tr.dataset.etaTaxType=line.eta_tax_type||item?.eta_tax_type||'';tr.dataset.etaTaxSubtype=line.eta_tax_subtype||item?.eta_tax_subtype||'';
+  tr.dataset.etaTaxType=line.eta_tax_type||item?.eta_tax_type||'';
+  tr.dataset.etaTaxSubtype=line.eta_tax_subtype||item?.eta_tax_subtype||'';
   tr.querySelectorAll('input:not(.item-search)').forEach(x=>x.oninput=calc);
   tr.querySelector('.qty').addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();let next=tr.nextElementSibling;if(!next){addLine();next=tr.nextElementSibling}next?.querySelector('.item-search')?.focus()});
-  setupItemPicker(tr,()=>itemChanged(tr));await loadStock(tr);
+  setupItemPicker(tr,()=>itemChanged(tr));
+  // Display saved unit cost immediately; stock refresh is secondary.
+  tr.querySelector('.cost').value=Number(line.unit_cost||item?.purchase_price||0).toFixed(2);
+  const q=Number(line.qty||0),p=Number(line.unit_price||0),disc=Number(line.discount_rate||0);
+  const gross=q*p,discount=gross*disc/100,net=gross-discount,tax=net*Number(line.tax_rate||0);
+  tr.querySelector('.lineCost').textContent=(q*Number(line.unit_cost||0)).toFixed(2);
+  tr.querySelector('.discValue').textContent=discount.toFixed(2);
+  tr.querySelector('.lineValue').textContent=net.toFixed(2);
+  tr.querySelector('.taxValue').textContent=Number(line.tax_amount??tax).toFixed(2);
+  tr.querySelector('.lineTotal').textContent=(net+Number(line.tax_amount??tax)).toFixed(2);
+  if(item && $('site').value)loadStock(tr);
  }
- if(!(lr.data||[]).length)addLine();calc();
+ if(!lines.length)addLine();
+ calc();
+ if(!cust && sale.customer_id)msg('تم تحميل البنود، لكن العميل غير ظاهر في قائمة العملاء.','bad');
 }
 function setupCustomerPicker(){
  const input=$('customerSearch'),box=$('customerResults');
