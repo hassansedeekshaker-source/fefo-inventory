@@ -53,6 +53,7 @@ h1{margin:0;font-size:34px;font-weight:500}.title{display:flex;justify-content:s
 <div class="customer-picker">
 <input id="customerSearch" type="text" placeholder="ابحث باسم العميل أو الكود" autocomplete="off">
 <div id="customerResults" class="item-results"></div>
+<div id="etaCustomerInfo" style="margin-top:5px;font-size:12px;color:#667085">حالة التسجيل الضريبي للعميل ستظهر هنا.</div>
 <select id="customer" style="display:none"></select>
 </div></label></div>
 <div class="field"><label>الرصيد<input id="balance" class="ro" value="0.00" readonly></label></div>
@@ -160,7 +161,7 @@ async function start(){
    sb.from('inv_items').select('id,name_ar,unit_id,purchase_price,sale_price,tax_rate').eq('active',true).order('name_ar'),
    sb.from('inv_units').select('id,name_ar').order('name_ar'),
    sb.from('inv_sites').select('id,name_ar').eq('active',true).order('name_ar'),
-   sb.from('customers').select('id,name,code,opening_balance,withholding_enabled,withholding_rate').order('name')
+   sb.from('customers').select('id,name,code,opening_balance,withholding_enabled,withholding_rate,customer_type,tax_registered,tax_registration_number').order('name')
   ]);
   items=a.data||[];units=b.data||[];sites=c.data||[];customers=d.data||[];
   $('date').value=new Date().toISOString().slice(0,10);
@@ -179,13 +180,13 @@ function setupCustomerPicker(){
   const r=input.getBoundingClientRect();box.style.left=Math.max(8,r.left)+'px';box.style.width=Math.max(260,r.width)+'px';box.style.top=(r.bottom+2)+'px';box.style.display='block';
   box.querySelectorAll('[data-customer-id]').forEach(b=>b.onclick=()=>{
    const id=b.dataset.customerId, x=customers.find(z=>String(z.id)===String(id));if(!x)return;
-   $('customer').value=id;input.value=x.name;$('balance').value=Number(x.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});box.style.display='none';loadCustomerBalance();calc();
+   $('customer').value=id;input.value=x.name;$('balance').value=Number(x.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});box.style.display='none';updateEtaCustomerInfo();loadCustomerBalance();calc();
   });
  }
  input.addEventListener('input',()=>{
   const q=input.value.trim().toLocaleLowerCase();
   const exact=customers.find(x=>String(x.name||'').trim().toLocaleLowerCase()===q||String(x.code||x.customer_code||'').trim().toLocaleLowerCase()===q);
-  if(exact){$('customer').value=exact.id;$('balance').value=Number(exact.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});loadCustomerBalance();}
+  if(exact){$('customer').value=exact.id;$('balance').value=Number(exact.opening_balance||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});updateEtaCustomerInfo();loadCustomerBalance();}
   else {$('customer').value='';$('balance').value='0.00';}
   draw();
  });
@@ -274,7 +275,8 @@ async function loadCustomerBalance(){
   $('balance').value=(opening+sales-returns-receipts).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
  }catch(e){$('balance').value='خطأ';console.error('customer balance',e)}
 }
-$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));if(c)$('customerSearch').value=c.name;loadCustomerBalance();});
+function updateEtaCustomerInfo(){const c=customers.find(x=>String(x.id)===String($('customer').value));const el=$('etaCustomerInfo');if(!c){el.textContent='لم يتم اختيار عميل.';el.style.color='#667085';return;}if(c.tax_registered&&String(c.tax_registration_number||'').trim()){el.textContent='✓ عميل مسجل ضريبيًا — رقم التسجيل: '+c.tax_registration_number+' — سيتم حفظ نسخة من بياناته مع المسودة.';el.style.color='#087f4f';}else{el.textContent='⚠ العميل غير مكتمل التسجيل الضريبي — لا تعتبر الفاتورة جاهزة للإرسال إلى ETA.';el.style.color='#b54708';}}
+$('customer').addEventListener('change',()=>{calc();const c=customers.find(x=>String(x.id)===String($('customer').value));if(c)$('customerSearch').value=c.name;updateEtaCustomerInfo();loadCustomerBalance();});
 $('site').addEventListener('change',refreshAllStocks);
 async function validateAndPost(){
  const rows=[...document.querySelectorAll('#lines tr')];
@@ -305,7 +307,10 @@ async function saveDraft(){
   const lines=rows.map(tr=>{const x=items.find(i=>i.id===tr.dataset.itemId),q=+tr.querySelector('.qty').value||0,p=+tr.querySelector('.price').value||0,d=+tr.querySelector('.disc').value||0,r=+tr.querySelector('.tax').value||0,co=+tr.querySelector('.cost').value||0,v=q*p,dd=v*d/100,n=v-dd;return{item_id:x?.id,qty:q,price:p,unit_cost:co,discount_rate:d,discount_amount:dd,tax_rate:r/100,tax_amount:n*r/100}})
   if(lines.some(x=>!x.item_id||x.qty<=0))return msg('راجع الأصناف والكميات','bad');
   const subtotal=lines.reduce((s,x)=>s+x.qty*x.price-x.discount_amount,0),tax=lines.reduce((s,x)=>s+x.tax_amount,0),total=subtotal+tax,withholdingRate=getWithholdingRate(),withholdingTax=subtotal*withholdingRate/100,netTotal=total-withholdingTax;
-  const h=await sb.from('sales').insert({invoice_no:$('invoiceNo').value==='New'?null:$('invoiceNo').value||null,customer_id:+$('customer').value,site_id:$('site').value,sale_date:$('date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:withholdingTax}).select().single();
+  const customer=customers.find(x=>String(x.id)===String($('customer').value));
+  if(!customer) return msg('تعذر قراءة بيانات العميل؛ أعد اختياره.','bad');
+  if(customer.tax_registered&&!String(customer.tax_registration_number||'').trim()) return msg('العميل محدد كمسجل ضريبيًا لكن رقم التسجيل غير موجود. راجع بطاقة العميل.','bad');
+  const h=await sb.from('sales').insert({invoice_no:$('invoiceNo').value==='New'?null:$('invoiceNo').value||null,customer_id:+$('customer').value,site_id:$('site').value,sale_date:$('date').value,subtotal,tax,total,status:'draft',created_by:user.id,withholding_tax:withholdingTax,eta_customer_name:customer.name,eta_customer_type:customer.customer_type||null,eta_customer_tax_registered:!!customer.tax_registered,eta_customer_tax_number:customer.tax_registration_number||null}).select().single();
   if(h.error)throw h.error;
   const l=await sb.from('sale_lines').insert(lines.map(x=>({sale_id:h.data.id,item_id:x.item_id,qty:x.qty,unit_price:x.price,unit_cost:x.unit_cost,discount_rate:x.discount_rate,discount_amount:x.discount_amount,tax_rate:x.tax_rate,tax_amount:x.tax_amount})));
   if(l.error)throw l.error;
